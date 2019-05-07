@@ -1,4 +1,6 @@
 # -*- coding: utf-8 -*-
+from __future__ import absolute_import
+from gcapi.gcapi import Client
 
 """Top-level package for Grand Challenge API Client."""
 
