@@ -21,7 +21,7 @@ class APIBase:
 
 
 class ImagesAPI(APIBase):
-    base_path = "cases/images"
+    base_path = "cases/images/"
 
     def list(self):
         # TODO
@@ -29,7 +29,7 @@ class ImagesAPI(APIBase):
 
 
 class WorkstationSessionsAPI(APIBase):
-    base_path = "workstations/sessions"
+    base_path = "workstations/sessions/"
 
 
 class Client(Session):
