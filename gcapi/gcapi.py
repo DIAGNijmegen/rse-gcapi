@@ -13,8 +13,10 @@ class APIBase:
     def __init__(self, client):
         self._client = client
 
-    def list(self):
-        return self._client(method="GET", path=self.base_path)
+    def list(self, offset=0, limit=100):
+        return self._client(
+            method="GET", path=self.base_path, params={"offset": offset, "limit": limit}
+        )
 
     def detail(self, pk):
         return self._client(method="GET", path=urljoin(self.base_path, pk))
@@ -22,10 +24,6 @@ class APIBase:
 
 class ImagesAPI(APIBase):
     base_path = "cases/images/"
-
-    def list(self):
-        # TODO
-        raise NotImplementedError
 
 
 class WorkstationSessionsAPI(APIBase):
@@ -55,12 +53,13 @@ class Client(Session):
         self.images = ImagesAPI(client=self)
         self.sessions = WorkstationSessionsAPI(client=self)
 
-    def __call__(self, method="GET", path=""):
+    def __call__(self, method="GET", path="", params=None):
         response = self.request(
             method=method,
             url=urljoin(self._base_url, path),
             headers=self.headers,
             verify=self._verify,
+            params={} if params is None else params,
         )
 
         response.raise_for_status()
