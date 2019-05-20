@@ -19,7 +19,7 @@ class APIBase:
         )
 
     def detail(self, pk):
-        return self._client(method="GET", path=urljoin(self.base_path, pk))
+        return self._client(method="GET", path=urljoin(self.base_path, pk + "/"))
 
 
 class ImagesAPI(APIBase):
