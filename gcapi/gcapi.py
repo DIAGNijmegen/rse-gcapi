@@ -26,6 +26,10 @@ class ImagesAPI(APIBase):
     base_path = "cases/images/"
 
 
+class ReaderStudiesAPI(APIBase):
+    base_path = "reader-studies/"
+
+
 class WorkstationSessionsAPI(APIBase):
     base_path = "workstations/sessions/"
 
@@ -51,6 +55,7 @@ class Client(Session):
         self._verify = verify
 
         self.images = ImagesAPI(client=self)
+        self.reader_studies = ReaderStudiesAPI(client=self)
         self.sessions = WorkstationSessionsAPI(client=self)
 
     def __call__(self, method="GET", path="", params=None):
