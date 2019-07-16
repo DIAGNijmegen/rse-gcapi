@@ -58,10 +58,19 @@ class Client(Session):
         self.reader_studies = ReaderStudiesAPI(client=self)
         self.sessions = WorkstationSessionsAPI(client=self)
 
-    def __call__(self, method="GET", path="", params=None):
+    def _validate_url(self, url):
+        if not url.startswith(self._base_url):
+            raise RuntimeError("{} does not start with {}".format(url, self._base_url))
+
+    def __call__(self, method="GET", url="", path="", params=None):
+        if not url:
+            url = urljoin(self._base_url, path)
+
+        self._validate_url(url)
+
         response = self.request(
             method=method,
-            url=urljoin(self._base_url, path),
+            url=url,
             headers=self.headers,
             verify=self._verify,
             params={} if params is None else params,
