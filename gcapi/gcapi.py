@@ -34,6 +34,18 @@ class WorkstationSessionsAPI(APIBase):
     base_path = "workstations/sessions/"
 
 
+class AlgorithmsAPI(APIBase):
+    base_path = "algorithms/"
+
+
+class ResultsAPI(APIBase):
+    base_path = "algorithms/results/"
+
+
+class JobsAPI(APIBase):
+    base_path = "algorithms/jobs/"
+
+
 class Client(Session):
     def __init__(
         self, token=None, base_url="https://grand-challenge.org/api/v1/", verify=True
@@ -57,6 +69,9 @@ class Client(Session):
         self.images = ImagesAPI(client=self)
         self.reader_studies = ReaderStudiesAPI(client=self)
         self.sessions = WorkstationSessionsAPI(client=self)
+        self.algorithms = AlgorithmsAPI(client=self)
+        self.results = ResultsAPI(client=self)
+        self.jobs = JobsAPI(client=self)
 
     def _validate_url(self, url):
         if not url.startswith(self._base_url):
