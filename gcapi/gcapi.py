@@ -38,11 +38,11 @@ class AlgorithmsAPI(APIBase):
     base_path = "algorithms/"
 
 
-class ResultsAPI(APIBase):
+class AlgorithmResultsAPI(APIBase):
     base_path = "algorithms/results/"
 
 
-class JobsAPI(APIBase):
+class AlgorithmJobsAPI(APIBase):
     base_path = "algorithms/jobs/"
 
 
@@ -70,8 +70,8 @@ class Client(Session):
         self.reader_studies = ReaderStudiesAPI(client=self)
         self.sessions = WorkstationSessionsAPI(client=self)
         self.algorithms = AlgorithmsAPI(client=self)
-        self.results = ResultsAPI(client=self)
-        self.jobs = JobsAPI(client=self)
+        self.algorithm_results = AlgorithmResultsAPI(client=self)
+        self.algorithm_jobs = AlgorithmJobsAPI(client=self)
 
     def _validate_url(self, url):
         if not url.startswith(self._base_url):
