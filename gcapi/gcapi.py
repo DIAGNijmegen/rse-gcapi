@@ -1,4 +1,8 @@
 # -*- coding: utf-8 -*-
+from __future__ import print_function, division, absolute_import
+
+import uuid
+
 try:
     from urllib.parse import urljoin
 except ImportError:
@@ -7,11 +11,25 @@ except ImportError:
 from requests import Session
 
 
+def is_uuid(s):
+    try:
+        uuid.UUID(s)
+    except ValueError:
+        return False
+    else:
+        return True
+
+
 class APIBase:
+    _client = None # type: Client
     base_path = ""
+    sub_apis = {}
 
     def __init__(self, client):
         self._client = client
+
+        for k, api in self.sub_apis.items():
+            setattr(self, k, api(self._client))
 
     def list(self, offset=0, limit=100):
         return self._client(
@@ -22,16 +40,59 @@ class APIBase:
         return self._client(method="GET", path=urljoin(self.base_path, pk + "/"))
 
 
+class ModifiableMixin:
+    _client = None # type: Client
+    _required_fields = []
+
+    def _process_post_arguments(self, post_args):
+        for k in self._required_fields:
+            if k not in post_args:
+                raise ValueError("Missing field: {}".format(k))
+
+    def send(self, **kwargs):
+        self._process_post_arguments(kwargs)
+        self._client(
+            method="POST",
+            path=self.base_path,
+            json=kwargs,
+            extra_headers={"Content-Type": "application/json"})
+
+
 class ImagesAPI(APIBase):
     base_path = "cases/images/"
 
 
-class ReaderStudiesAPI(APIBase):
-    base_path = "reader-studies/"
-
-
 class WorkstationSessionsAPI(APIBase):
     base_path = "workstations/sessions/"
+
+
+class ReaderStudyQuestionsAPI(APIBase):
+    base_path = "reader-studies/questions/"
+
+
+class ReaderStudyAnswersAPI(APIBase, ModifiableMixin):
+    base_path = "reader-studies/answers/"
+    _required_fields = ("answer", "images", "question")
+
+    def _process_post_arguments(self, post_args):
+        ModifiableMixin._process_post_arguments(self, post_args)
+
+        if is_uuid(post_args["question"]):
+            post_args["question"] = urljoin(urljoin(
+                self._client.base_url,
+                ReaderStudyQuestionsAPI.base_path
+            ),  post_args["question"] + "/")
+
+
+class ReaderStudiesAPI(APIBase):
+    base_path = "reader-studies/"
+    sub_apis = {
+        "answers": ReaderStudyAnswersAPI,
+        "questions": ReaderStudyQuestionsAPI,
+    }
+
+    answers = None # type: ReaderStudyAnswersAPI
+    questions = None # type: ReaderStudyQuestionsAPI
 
 
 class AlgorithmsAPI(APIBase):
@@ -73,11 +134,15 @@ class Client(Session):
         self.algorithm_results = AlgorithmResultsAPI(client=self)
         self.algorithm_jobs = AlgorithmJobsAPI(client=self)
 
+    @property
+    def base_url(self):
+        return self._base_url
+
     def _validate_url(self, url):
         if not url.startswith(self._base_url):
             raise RuntimeError("{} does not start with {}".format(url, self._base_url))
 
-    def __call__(self, method="GET", url="", path="", params=None):
+    def __call__(self, method="GET", url="", path="", params=None, json=None, extra_headers={}):
         if not url:
             url = urljoin(self._base_url, path)
 
@@ -86,9 +151,10 @@ class Client(Session):
         response = self.request(
             method=method,
             url=url,
-            headers=self.headers,
+            headers=dict(dict(self.headers).items() + dict(extra_headers).items()),
             verify=self._verify,
             params={} if params is None else params,
+            json=json,
         )
 
         response.raise_for_status()
