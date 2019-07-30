@@ -36,6 +36,18 @@ class APIBase:
             method="GET", path=self.base_path, params={"offset": offset, "limit": limit}
         )
 
+    def iterate_all(self):
+        REQ_COUNT = 100
+        offset = 0
+        while True:
+            response = self.list(offset=offset, limit=REQ_COUNT)
+            current_list = response["results"]
+            if len(current_list) == 0:
+                break
+            for item in current_list:
+                yield item
+            offset += REQ_COUNT
+
     def detail(self, pk):
         return self._client(method="GET", path=urljoin(self.base_path, pk + "/"))
 
@@ -70,9 +82,18 @@ class ReaderStudyQuestionsAPI(APIBase):
     base_path = "reader-studies/questions/"
 
 
+class ReaderStudyMineAnswersAPI(APIBase, ModifiableMixin):
+    base_path = "reader-studies/answers/mine/"
+
+
 class ReaderStudyAnswersAPI(APIBase, ModifiableMixin):
     base_path = "reader-studies/answers/"
+    sub_apis = {
+        "mine": ReaderStudyMineAnswersAPI,
+    }
     _required_fields = ("answer", "images", "question")
+
+    mine = None # type: ReaderStudyMineAnswersAPI
 
     def _process_post_arguments(self, post_args):
         ModifiableMixin._process_post_arguments(self, post_args)
@@ -143,5 +164,4 @@ class Client(Session):
         )
 
         response.raise_for_status()
-
         return response.json()
