@@ -1,0 +1,47 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "definitions": {
+    "uuid": {
+      "type": "string",
+      "pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$"
+    },
+    "api-link": {
+      "type": "string",
+      "pattern": "^https?://.*[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}/$"
+    },
+    "gc-db-object": {
+      "type": "object",
+      "properties": {
+        "pk": {
+          "$ref": "#/definitions/uuid"
+        },
+        "api_url": {
+          "$ref": "#/definitions/api-link"
+        }
+      },
+      "required": ["pk", "api_url"]
+    }
+  },
+  
+  "allOf": [
+    { "$ref": "#/definitions/gc-db-object" },
+    {
+      "type": "object",
+      "properties": {
+        "answer": {},
+        "creator": { "type": "string" },
+        "question": { "$ref": "#/definitions/api-link" },
+        "images": {
+          "type": "array",
+          "items": { "$ref": "#/definitions/api-link" }
+        }
+      },
+      "required": [
+        "answer",
+        "creator",
+        "question",
+        "images"
+      ]
+    }
+  ]
+}

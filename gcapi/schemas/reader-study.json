@@ -1,0 +1,92 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+
+  "definitions": {
+    "uuid": {
+      "type": "string",
+      "pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$"
+    },
+    "api-link": {
+      "type": "string",
+      "pattern": "^https?://.*[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}/$"
+    },
+    "gc-db-object": {
+      "type": "object",
+      "properties": {
+        "pk": {
+          "$ref": "#/definitions/uuid"
+        },
+        "api_url": {
+          "$ref": "#/definitions/api-link"
+        }
+      },
+      "required": ["pk", "api_url"]
+    },
+    "question-generic" : {
+      "allOf": [
+        { "$ref": "#/definitions/gc-db-object" },
+        {
+          "type": "object",
+          "properties": {
+            "form_direction": { "enum": [ "Vertical", "Horizontal" ] },
+            "answer_type": { "enum": [ "Bool", "Single line text", "Multi line text", "Heading" ] },
+            "question_text": { "type": "string" }
+          },
+          "required": ["form_direction", "answer_type", "question_text"]
+        }
+      ]
+    },
+    "question-simple": {
+      "allOf": [
+        { "$ref": "#/definitions/question-generic" },
+        {
+          "type": "object",
+          "properties": {
+            "type": { 
+              "enum": [ "multi-line-text", "single-line-text", "bool", "heading" ] 
+            }
+          }
+        }
+      ]
+    }
+  },
+  
+  "type": "object",
+  "allOf": [
+    { "$ref": "#/definitions/gc-db-object" },
+    {
+      "properties": {
+        "title": {
+          "type": "string"
+        },
+        "description": {
+          "type": "string"
+        },
+        "is_valid": {
+          "type": "boolean"
+        },
+        "questions": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/question-simple"
+          }
+        },
+        "hanging_list_images": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "additionalProperties": { "$ref": "#/definitions/api-link" }
+          }
+        }
+      },
+      "required": [
+        "title",
+        "description",
+        "is_valid",
+        "questions",
+        "hanging_list_images"
+      ],
+      "additionalProperties": true
+    }
+  ]
+}

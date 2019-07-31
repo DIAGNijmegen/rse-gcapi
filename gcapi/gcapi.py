@@ -1,7 +1,14 @@
 # -*- coding: utf-8 -*-
 from __future__ import print_function, division, absolute_import
 
+import os
 import uuid
+
+import json
+
+import sys
+
+import jsonschema
 
 try:
     from urllib.parse import urljoin
@@ -25,23 +32,53 @@ class APIBase:
     base_path = ""
     sub_apis = {}
 
+    json_schema_file = None
+    __json_schema = None
+
+    @staticmethod
+    def _attempt_load_json_schema(filename):
+        if filename is None:
+            return None
+        filename = os.path.join(
+            os.path.dirname(os.path.abspath(__file__)),
+            "schemas",
+            filename)
+
+        try:
+            with open(filename, "r") as f:
+                jsn = json.load(f)
+            return jsonschema.Draft7Validator(jsn)
+        except ValueError as e:
+            print("Error parsing '{}': {}".format(
+                e, filename), file=sys.stderr)
+            return None
+
     def __init__(self, client):
+        if isinstance(self, ModifiableMixin):
+            ModifiableMixin.__init__(self)
+
         self._client = client
+        self.__json_schema = self._attempt_load_json_schema(self.json_schema_file)
 
         for k, api in self.sub_apis.items():
             setattr(self, k, api(self._client))
 
-    def list(self, offset=0, limit=100):
-        return self._client(
+    def __verify_against_schema(self, value):
+        if self.__json_schema is not None:
+            self.__json_schema.validate(value)
+
+    def page(self, offset=0, limit=100):
+        result = self._client(
             method="GET", path=self.base_path, params={"offset": offset, "limit": limit}
-        )
+        )["results"]
+        for i in result: self.__verify_against_schema(i)
+        return result
 
     def iterate_all(self):
         REQ_COUNT = 100
         offset = 0
         while True:
-            response = self.list(offset=offset, limit=REQ_COUNT)
-            current_list = response["results"]
+            current_list = self.page(offset=offset, limit=REQ_COUNT)
             if len(current_list) == 0:
                 break
             for item in current_list:
@@ -49,12 +86,21 @@ class APIBase:
             offset += REQ_COUNT
 
     def detail(self, pk):
-        return self._client(method="GET", path=urljoin(self.base_path, pk + "/"))
+        result = self._client(method="GET", path=urljoin(self.base_path, pk + "/"))
+        self.__verify_against_schema(result)
+        return result
 
 
 class ModifiableMixin:
     _client = None # type: Client
     _required_fields = []
+
+    modify_json_schema_file = None
+    __json_schema = None
+
+    def __init__(self):
+        self.__json_schema = self._attempt_load_json_schema(
+            self.modify_json_schema_file)
 
     def _process_post_arguments(self, post_args):
         for k in self._required_fields:
@@ -84,10 +130,12 @@ class ReaderStudyQuestionsAPI(APIBase):
 
 class ReaderStudyMineAnswersAPI(APIBase, ModifiableMixin):
     base_path = "reader-studies/answers/mine/"
+    json_schema_file = "answer.json"
 
 
 class ReaderStudyAnswersAPI(APIBase, ModifiableMixin):
     base_path = "reader-studies/answers/"
+    json_schema_file = "answer.json"
     sub_apis = {
         "mine": ReaderStudyMineAnswersAPI,
     }
@@ -107,6 +155,8 @@ class ReaderStudyAnswersAPI(APIBase, ModifiableMixin):
 
 class ReaderStudiesAPI(APIBase):
     base_path = "reader-studies/"
+    json_schema_file = "reader-study.json"
+
     sub_apis = {
         "answers": ReaderStudyAnswersAPI,
         "questions": ReaderStudyQuestionsAPI,
