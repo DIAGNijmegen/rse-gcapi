@@ -1,12 +1,10 @@
 # -*- coding: utf-8 -*-
 from __future__ import print_function, division, absolute_import
 
-import os
-import uuid
-
 import json
-
+import os
 import sys
+import uuid
 
 import jsonschema
 
@@ -28,7 +26,7 @@ def is_uuid(s):
 
 
 class APIBase:
-    _client = None # type: Client
+    _client = None  # type: Client
     base_path = ""
     sub_apis = {}
 
@@ -40,17 +38,15 @@ class APIBase:
         if filename is None:
             return None
         filename = os.path.join(
-            os.path.dirname(os.path.abspath(__file__)),
-            "schemas",
-            filename)
+            os.path.dirname(os.path.abspath(__file__)), "schemas", filename
+        )
 
         try:
             with open(filename, "r") as f:
                 jsn = json.load(f)
             return jsonschema.Draft7Validator(jsn)
         except ValueError as e:
-            print("Error parsing '{}': {}".format(
-                e, filename), file=sys.stderr)
+            print("Error parsing '{}': {}".format(e, filename), file=sys.stderr)
             return None
 
     def __init__(self, client):
@@ -71,7 +67,8 @@ class APIBase:
         result = self._client(
             method="GET", path=self.base_path, params={"offset": offset, "limit": limit}
         )["results"]
-        for i in result: self.__verify_against_schema(i)
+        for i in result:
+            self.__verify_against_schema(i)
         return result
 
     def iterate_all(self):
@@ -92,7 +89,7 @@ class APIBase:
 
 
 class ModifiableMixin:
-    _client = None # type: Client
+    _client = None  # type: Client
     _required_fields = []
 
     modify_json_schema_file = None
@@ -100,7 +97,8 @@ class ModifiableMixin:
 
     def __init__(self):
         self.__json_schema = self._attempt_load_json_schema(
-            self.modify_json_schema_file)
+            self.modify_json_schema_file
+        )
 
     def _process_post_arguments(self, post_args):
         for k in self._required_fields:
@@ -113,7 +111,8 @@ class ModifiableMixin:
             method="POST",
             path=self.base_path,
             json=kwargs,
-            extra_headers={"Content-Type": "application/json"})
+            extra_headers={"Content-Type": "application/json"},
+        )
 
 
 class ImagesAPI(APIBase):
@@ -136,34 +135,29 @@ class ReaderStudyMineAnswersAPI(APIBase, ModifiableMixin):
 class ReaderStudyAnswersAPI(APIBase, ModifiableMixin):
     base_path = "reader-studies/answers/"
     json_schema_file = "answer.json"
-    sub_apis = {
-        "mine": ReaderStudyMineAnswersAPI,
-    }
+    sub_apis = {"mine": ReaderStudyMineAnswersAPI}
     _required_fields = ("answer", "images", "question")
 
-    mine = None # type: ReaderStudyMineAnswersAPI
+    mine = None  # type: ReaderStudyMineAnswersAPI
 
     def _process_post_arguments(self, post_args):
         ModifiableMixin._process_post_arguments(self, post_args)
 
         if is_uuid(post_args["question"]):
-            post_args["question"] = urljoin(urljoin(
-                self._client.base_url,
-                ReaderStudyQuestionsAPI.base_path
-            ),  post_args["question"] + "/")
+            post_args["question"] = urljoin(
+                urljoin(self._client.base_url, ReaderStudyQuestionsAPI.base_path),
+                post_args["question"] + "/",
+            )
 
 
 class ReaderStudiesAPI(APIBase):
     base_path = "reader-studies/"
     json_schema_file = "reader-study.json"
 
-    sub_apis = {
-        "answers": ReaderStudyAnswersAPI,
-        "questions": ReaderStudyQuestionsAPI,
-    }
+    sub_apis = {"answers": ReaderStudyAnswersAPI, "questions": ReaderStudyQuestionsAPI}
 
-    answers = None # type: ReaderStudyAnswersAPI
-    questions = None # type: ReaderStudyQuestionsAPI
+    answers = None  # type: ReaderStudyAnswersAPI
+    questions = None  # type: ReaderStudyQuestionsAPI
 
 
 class Client(Session):
@@ -198,7 +192,9 @@ class Client(Session):
         if not url.startswith(self._base_url):
             raise RuntimeError("{} does not start with {}".format(url, self._base_url))
 
-    def __call__(self, method="GET", url="", path="", params=None, json=None, extra_headers={}):
+    def __call__(
+        self, method="GET", url="", path="", params=None, json=None, extra_headers={}
+    ):
         if not url:
             url = urljoin(self._base_url, path)
 
