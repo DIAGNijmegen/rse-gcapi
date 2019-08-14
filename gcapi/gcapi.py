@@ -114,6 +114,9 @@ class ModifiableMixin:
 
     modify_json_schema = None # type: jsonschema.Draft7Validator
 
+    def __init__(self):
+        pass
+
     def _process_post_arguments(self, post_args):
         if self.modify_json_schema is not None:
             self.modify_json_schema.validate(post_args)
