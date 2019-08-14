@@ -214,7 +214,7 @@ class Client(Session):
         if not url:
             url = urljoin(self._base_url, path)
         if extra_headers is None:
-            extra_headers = None
+            extra_headers = {}
         if json is not None:
             extra_headers["Content-Type"] = "application/json"
 
