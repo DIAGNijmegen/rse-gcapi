@@ -111,7 +111,6 @@ class ModifiableMixin:
             method="POST",
             path=self.base_path,
             json=kwargs,
-            extra_headers={"Content-Type": "application/json"},
         )
 
 
@@ -192,11 +191,15 @@ class Client(Session):
         if not url.startswith(self._base_url):
             raise RuntimeError("{} does not start with {}".format(url, self._base_url))
 
-    def __call__(
-        self, method="GET", url="", path="", params=None, json=None, extra_headers={}
-    ):
+    def __call__(self,
+            method="GET", url="", path="", params=None,
+            json=None, extra_headers=None):
         if not url:
             url = urljoin(self._base_url, path)
+        if extra_headers is None:
+            extra_headers = None
+        if json is not None:
+            extra_headers["Content-Type"] = "application/json"
 
         self._validate_url(url)
 
