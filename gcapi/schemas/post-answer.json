@@ -4,6 +4,38 @@
         "api-link": {
             "type": "string",
             "pattern": "^https?://.*[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}/$"
+        },
+        "valid-answers": {
+            "anyOf": [
+                { "type": "boolean" },
+                { "type": "string" },
+                {
+                    "type": "object",
+                    "properties": {
+                        "version": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "number"
+                            },
+                            "required": ["major", "minor"]
+                        },
+                        "type": { "enum": [ "2D bounding box" ] },
+                        "corners": {
+                            "type": "array",
+                            "items": {
+                                "type": "array",
+                                "items": { "type": "number" },
+                                "minItems": 3,
+                                "maxItems": 3
+                            },
+                            "minItems": 4,
+                            "maxItems": 4
+                        },
+                        "name": { "type": "string" }
+                    },
+                    "required": ["version", "type", "corners"]
+                }
+            ]
         }
     },
 
@@ -13,7 +45,8 @@
         "images": {
             "minItems": 1,
             "items": { "$ref": "#/definitions/api-link" }
-        }
+        },
+        "answer": { "$ref": "#/definitions/valid-answers" }
     },
     "required": ["images", "question", "answer"]
 }

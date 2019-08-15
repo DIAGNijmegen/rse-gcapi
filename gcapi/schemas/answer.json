@@ -20,6 +20,38 @@
                 }
             },
             "required": ["pk", "api_url"]
+        },
+        "valid-answers": {
+            "anyOf": [
+                { "type": "boolean" },
+                { "type": "string" },
+                {
+                    "type": "object",
+                    "properties": {
+                        "version": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "number"
+                            },
+                            "required": ["major", "minor"]
+                        },
+                        "type": { "enum": [ "2D bounding box" ] },
+                        "corners": {
+                            "type": "array",
+                            "items": {
+                                "type": "array",
+                                "items": { "type": "number" },
+                                "minItems": 3,
+                                "maxItems": 3
+                            },
+                            "minItems": 4,
+                            "maxItems": 4
+                        },
+                        "name": { "type": "string" }
+                    },
+                    "required": ["version", "type", "corners"]
+                }
+            ]
         }
     },
 
@@ -28,7 +60,7 @@
         {
             "type": "object",
             "properties": {
-                "answer": {},
+                "answer": { "$ref": "#/definitions/valid-answers" },
                 "creator": { "type": "string" },
                 "question": { "$ref": "#/definitions/api-link" },
                 "images": {

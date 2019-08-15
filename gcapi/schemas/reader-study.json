@@ -29,7 +29,6 @@
                     "type": "object",
                     "properties": {
                         "form_direction": { "enum": [ "Vertical", "Horizontal" ] },
-                        "answer_type": { "enum": [ "Bool", "Single line text", "Multi line text", "Heading" ] },
                         "question_text": { "type": "string" }
                     },
                     "required": ["form_direction", "answer_type", "question_text"]
@@ -42,10 +41,33 @@
                 {
                     "type": "object",
                     "properties": {
-                        "type": {
-                            "enum": [ "multi-line-text", "single-line-text", "bool", "heading" ]
+                        "answer_type": {
+                            "enum": [
+                                "Bool",
+                                "Single line text",
+                                "Multi line text",
+                                "Heading"
+                            ]
                         }
                     }
+                }
+            ]
+        },
+        "question-annotation": {
+            "allOf": [
+                { "$ref": "#/definitions/question-generic" },
+                {
+                    "type": "object",
+                    "properties": {
+                        "answer_type": {
+                            "enum": [ "2D bounding box" ]
+                        },
+                        "image_port" : {
+                            "type": "string",
+                            "minLength": 1
+                        }
+                    },
+                    "required": ["image_port", "answer_type"]
                 }
             ]
         }
@@ -68,7 +90,10 @@
                 "questions": {
                     "type": "array",
                     "items": {
-                        "$ref": "#/definitions/question-simple"
+                        "anyOf": [
+                            { "$ref": "#/definitions/question-simple" },
+                            { "$ref": "#/definitions/question-annotation" }
+                        ]
                     }
                 },
                 "hanging_list_images": {
