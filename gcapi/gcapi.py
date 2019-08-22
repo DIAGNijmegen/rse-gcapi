@@ -25,6 +25,17 @@ def is_uuid(s):
         return True
 
 
+def accept_tuples_as_arrays(org):
+    return org.redefine(
+        "array",
+        lambda checker, instance:
+            isinstance(instance, tuple) or org.is_type(instance, "array"))
+
+Draft7ValidatorWithTupleSupport = jsonschema.validators.extend(
+    jsonschema.Draft7Validator,
+    type_checker=accept_tuples_as_arrays(jsonschema.Draft7Validator.TYPE_CHECKER))
+
+
 def import_json_schema(filename):
     """
     Loads a json schema from the module's subdirectory "schemas".
@@ -56,7 +67,7 @@ def import_json_schema(filename):
     try:
         with open(filename, "r") as f:
             jsn = json.load(f)
-        return jsonschema.Draft7Validator(jsn)
+        return  Draft7ValidatorWithTupleSupport(jsn)
     except ValueError as e:
         # I want missing/failing json imports to be an import error because that
         # is what they should indicate: a "broken" library
