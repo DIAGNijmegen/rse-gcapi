@@ -36,6 +36,7 @@ Draft7ValidatorWithTupleSupport = jsonschema.validators.extend(
     type_checker=accept_tuples_as_arrays(jsonschema.Draft7Validator.TYPE_CHECKER))
 
 
+
 def import_json_schema(filename):
     """
     Loads a json schema from the module's subdirectory "schemas".
