@@ -1,17 +1,16 @@
 # -*- coding: utf-8 -*-
 from __future__ import print_function, division, absolute_import
 
+from future import standard_library
+standard_library.install_aliases()
+from builtins import object
 import json
 import os
 import sys
 import uuid
-
 import jsonschema
 
-try:
-    from urllib.parse import urljoin
-except ImportError:
-    from urlparse import urljoin
+from urllib.parse import urljoin
 
 from requests import Session
 
@@ -34,6 +33,7 @@ def accept_tuples_as_arrays(org):
 Draft7ValidatorWithTupleSupport = jsonschema.validators.extend(
     jsonschema.Draft7Validator,
     type_checker=accept_tuples_as_arrays(jsonschema.Draft7Validator.TYPE_CHECKER))
+
 
 
 def import_json_schema(filename):
@@ -75,7 +75,7 @@ def import_json_schema(filename):
             file=filename, error=e))
 
 
-class APIBase:
+class APIBase(object):
     _client = None  # type: Client
     base_path = ""
     sub_apis = {}
@@ -88,7 +88,7 @@ class APIBase:
 
         self._client = client
 
-        for k, api in self.sub_apis.items():
+        for k, api in list(self.sub_apis.items()):
             setattr(self, k, api(self._client))
 
     def __verify_against_schema(self, value):
@@ -120,7 +120,7 @@ class APIBase:
         return result
 
 
-class ModifiableMixin:
+class ModifiableMixin(object):
     _client = None  # type: Client
 
     modify_json_schema = None # type: jsonschema.Draft7Validator
@@ -249,7 +249,7 @@ class Client(Session):
         response = self.request(
             method=method,
             url=url,
-            headers=dict(dict(self.headers).items() + dict(extra_headers).items()),
+            headers=dict(list(dict(self.headers).items()) + list(dict(extra_headers).items())),
             verify=self._verify,
             params={} if params is None else params,
             json=json,
