@@ -60,7 +60,10 @@
                     "type": "object",
                     "properties": {
                         "answer_type": {
-                            "enum": [ "2D bounding box" ]
+                            "enum": [
+                                "2D bounding box",
+                                "Distance measurement"
+                            ]
                         },
                         "image_port" : {
                             "type": "string",
