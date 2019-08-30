@@ -34,6 +34,33 @@
                         "name": { "type": "string" }
                     },
                     "required": ["version", "type", "corners"]
+                },
+                {
+                    "type": "object",
+                    "properties": {
+                        "version": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "number"
+                            },
+                            "required": ["major", "minor"]
+                        },
+                        "type": { "enum": [ "Distance measurement" ] },
+                        "name": { "type": "string" },
+                        "start": {
+                            "type": "array",
+                            "items": { "type": "number" },
+                            "minItems": 3,
+                            "maxItems": 3
+                        },
+                        "end": {
+                            "type": "array",
+                            "items": { "type": "number" },
+                            "minItems": 3,
+                            "maxItems": 3
+                        }
+                    },
+                    "required": ["version", "type", "start", "end"]
                 }
             ]
         }

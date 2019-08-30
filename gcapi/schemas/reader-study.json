@@ -29,9 +29,11 @@
                     "type": "object",
                     "properties": {
                         "form_direction": { "enum": [ "Vertical", "Horizontal" ] },
-                        "question_text": { "type": "string" }
+                        "question_text": { "type": "string" },
+                        "required": { "type": "boolean" },
+                        "help_text": { "type": "string" }
                     },
-                    "required": ["form_direction", "answer_type", "question_text"]
+                    "required": ["form_direction", "answer_type", "question_text", "required", "help_text"]
                 }
             ]
         },
@@ -60,7 +62,10 @@
                     "type": "object",
                     "properties": {
                         "answer_type": {
-                            "enum": [ "2D bounding box" ]
+                            "enum": [
+                                "2D bounding box",
+                                "Distance measurement"
+                            ]
                         },
                         "image_port" : {
                             "type": "string",
