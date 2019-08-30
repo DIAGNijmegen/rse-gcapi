@@ -30,9 +30,10 @@
                     "properties": {
                         "form_direction": { "enum": [ "Vertical", "Horizontal" ] },
                         "question_text": { "type": "string" },
-                        "required": { "type": "boolean" }
+                        "required": { "type": "boolean" },
+                        "help_text": { "type": "string" }
                     },
-                    "required": ["form_direction", "answer_type", "question_text", "required"]
+                    "required": ["form_direction", "answer_type", "question_text", "required", "help_text"]
                 }
             ]
         },
