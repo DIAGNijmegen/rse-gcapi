@@ -1,8 +1,6 @@
 # -*- coding: utf-8 -*-
 from __future__ import print_function, division, absolute_import
 
-from future import standard_library
-standard_library.install_aliases()
 from builtins import object
 import json
 import os
@@ -10,7 +8,10 @@ import sys
 import uuid
 import jsonschema
 
-from urllib.parse import urljoin
+try:
+    from urllib.parse import urljoin
+except ImportError:
+    from urlparse import urljoin
 
 from requests import Session
 
