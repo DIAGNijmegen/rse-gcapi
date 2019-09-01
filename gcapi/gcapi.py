@@ -8,10 +8,7 @@ import sys
 import uuid
 import jsonschema
 
-try:
-    from urllib.parse import urljoin
-except ImportError:
-    from urlparse import urljoin
+from future.moves.urllib.parse import urljoin
 
 from requests import Session
 

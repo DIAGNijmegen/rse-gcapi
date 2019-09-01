@@ -2,10 +2,12 @@
 # -*- coding: utf-8 -*-
 
 """Tests for `gcapi` package."""
+import sys
 
 import pytest
 
 from click.testing import CliRunner
+from requests.exceptions import HTTPError
 
 from gcapi import Client
 from gcapi import cli
@@ -45,3 +47,10 @@ def test_command_line_interface():
     help_result = runner.invoke(cli.main, ["--help"])
     assert help_result.exit_code == 0
     assert "--help  Show this message and exit." in help_result.output
+
+@pytest.mark.skipif(sys.version_info >= (3,0), reason="Testing a bug in Py2")
+def test_mixed_string_and_unicode():
+    c = Client(token="whatever")
+    with pytest.raises(HTTPError):
+        # The call should get here after calling urljoin
+        c(path=unicode("dsfa"))
