@@ -64,7 +64,8 @@
                         "answer_type": {
                             "enum": [
                                 "2D bounding box",
-                                "Distance measurement"
+                                "Distance measurement",
+                                "Multiple distance measurements"
                             ]
                         },
                         "image_port" : {
