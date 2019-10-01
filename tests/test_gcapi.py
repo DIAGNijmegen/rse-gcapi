@@ -48,7 +48,8 @@ def test_command_line_interface():
     assert help_result.exit_code == 0
     assert "--help  Show this message and exit." in help_result.output
 
-@pytest.mark.skipif(sys.version_info >= (3,0), reason="Testing a bug in Py2")
+
+@pytest.mark.skipif(sys.version_info >= (3, 0), reason="Testing a bug in Py2")
 def test_mixed_string_and_unicode():
     c = Client(token="whatever")
     with pytest.raises(HTTPError):
@@ -59,5 +60,8 @@ def test_mixed_string_and_unicode():
 def test_chunked_uploads():
     c = Client(token="whatever")
     with pytest.raises(HTTPError):
-        c.chunked_uploads.send(os.path.join(os.path.dirname(os.path.realpath(__file__)), "testdata", "rnddata"))
-
+        c.chunked_uploads.send(
+            os.path.join(
+                os.path.dirname(os.path.realpath(__file__)), "testdata", "rnddata"
+            )
+        )
