@@ -39,6 +39,15 @@ Draft7ValidatorWithTupleSupport = jsonschema.validators.extend(
 )
 
 
+def load_input_data(input_file):
+    with open(os.path.join(os.path.dirname(__file__), input_file), "rb") as f:
+        return f.read()
+
+
+def generate_new_upload_id(content):
+    return f"{hash(content)}_{time()}_{random()}"
+
+
 def import_json_schema(filename):
     """
     Loads a json schema from the module's subdirectory "schemas".
@@ -80,94 +89,6 @@ def import_json_schema(filename):
                 file=filename, error=e
             )
         )
-
-
-def upload_file_with_exponential_backoff(file_info):
-    """
-    Uploads a chunk with an exponential backoff retry strategy. The maximum number of attempt is 3.
-
-    Parameters
-    ----------
-    file_info: dict
-    Contains information about the chunk, start_byte, end_byte and upload_id.
-
-    Raises
-    ------
-    ConnectionError
-        Raised if the chunk cannot be uploaded within 3 attempts.
-    """
-    filename = "whatever.bin"
-    num_retries = 0
-    e = Exception
-    while num_retries < 3:
-        try:
-            post(
-                url="https://gc.localhost/api/v1/chunked-uploads/",
-                files={"file": BytesIO(file_info["chunk"])},
-                data={"filename": filename, "X-Upload-ID": file_info["upload_id"]},
-                headers={
-                    "Content-Range": f"bytes {file_info['start_byte']}-{file_info['end_byte'] - 1}/{len(file_info['content'])}",
-                    "Authorization": f"Token {os.environ['GCTOKEN']}",
-                },
-                verify=False,
-            )
-            break
-        except ConnectionError as _e:
-            num_retries += 1
-            e = _e
-            sleep((2 ** num_retries) + (randint(0, 1000) / 1000))
-    else:
-        raise e
-
-
-def load_input_data(input_file):
-    with open(os.path.join(os.path.dirname(__file__), input_file), "rb") as f:
-        return f.read()
-
-
-def generate_new_upload_id(content):
-    return f"{hash(content)}_{time()}_{random()}"
-
-
-def upload_file_in_chunks(filename):
-    """
-    Uploads a file in chunks using rest api.
-
-    Parameters
-    ----------
-    filename: str
-        The name of the file to be uploaded
-
-    Raises
-    ------
-    ConnectionError
-        Raised if a chunk cannot be uploaded.
-    """
-    content = load_input_data(filename)
-    upload_id = generate_new_upload_id(content)
-    start_byte = 0
-    content_io = BytesIO(content)
-    max_chunk_length = 2 ** 23
-
-    while True:
-        chunk = content_io.read(max_chunk_length)
-        if not chunk:
-            break
-
-        end_byte = start_byte + len(chunk)
-        try:
-            upload_file_with_exponential_backoff(
-                {
-                    "start_byte": start_byte,
-                    "end_byte": end_byte,
-                    "chunk": chunk,
-                    "content": content,
-                    "upload_id": upload_id,
-                }
-            )
-        except ConnectionError as e:
-            raise e
-        start_byte += len(chunk)
 
 
 class APIBase(object):
@@ -290,6 +211,87 @@ class AlgorithmJobsAPI(APIBase):
     base_path = "algorithms/jobs/"
 
 
+class ChunkedUploadsAPI(APIBase):
+    base_path = "chunked-uploads/"
+
+    def _upload_file_with_exponential_backoff(self, file_info):
+        """
+        Uploads a chunk with an exponential backoff retry strategy. The maximum number of attempt is 3.
+
+        Parameters
+        ----------
+        file_info: dict
+        Contains information about the chunk, start_byte, end_byte and upload_id.
+
+        Raises
+        ------
+        ConnectionError
+            Raised if the chunk cannot be uploaded within 3 attempts.
+        """
+        filename = "whatever.bin"
+        num_retries = 0
+        e = Exception
+        while num_retries < 3:
+            try:
+                self._client(
+                    method="POST",
+                    path=self.base_path,
+                    files={"file": BytesIO(file_info["chunk"])},
+                    data={"filename": filename, "X-Upload-ID": file_info["upload_id"]},
+                    extra_headers={
+                        "Content-Range": f"bytes {file_info['start_byte']}-{file_info['end_byte'] - 1}/{len(file_info['content'])}"
+                    },
+                )
+                break
+            except ConnectionError as _e:
+                num_retries += 1
+                e = _e
+                sleep((2 ** num_retries) + (randint(0, 1000) / 1000))
+        else:
+            raise e
+
+    def send(self, filename):
+        """
+        Uploads a file in chunks using rest api.
+
+        Parameters
+        ----------
+        filename: str
+            The name of the file to be uploaded.
+
+        Raises
+        ------
+        ConnectionError
+            Raised if a chunk cannot be uploaded.
+        """
+
+        content = load_input_data(filename)
+        upload_id = generate_new_upload_id(content)
+        start_byte = 0
+        content_io = BytesIO(content)
+        max_chunk_length = 2 ** 23
+
+        while True:
+            chunk = content_io.read(max_chunk_length)
+            if not chunk:
+                break
+
+            end_byte = start_byte + len(chunk)
+            try:
+                self._upload_file_with_exponential_backoff(
+                    {
+                        "start_byte": start_byte,
+                        "end_byte": end_byte,
+                        "chunk": chunk,
+                        "content": content,
+                        "upload_id": upload_id,
+                    }
+                )
+            except ConnectionError as e:
+                raise e
+            start_byte += len(chunk)
+
+
 class Client(Session):
     def __init__(
         self, token=None, base_url="https://grand-challenge.org/api/v1/", verify=True
@@ -313,6 +315,7 @@ class Client(Session):
         self.images = ImagesAPI(client=self)
         self.reader_studies = ReaderStudiesAPI(client=self)
         self.sessions = WorkstationSessionsAPI(client=self)
+        self.chunked_uploads = ChunkedUploadsAPI(client=self)
         self.algorithms = AlgorithmsAPI(client=self)
         self.algorithm_results = AlgorithmResultsAPI(client=self)
         self.algorithm_jobs = AlgorithmJobsAPI(client=self)
@@ -326,7 +329,15 @@ class Client(Session):
             raise RuntimeError("{} does not start with {}".format(url, self._base_url))
 
     def __call__(
-        self, method="GET", url="", path="", params=None, json=None, extra_headers=None
+        self,
+        method="GET",
+        url="",
+        path="",
+        params=None,
+        json=None,
+        extra_headers=None,
+        files=None,
+        data=None,
     ):
         if not url:
             url = urljoin(self._base_url, path)
@@ -336,17 +347,32 @@ class Client(Session):
             extra_headers["Content-Type"] = "application/json"
 
         self._validate_url(url)
+        if method == "GET":
+            response = self.request(
+                method=method,
+                url=url,
+                headers=dict(
+                    list(dict(self.headers).items()) + list(dict(extra_headers).items())
+                ),
+                verify=self._verify,
+                params={} if params is None else params,
+                json=json,
+            )
+            response.raise_for_status()
+            return response.json()
+        elif method == "POST":
+            response = self.request(
+                method=method,
+                url=url,
+                files={} if files is None else files,
+                data={} if data is None else data,
+                headers=dict(
+                    list(dict(self.headers).items()) + list(dict(extra_headers).items())
+                ),
+                verify=self._verify,
+                params={} if params is None else params,
+                json=json,
+            )
 
-        response = self.request(
-            method=method,
-            url=url,
-            headers=dict(
-                list(dict(self.headers).items()) + list(dict(extra_headers).items())
-            ),
-            verify=self._verify,
-            params={} if params is None else params,
-            json=json,
-        )
-
-        response.raise_for_status()
-        return response.json()
+            response.raise_for_status()
+            return response.json()

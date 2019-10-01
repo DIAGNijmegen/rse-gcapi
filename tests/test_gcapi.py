@@ -3,7 +3,7 @@
 
 """Tests for `gcapi` package."""
 import sys
-
+import os
 import pytest
 
 from click.testing import CliRunner
@@ -54,3 +54,10 @@ def test_mixed_string_and_unicode():
     with pytest.raises(HTTPError):
         # The call should get here after calling urljoin
         c(path=unicode("dsfa"))
+
+
+def test_chunked_uploads():
+    c = Client(token="whatever")
+    with pytest.raises(HTTPError):
+        c.chunked_uploads.send(os.path.join(os.path.dirname(os.path.realpath(__file__)), "testdata", "rnddata"))
+
