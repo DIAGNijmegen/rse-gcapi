@@ -45,7 +45,7 @@ def load_input_data(input_file):
 
 
 def generate_new_upload_id(content):
-    return f"{hash(content)}_{time()}_{random()}"
+    return "{}_{}_{}".format(hash(content), time(), random())
 
 
 def import_json_schema(filename):
@@ -239,7 +239,11 @@ class ChunkedUploadsAPI(APIBase):
                     files={"file": BytesIO(file_info["chunk"])},
                     data={"filename": filename, "X-Upload-ID": file_info["upload_id"]},
                     extra_headers={
-                        "Content-Range": f"bytes {file_info['start_byte']}-{file_info['end_byte'] - 1}/{len(file_info['content'])}"
+                        "Content-Range": "bytes {}-{}/{}".format(
+                            file_info["start_byte"],
+                            file_info["end_byte"] - 1,
+                            len(file_info["content"]),
+                        )
                     },
                 )
                 break
@@ -361,6 +365,7 @@ class Client(Session):
             response.raise_for_status()
             return response.json()
         elif method == "POST":
+            print(extra_headers)
             response = self.request(
                 method=method,
                 url=url,
