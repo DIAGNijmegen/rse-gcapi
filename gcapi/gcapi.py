@@ -351,33 +351,18 @@ class Client(Session):
             extra_headers["Content-Type"] = "application/json"
 
         self._validate_url(url)
-        if method == "GET":
-            response = self.request(
-                method=method,
-                url=url,
-                headers=dict(
-                    list(dict(self.headers).items()) + list(dict(extra_headers).items())
-                ),
-                verify=self._verify,
-                params={} if params is None else params,
-                json=json,
-            )
-            response.raise_for_status()
-            return response.json()
-        elif method == "POST":
-            print(extra_headers)
-            response = self.request(
-                method=method,
-                url=url,
-                files={} if files is None else files,
-                data={} if data is None else data,
-                headers=dict(
-                    list(dict(self.headers).items()) + list(dict(extra_headers).items())
-                ),
-                verify=self._verify,
-                params={} if params is None else params,
-                json=json,
-            )
 
-            response.raise_for_status()
-            return response.json()
+        response = self.request(
+            method=method,
+            url=url,
+            files={} if files is None else files,
+            data={} if data is None else data,
+            headers=dict(
+                list(dict(self.headers).items()) + list(dict(extra_headers).items())
+            ),
+            verify=self._verify,
+            params={} if params is None else params,
+            json=json,
+        )
+        response.raise_for_status()
+        return response.json()
