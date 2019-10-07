@@ -228,7 +228,6 @@ class ChunkedUploadsAPI(APIBase):
         ConnectionError
             Raised if the chunk cannot be uploaded within 3 attempts.
         """
-        filename = "whatever.bin"
         num_retries = 0
         e = Exception
         while num_retries < 3:
@@ -237,7 +236,10 @@ class ChunkedUploadsAPI(APIBase):
                     method="POST",
                     path=self.base_path,
                     files={"file": BytesIO(file_info["chunk"])},
-                    data={"filename": filename, "X-Upload-ID": file_info["upload_id"]},
+                    data={
+                        "filename": file_info["filename"],
+                        "X-Upload-ID": file_info["upload_id"],
+                    },
                     extra_headers={
                         "Content-Range": "bytes {}-{}/{}".format(
                             file_info["start_byte"],
@@ -289,6 +291,7 @@ class ChunkedUploadsAPI(APIBase):
                         "chunk": chunk,
                         "content": content,
                         "upload_id": upload_id,
+                        "filename": filename,
                     }
                 )
             except ConnectionError as e:
