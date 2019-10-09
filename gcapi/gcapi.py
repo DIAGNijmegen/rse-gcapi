@@ -7,10 +7,13 @@ import os
 import sys
 import uuid
 import jsonschema
+from io import BytesIO
+from random import randint, random
+from time import sleep, time
 
 from future.moves.urllib.parse import urljoin
 
-from requests import Session
+from requests import Session, post, ConnectionError
 
 
 def is_uuid(s):
@@ -25,13 +28,24 @@ def is_uuid(s):
 def accept_tuples_as_arrays(org):
     return org.redefine(
         "array",
-        lambda checker, instance:
-            isinstance(instance, tuple) or org.is_type(instance, "array"))
+        lambda checker, instance: isinstance(instance, tuple)
+        or org.is_type(instance, "array"),
+    )
+
 
 Draft7ValidatorWithTupleSupport = jsonschema.validators.extend(
     jsonschema.Draft7Validator,
-    type_checker=accept_tuples_as_arrays(jsonschema.Draft7Validator.TYPE_CHECKER))
+    type_checker=accept_tuples_as_arrays(jsonschema.Draft7Validator.TYPE_CHECKER),
+)
 
+
+def load_input_data(input_file):
+    with open(os.path.join(os.path.dirname(__file__), input_file), "rb") as f:
+        return f.read()
+
+
+def generate_new_upload_id(content):
+    return "{}_{}_{}".format(hash(content), time(), random())
 
 
 def import_json_schema(filename):
@@ -60,17 +74,21 @@ def import_json_schema(filename):
         Raised if the json schema cannot be loaded.
     """
     filename = os.path.join(
-        os.path.dirname(os.path.abspath(__file__)), "schemas", filename)
+        os.path.dirname(os.path.abspath(__file__)), "schemas", filename
+    )
 
     try:
         with open(filename, "r") as f:
             jsn = json.load(f)
-        return  Draft7ValidatorWithTupleSupport(jsn)
+        return Draft7ValidatorWithTupleSupport(jsn)
     except ValueError as e:
         # I want missing/failing json imports to be an import error because that
         # is what they should indicate: a "broken" library
-        raise ImportError("Json schema '{file}' cannot be loaded: {error}".format(
-            file=filename, error=e))
+        raise ImportError(
+            "Json schema '{file}' cannot be loaded: {error}".format(
+                file=filename, error=e
+            )
+        )
 
 
 class APIBase(object):
@@ -121,7 +139,7 @@ class APIBase(object):
 class ModifiableMixin(object):
     _client = None  # type: Client
 
-    modify_json_schema = None # type: jsonschema.Draft7Validator
+    modify_json_schema = None  # type: jsonschema.Draft7Validator
 
     def __init__(self):
         pass
@@ -132,11 +150,7 @@ class ModifiableMixin(object):
 
     def send(self, **kwargs):
         self._process_post_arguments(kwargs)
-        self._client(
-            method="POST",
-            path=self.base_path,
-            json=kwargs,
-        )
+        self._client(method="POST", path=self.base_path, json=kwargs)
 
 
 class ImagesAPI(APIBase):
@@ -197,10 +211,98 @@ class AlgorithmJobsAPI(APIBase):
     base_path = "algorithms/jobs/"
 
 
+class ChunkedUploadsAPI(APIBase):
+    base_path = "chunked-uploads/"
+
+    def _upload_file_with_exponential_backoff(self, file_info):
+        """
+        Uploads a chunk with an exponential backoff retry strategy. The maximum number of attempt is 3.
+
+        Parameters
+        ----------
+        file_info: dict
+        Contains information about the chunk, start_byte, end_byte and upload_id.
+
+        Raises
+        ------
+        ConnectionError
+            Raised if the chunk cannot be uploaded within 3 attempts.
+        """
+        num_retries = 0
+        e = Exception
+        while num_retries < 3:
+            try:
+                self._client(
+                    method="POST",
+                    path=self.base_path,
+                    files={"file": BytesIO(file_info["chunk"])},
+                    data={
+                        "filename": file_info["filename"],
+                        "X-Upload-ID": file_info["upload_id"],
+                    },
+                    extra_headers={
+                        "Content-Range": "bytes {}-{}/{}".format(
+                            file_info["start_byte"],
+                            file_info["end_byte"] - 1,
+                            len(file_info["content"]),
+                        )
+                    },
+                )
+                break
+            except ConnectionError as _e:
+                num_retries += 1
+                e = _e
+                sleep((2 ** num_retries) + (randint(0, 1000) / 1000))
+        else:
+            raise e
+
+    def send(self, filename):
+        """
+        Uploads a file in chunks using rest api.
+
+        Parameters
+        ----------
+        filename: str
+            The name of the file to be uploaded.
+
+        Raises
+        ------
+        ConnectionError
+            Raised if a chunk cannot be uploaded.
+        """
+
+        content = load_input_data(filename)
+        upload_id = generate_new_upload_id(content)
+        start_byte = 0
+        content_io = BytesIO(content)
+        max_chunk_length = 2 ** 23
+
+        while True:
+            chunk = content_io.read(max_chunk_length)
+            if not chunk:
+                break
+
+            end_byte = start_byte + len(chunk)
+            try:
+                self._upload_file_with_exponential_backoff(
+                    {
+                        "start_byte": start_byte,
+                        "end_byte": end_byte,
+                        "chunk": chunk,
+                        "content": content,
+                        "upload_id": upload_id,
+                        "filename": filename,
+                    }
+                )
+            except ConnectionError as e:
+                raise e
+            start_byte += len(chunk)
+
+
 class Client(Session):
     def __init__(
-            self, token=None, base_url="https://grand-challenge.org/api/v1/",
-            verify=True):
+        self, token=None, base_url="https://grand-challenge.org/api/v1/", verify=True
+    ):
         super(Client, self).__init__()
 
         self.headers.update({"Accept": "application/json"})
@@ -220,6 +322,7 @@ class Client(Session):
         self.images = ImagesAPI(client=self)
         self.reader_studies = ReaderStudiesAPI(client=self)
         self.sessions = WorkstationSessionsAPI(client=self)
+        self.chunked_uploads = ChunkedUploadsAPI(client=self)
         self.algorithms = AlgorithmsAPI(client=self)
         self.algorithm_results = AlgorithmResultsAPI(client=self)
         self.algorithm_jobs = AlgorithmJobsAPI(client=self)
@@ -232,9 +335,17 @@ class Client(Session):
         if not url.startswith(self._base_url):
             raise RuntimeError("{} does not start with {}".format(url, self._base_url))
 
-    def __call__(self,
-            method="GET", url="", path="", params=None,
-            json=None, extra_headers=None):
+    def __call__(
+        self,
+        method="GET",
+        url="",
+        path="",
+        params=None,
+        json=None,
+        extra_headers=None,
+        files=None,
+        data=None,
+    ):
         if not url:
             url = urljoin(self._base_url, path)
         if extra_headers is None:
@@ -247,11 +358,14 @@ class Client(Session):
         response = self.request(
             method=method,
             url=url,
-            headers=dict(list(dict(self.headers).items()) + list(dict(extra_headers).items())),
+            files={} if files is None else files,
+            data={} if data is None else data,
+            headers=dict(
+                list(dict(self.headers).items()) + list(dict(extra_headers).items())
+            ),
             verify=self._verify,
             params={} if params is None else params,
             json=json,
         )
-
         response.raise_for_status()
         return response.json()
