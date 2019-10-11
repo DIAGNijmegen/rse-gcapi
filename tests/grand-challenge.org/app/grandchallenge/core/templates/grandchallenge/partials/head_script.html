@@ -1,0 +1,30 @@
+{% load static %}
+
+{% if SENTRY_ENABLE_JS_REPORTING %}
+    <script src="https://browser.sentry-cdn.com/5.6.3/bundle.min.js"
+            integrity="sha384-/Cqa/8kaWn7emdqIBLk3AkFMAHBk0LObErtMhO+hr52CntkaurEnihPmqYj3uJho"
+            crossorigin="anonymous">
+    </script>
+    <script>
+        {# Setup sentry before anything else loads #}
+        Sentry.init({dsn: '{{ SENTRY_DSN }}'});
+    </script>
+{% endif %}
+
+<!-- Global Site Tag (gtag.js) - Google Analytics -->
+<script async
+        src="https://www.googletagmanager.com/gtag/js?id={{ google_analytics_id }}"></script>
+<script>
+    window.dataLayer = window.dataLayer || [];
+
+    function gtag() {
+        dataLayer.push(arguments);
+    }
+
+    gtag('js', new Date());
+    gtag('config', "{{ google_analytics_id }}");
+</script>
+
+{# Needs to be inline for some forms (summernote) #}
+<script type="text/javascript"
+        src="{% static "vendor/js/jquery.min.js" %}"></script>

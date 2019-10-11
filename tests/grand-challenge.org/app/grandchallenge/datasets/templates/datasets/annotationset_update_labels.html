@@ -1,0 +1,16 @@
+{% extends "challenge.html" %}
+{% load grandchallenge_tags %}
+{% load crispy_forms_tags %}
+{% load static %}
+
+{% block title %}
+    Set {{ kind_display }} labels on the {{ phase_display }} dataset - {{ block.super }}
+{% endblock %}
+
+{% block content %}
+
+    <h2>Set {{ kind_display }} labels on the {{ phase_display }} dataset</h2>
+
+    {% crispy form %}
+
+{% endblock %}

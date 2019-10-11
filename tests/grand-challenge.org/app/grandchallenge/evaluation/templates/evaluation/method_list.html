@@ -1,0 +1,54 @@
+{% extends "challenge.html" %}
+{% load url from grandchallenge_tags %}
+
+{% block content %}
+
+    <h2>Evaluation Methods</h2>
+
+    <p>
+        <a class="btn btn-primary"
+           href="{% url 'evaluation:method-create' challenge_short_name=challenge.short_name %}">
+            <i class="fas fa-plus"></i> Add a new method
+        </a>
+    </p>
+
+    <div class="table-responsive">
+        <table class="table table-hover table-borderless table-sm" id="methodsTable">
+            <thead class="thead-light">
+            <tr>
+                <th>ID</th>
+                <th>Created</th>
+                <th>User</th>
+                <th>SHA</th>
+                <th>Ready</th>
+                <th>Status</th>
+            </tr>
+            </thead>
+            <tbody>
+            {% for method in object_list %}
+                <tr>
+                    <td>
+                        <a href="{{ method.get_absolute_url }}">{{ method.id }}</a>
+                    </td>
+                    <td data-order="{{ method.created|date:"U" }}">{{ method.created }}</td>
+                    <td><a
+                            href="{% url 'userena_profile_detail' method.creator.username %}">{{ method.creator }}</a>
+                    </td>
+                    <td>{{ method.image_sha256 }}</td>
+                    <td>{{ method.ready }}</td>
+                    <td>{{ method.status }}</td>
+                </tr>
+            {% endfor %}
+            </tbody>
+        </table>
+    </div>
+{% endblock %}
+
+{% block script %}
+    {{ block.super }}
+    <script type="text/javascript">
+        $(document).ready(function () {
+            $('#methodsTable').DataTable();
+        });
+    </script>
+{% endblock %}

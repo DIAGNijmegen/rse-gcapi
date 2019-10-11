@@ -1,0 +1,20 @@
+{% extends "challenge.html" %}
+{% load crispy_forms_tags %}
+{% load static %}
+
+{% block content %}
+
+    <h2>Add another admin to {{ challenge.short_name }}</h2>
+
+    <form action="" method="post">
+        {% csrf_token %}
+        {{ form | crispy }}
+        <input type="submit" value="Save" class="btn btn-primary"/>
+    </form>
+{% endblock %}
+
+{% block script %}
+    {{ block.super }}
+    {{ form.media }}
+    <link rel="stylesheet" href="{% static 'css/select2-bootstrap4-theme/select2-bootstrap4.css' %}">
+{% endblock %}

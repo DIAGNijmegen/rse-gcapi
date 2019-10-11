@@ -1,0 +1,94 @@
+{% extends "challenge.html" %}
+{% load url from grandchallenge_tags %}
+
+{% block content %}
+
+    <h2>Submission {{ object.id }}</h2>
+
+    <dl>
+
+        <dt>Challenge</dt>
+        <dd>
+            <a href="{{ object.challenge.get_absolute_url }}">{{ object.challenge.short_name }}</a>
+        </dd>
+
+        <dt>Creator</dt>
+        <dd>
+            <a href="{% url 'userena_profile_detail' object.creator.username %}">{{ object.creator }}</a>
+        </dd>
+
+        <dt>Comment</dt>
+        <dd>
+            {{ object.comment }}
+        </dd>
+
+        {% if "change_challenge" in challenge_perms %}
+            <dt>Submission File</dt>
+            <dd>
+                <a href="{{ object.file.url }}">
+                    <i class="fa fa-file"></i>
+                    Download the submission file
+                </a>
+            </dd>
+        {% endif %}
+
+    </dl>
+
+    <h3>Evaluations for this submission</h3>
+
+    <div class="table-responsive">
+        <table class="table table-hover table-borderless table-sm"
+               id="evaluationTable">
+            <thead class="thead-light">
+            <tr>
+                <th>Created</th>
+                <th>Updated</th>
+                <th>Job</th>
+                <th>Method</th>
+                <th>Status</th>
+                <th>Result</th>
+                <th>Comment</th>
+            </tr>
+            </thead>
+            <tbody>
+            {% for job in object.job_set.all %}
+                <tr>
+                    <td data-order="{{ job.created|date:"U" }}">{{ job.created }}</td>
+                    <td data-order="{{ job.modified|date:"U" }}">{{ job.modified }}</td>
+                    <td><a href="{{ job.get_absolute_url }}">{{ job.id }}</a>
+                    </td>
+                    <td>
+                        <a href="{{ job.method.get_absolute_url }}">{{ job.method.id }}</a>
+                    </td>
+                    <td>
+                    <span class="badge
+                    {% if job.status == job.FAILURE or job.status == job.CANCELLED %}
+                        badge-danger
+                    {% elif job.status == job.RETRY %}
+                        badge-warning
+                    {% elif job.status == job.SUCCESS %}
+                        badge-success
+                    {% else %}
+                        badge-info
+                    {% endif %}">
+                        {{ job.get_status_display }}
+                    </span>
+                    </td>
+                    <td>
+                        <a href="{{ job.result.get_absolute_url }}">{{ job.result.metrics }}</a>
+                    </td>
+                </tr>
+            {% endfor %}
+            </tbody>
+        </table>
+    </div>
+{% endblock %}
+
+{% block script %}
+    {{ block.super }}
+    <script type="text/javascript">
+        $(document).ready(function () {
+            $('#evaluationTable').DataTable();
+        });
+    </script>
+{% endblock %}

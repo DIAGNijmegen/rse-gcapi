@@ -1,0 +1,209 @@
+user cwww;
+worker_processes auto;
+
+error_log /var/log/nginx/error.log warn;
+pid /var/run/nginx.pid;
+
+events {
+  worker_connections 1024; # increase if you have lots of clients
+  accept_mutex on; # set to 'off' if nginx worker_processes == 1
+  use epoll;
+}
+
+http {
+  server_tokens off;
+
+  include /etc/nginx/mime.types;
+
+  default_type application/octet-stream;
+
+  charset_types
+    text/css
+    text/plain
+    text/vnd.wap.wml
+    application/javascript
+    application/json
+    application/rss+xml
+    application/xml;
+
+  access_log /var/log/nginx/access.log combined;
+
+  keepalive_timeout 20s;
+  
+  sendfile ${SENDFILE_STATUS};
+  sendfile_max_chunk 512k;
+
+  # SSL
+  ssl_certificate /etc/ssl/certs/${SERVER_NAME}.crt;
+  ssl_certificate_key /etc/ssl/private/${SERVER_NAME}.key;
+  ssl_protocols TLSv1 TLSv1.1 TLSv1.2;
+  ssl_ciphers 'EECDH+AESGCM:EDH+AESGCM:AES256+EECDH:AES256+EDH';
+  ssl_prefer_server_ciphers on;
+  ssl_dhparam /etc/ssl/private/dhparams.pem;
+  ssl_session_cache shared:SSL:10m;
+
+  tcp_nopush      on;
+
+  gzip on;
+  gzip_comp_level    5;
+  gzip_min_length    256;
+  gzip_proxied       any;
+  gzip_vary          on;
+  gzip_types
+    application/atom+xml
+    application/javascript
+    application/json
+    application/ld+json
+    application/manifest+json
+    application/rss+xml
+    application/vnd.geo+json
+    application/vnd.ms-fontobject
+    application/x-font-ttf
+    application/x-web-app-manifest+json
+    application/xhtml+xml
+    application/xml
+    font/opentype
+    image/bmp
+    image/svg+xml
+    image/x-icon
+    text/cache-manifest
+    text/css
+    text/plain
+    text/vcard
+    text/vnd.rim.location.xloc
+    text/vtt
+    text/x-component
+    text/x-cross-domain-policy;
+
+  upstream app_server {
+    server web:8000;
+  }
+
+  upstream workstations_http {
+    server ${WORKSTATION_PROXY_HOSTNAME}:${WORKSTATION_PROXY_HTTP_PORT};
+  }
+
+  upstream workstations_websocket {
+    server ${WORKSTATION_PROXY_HOSTNAME}:${WORKSTATION_PROXY_WEBSOCKET_PORT};
+  }
+
+  server {
+    # Redirect everything to https
+    listen 80;
+    listen [::]:80;
+
+    server_name .${SERVER_NAME};
+
+    return 301 https://$host$request_uri;
+  }
+
+  server {
+    # Remove the www and mobile subdomains
+    listen 443 ssl;
+    listen [::]:443 ssl;
+
+    server_name www.${SERVER_NAME} mobile.${SERVER_NAME} m.${SERVER_NAME};
+
+    return 301 $scheme://${SERVER_NAME}$request_uri;
+  }
+
+  server {
+    # Try to serve files, otherwise proxy to app
+    listen 443 ssl http2 default_server;
+    listen [::]:443 ssl http2 default_server;
+
+    client_body_buffer_size 16m;
+    client_max_body_size 64m;
+
+    server_name .${SERVER_NAME};
+
+    # Required for minio proxy
+    ignore_invalid_headers off;
+
+    location ~* ^/site/([^/]*)/serve/(.*)$ {
+      return 302 $scheme://$1.${SERVER_NAME}/media/$1/$2;
+    }
+
+    location ~* ^/all_challenges/?$ {
+      return 301 $scheme://${SERVER_NAME}/challenges/;
+    }
+
+    location =/Settings/webSocketPort {
+      # MeVisLab will query this endpoint to find out how to connect to the
+      # websocket. It assumes that each worker gets its own host, which is
+      # not the case on grand challenge, so we need to return a relative path
+      # which we get from the http_referer
+
+      set $ref "/";
+
+      if ($http_referer ~ ^https://[^/]*(/workstations/[^/]*/sessions/[^/]*)/.*$) {
+	    set $ref $1;
+	  }
+
+      expires epoch;
+      add_header Content-Type text/plain;
+      return 200 '443$ref';
+    }
+
+    location ~ ^/workstation-proxy/([^/]*)/mlab4d4c4142/(.*)$ {
+      # MeVisLab uses a magic string to determine if this should
+      # be routed to the websocket handler, this is handled here
+
+      internal;
+
+      proxy_buffering off;
+      proxy_set_header Host $1;
+      proxy_pass http://workstations_websocket/mlab4d4c4142/$2;
+
+      proxy_set_header X-Real-IP $remote_addr;
+      proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+
+      # Websocket support
+      proxy_http_version 1.1;
+      proxy_set_header Upgrade $http_upgrade;
+      proxy_set_header Connection "upgrade";
+
+      # Disable proxy caching
+      proxy_cache off;
+    }
+
+    location ~ ^/workstation-proxy/([^/]*)/(.*)$ {
+      internal;
+
+      proxy_buffering off;
+      proxy_set_header Host $1;
+      proxy_pass http://workstations_http/$2;
+    }
+
+    location /${PROTECTED_S3_STORAGE_BUCKET_NAME}/ {
+      internal;
+
+      # From https://docs.minio.io/docs/setup-nginx-proxy-with-minio
+      proxy_buffering off;
+      proxy_http_version 1.1;
+      proxy_set_header Host $http_host;
+      proxy_read_timeout 15m; # Default value is 60s which is not sufficient for MinIO.
+      proxy_send_timeout 15m; # Default value is 60s which is not sufficient for MinIO.
+      proxy_request_buffering off; # Disable any internal request buffering.
+      proxy_pass ${PROTECTED_S3_STORAGE_ENDPOINT_URL};
+    }
+    
+    location /dbox/ {
+      internal;
+      alias   /dbox/;
+    }
+
+    location / {
+      proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+      proxy_set_header X-Forwarded-Proto $scheme;
+      proxy_set_header Host $host;
+      proxy_redirect off;
+      proxy_pass http://app_server;
+    }
+
+    error_page 500 502 503 504 /500.html;
+    location = /500.html {
+      root /http/;
+    }
+  }
+}

@@ -1,0 +1,15 @@
+{% extends "challenge.html" %}
+{% load grandchallenge_tags %}
+{% load crispy_forms_tags %}
+
+{% block title %}
+    Create an Annotation Set - {{ block.super }}
+{% endblock %}
+
+{% block content %}
+
+    <h2>Create Annotations for a Dataset</h2>
+
+    {% crispy form %}
+
+{% endblock %}
