@@ -65,3 +65,12 @@ def test_chunked_uploads():
                 os.path.dirname(os.path.realpath(__file__)), "testdata", "rnddata"
             )
         )
+
+
+def test_local_response():
+    c = Client(
+        base_url="https://gc.localhost/api/v1/",
+        verify=False,
+        token="1b9436200001f2eaf57cd77db075cbb60a49a00a",
+    )
+    assert c.algorithms.page()
