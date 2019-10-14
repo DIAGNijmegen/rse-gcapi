@@ -73,4 +73,5 @@ def test_local_response():
         verify=False,
         token="1b9436200001f2eaf57cd77db075cbb60a49a00a",
     )
-    assert c.algorithms.page()
+    # Empty response, but it didn't error out so the server is responding
+    assert c.algorithms.page() == []
