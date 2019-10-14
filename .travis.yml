@@ -2,6 +2,9 @@ sudo: required
 language: python
 git:
   submodules: false
+addons:
+  hosts:
+    - gc.localhost
 python:
 - 3.6
 - 3.5
