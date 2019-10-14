@@ -8,16 +8,16 @@ python:
 - 2.7
 before_install:
     - git submodule init
-    - git submodule update tests/grand-challenge.org
+    - git submodule update grand-challenge.org
     - sudo service postgresql stop
     - sudo service redis-server stop
 install:
     - pip install -U tox-travis
     - docker pull grandchallenge/web:3722-master
     - docker pull grandchallenge/http:3722-master
-    - make -C tests/grand-challenge.org -j2 build
-    - docker-compose -f tests/grand-challenge.org/docker-compose.yml run --rm web python manage.py migrate
-    - docker-compose -f tests/grand-challenge.org/docker-compose.yml up -d
+    - make -C grand-challenge.org -j2 build
+    - docker-compose -f grand-challenge.org/docker-compose.yml run --rm web python manage.py migrate
+    - docker-compose -f grand-challenge.org/docker-compose.yml up -d
 script: tox
 deploy:
   provider: pypi
