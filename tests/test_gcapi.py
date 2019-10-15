@@ -58,10 +58,37 @@ def test_mixed_string_and_unicode():
 
 
 def test_chunked_uploads():
+    file_to_upload = os.path.join(
+        os.path.dirname(os.path.realpath(__file__)), "testdata", "rnddata"
+    )
+    # admin
+    c_admin = Client(
+        token="1b9436200001f2eaf57cd77db075cbb60a49a00a",
+        base_url="https://gc.localhost/api/v1/",
+        verify=False,
+    )
+    c_admin.chunked_uploads.send(file_to_upload)
+    assert c_admin(path="chunked-uploads/")["count"] == 1
+
+    # retina
+    c_retina = Client(
+        token="f1f98a1733c05b12118785ffd995c250fe4d90da",
+        base_url="https://gc.localhost/api/v1/",
+        verify=False,
+    )
+    c_retina.chunked_uploads.send(file_to_upload)
+    assert c_retina(path="chunked-uploads/")["count"] == 1
+
     c = Client(token="whatever")
     with pytest.raises(HTTPError):
-        c.chunked_uploads.send(
-            os.path.join(
-                os.path.dirname(os.path.realpath(__file__)), "testdata", "rnddata"
-            )
-        )
+        c.chunked_uploads.send(file_to_upload)
+
+
+def test_local_response():
+    c = Client(
+        base_url="https://gc.localhost/api/v1/",
+        verify=False,
+        token="1b9436200001f2eaf57cd77db075cbb60a49a00a",
+    )
+    # Empty response, but it didn't error out so the server is responding
+    assert c.algorithms.page() == []
