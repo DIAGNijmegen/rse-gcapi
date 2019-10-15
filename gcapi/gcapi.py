@@ -299,6 +299,10 @@ class ChunkedUploadsAPI(APIBase):
             start_byte += len(chunk)
 
 
+class WorkstationConfigsAPI(APIBase):
+    base_path = "workstations/configs/"
+
+
 class Client(Session):
     def __init__(
         self, token=None, base_url="https://grand-challenge.org/api/v1/", verify=True
@@ -326,6 +330,7 @@ class Client(Session):
         self.algorithms = AlgorithmsAPI(client=self)
         self.algorithm_results = AlgorithmResultsAPI(client=self)
         self.algorithm_jobs = AlgorithmJobsAPI(client=self)
+        self.workstation_configs = WorkstationConfigsAPI(client=self)
 
     @property
     def base_url(self):
