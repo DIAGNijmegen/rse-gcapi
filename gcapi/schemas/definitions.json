@@ -1,0 +1,118 @@
+{
+    "uuid": {
+        "type": "string",
+        "pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$"
+    },
+    "api-link": {
+        "type": "string",
+        "pattern": "^https?://.*[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}/$"
+    },
+    "gc-db-object": {
+        "type": "object",
+        "properties": {
+            "pk": {
+                "$ref": "#/uuid"
+            },
+            "api_url": {
+                "$ref": "#/api-link"
+            }
+        },
+        "required": ["pk", "api_url"]
+    },
+    "line-object": {
+        "type": "object",
+        "properties": {
+            "name": {"type": "string"},
+            "start": {
+                "type": "array",
+                "items": {"type": "number"},
+                "minItems": 3,
+                "maxItems": 3
+            },
+            "end": {
+                "type": "array",
+                "items": {"type": "number"},
+                "minItems": 3,
+                "maxItems": 3
+            }
+        },
+        "required": ["start", "end"]
+    },
+    "2DBB":  {
+        "type": "object",
+        "properties": {
+            "type": { "enum": [ "2D bounding box" ] },
+            "version": {
+                "type": "object",
+                "additionalProperties": {
+                    "type": "number"
+                },
+                "required": ["major", "minor"]
+            },
+            "corners": {
+                "type": "array",
+                "items": {
+                    "type": "array",
+                    "items": { "type": "number" },
+                    "minItems": 3,
+                    "maxItems": 3
+                },
+                "minItems": 4,
+                "maxItems": 4
+            },
+            "name": { "type": "string" }
+        },
+        "required": ["type" ,"version", "corners"]
+    },
+    "DIST": {
+        "type": "object",
+        "properties": {
+            "type": { "enum": [ "Distance measurement" ] },
+            "version": {
+               "type": "object",
+                "additionalProperties": {"type": "number"},
+                "required": ["major", "minor"]
+            },
+            "name": { "type": "string" },
+            "start": {
+                "type": "array",
+                "items": { "type": "number" },
+                "minItems": 3,
+                "maxItems": 3
+            },
+            "end": {
+                "type": "array",
+                "items": { "type": "number" },
+                "minItems": 3,
+                "maxItems": 3
+            }
+        },
+        "required": ["type" ,"version", "start", "end"]
+    },
+    "MDIS": {
+        "type": "object",
+        "properties": {
+            "type": { "enum": [ "Multiple distance measurements" ] },
+            "version": {
+               "type": "object",
+                "additionalProperties": {"type": "number"},
+                "required": ["major", "minor"]
+            },
+            "name": {"type": "string"},
+            "lines": {
+                "type": "array",
+                "items": {"allOf": [{"$ref": "#/line-object"}]}
+            }
+        },
+        "required": ["type" ,"version", "lines"]
+    },
+    "valid-answers": {
+        "anyOf": [
+            { "type": "boolean" },
+            { "type": "string" },
+            { "$ref": "#/2DBB"},
+            { "$ref": "#/DIST"},
+            { "$ref": "#/MDIS"}
+        ]
+    }
+}
