@@ -14,6 +14,7 @@ from time import sleep, time
 from future.moves.urllib.parse import urljoin
 
 from requests import Session, post, ConnectionError
+from rfc3339_validator import validate_rfc3339
 
 
 def is_uuid(s):
@@ -36,6 +37,18 @@ def accept_tuples_as_arrays(org):
 Draft7ValidatorWithTupleSupport = jsonschema.validators.extend(
     jsonschema.Draft7Validator,
     type_checker=accept_tuples_as_arrays(jsonschema.Draft7Validator.TYPE_CHECKER),
+)
+
+
+def accept_datetime(org):
+    return org.redefine(
+        "datetime", lambda checker, instance: validate_rfc3339(instance)
+    )
+
+
+Draft7ValidatorWithTupleAndDateTimeSupport = jsonschema.validators.extend(
+    Draft7ValidatorWithTupleSupport,
+    type_checker=accept_datetime(Draft7ValidatorWithTupleSupport.TYPE_CHECKER),
 )
 
 
@@ -80,7 +93,7 @@ def import_json_schema(filename):
     try:
         with open(filename, "r") as f:
             jsn = json.load(f)
-        return Draft7ValidatorWithTupleSupport(jsn)
+        return Draft7ValidatorWithTupleAndDateTimeSupport(jsn)
     except ValueError as e:
         # I want missing/failing json imports to be an import error because that
         # is what they should indicate: a "broken" library
