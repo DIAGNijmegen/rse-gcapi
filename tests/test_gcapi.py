@@ -111,3 +111,46 @@ def test_local_response():
 def test_datetime_string_type_support(datetime_string, valid):
     validator = Draft7ValidatorWithTupleAndDateTimeSupport({"type": "datetime"})
     assert validator.is_valid(datetime_string) == valid
+
+
+def test_list_landmark_annotations():
+    c = Client(
+        base_url="https://gc.localhost/api/v1/",
+        verify=False,
+        token="f1f98a1733c05b12118785ffd995c250fe4d90da",  # retina token
+    )
+    response = c.retina_landmark_annotations.list()
+    len(response) == 0
+
+
+def test_create_landmark_annotation():
+    c = Client(
+        base_url="https://gc.localhost/api/v1/",
+        verify=False,
+        token="f1f98a1733c05b12118785ffd995c250fe4d90da",  # retina token
+    )
+    nil_uuid = "00000000-0000-4000-9000-000000000000"
+    create_data = {
+        "grader": 0,
+        "singlelandmarkannotation_set": [
+            {
+                "image": nil_uuid,
+                "landmarks": [[0, 0], [1, 1], [2, 2]],
+            },
+            {
+                "image": nil_uuid,
+                "landmarks": [[0, 0], [1, 1], [2, 2]],
+            },
+        ],
+    }
+    with pytest.raises(HTTPError) as e:
+        c.retina_landmark_annotations.create(**create_data)
+    response = e.value.response
+    assert response.status_code == 400
+    response = response.json()
+    assert response["grader"][0] == 'Invalid pk "0" - object does not exist.'
+    for sla_error in response["singlelandmarkannotation_set"]:
+        assert (
+            sla_error["image"][0]
+            == 'Invalid pk "{}" - object does not exist.'.format(nil_uuid)
+        )
