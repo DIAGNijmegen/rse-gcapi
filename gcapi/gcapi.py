@@ -262,6 +262,12 @@ class AlgorithmJobsAPI(APIBase):
     base_path = "algorithms/jobs/"
 
 
+class RetinaLandmarkAnnotationSetsAPI(APIBase, ModifiableMixin):
+    base_path = "retina/landmark-annotation/"
+    json_schema = import_json_schema("landmark-annotation.json")
+    modify_json_schema = import_json_schema("post-landmark-annotation.json")
+
+
 class ChunkedUploadsAPI(APIBase):
     base_path = "chunked-uploads/"
 
@@ -382,6 +388,7 @@ class Client(Session):
         self.algorithm_results = AlgorithmResultsAPI(client=self)
         self.algorithm_jobs = AlgorithmJobsAPI(client=self)
         self.workstation_configs = WorkstationConfigsAPI(client=self)
+        self.retina_landmark_annotations = RetinaLandmarkAnnotationSetsAPI(client=self)
 
     @property
     def base_url(self):
