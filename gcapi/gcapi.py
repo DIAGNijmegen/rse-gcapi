@@ -40,15 +40,28 @@ Draft7ValidatorWithTupleSupport = jsonschema.validators.extend(
 )
 
 
-def accept_datetime(org):
+def accept_datetime_string(org):
+    """
+    Adds support for validation of datetime strings in schemas by adding a new value
+    for the `type` key in schemas called `datetime`. Instances validated using this
+    type will be
+    Parameters
+    ----------
+    org
+
+    Returns
+    -------
+
+    """
     return org.redefine(
-        "datetime", lambda checker, instance: validate_rfc3339(instance)
+        "datetime", lambda checker, instance: isinstance(instance, str)
+        and validate_rfc3339(instance)
     )
 
 
 Draft7ValidatorWithTupleAndDateTimeSupport = jsonschema.validators.extend(
     Draft7ValidatorWithTupleSupport,
-    type_checker=accept_datetime(Draft7ValidatorWithTupleSupport.TYPE_CHECKER),
+    type_checker=accept_datetime_string(Draft7ValidatorWithTupleSupport.TYPE_CHECKER),
 )
 
 
