@@ -137,6 +137,12 @@ class APIBase(object):
         if self.json_schema is not None:
             self.json_schema.validate(value)
 
+    def list(self):
+        result = self._client(method="GET", path=self.base_path)
+        for i in result:
+            self.__verify_against_schema(i)
+        return result
+
     def page(self, offset=0, limit=100):
         result = self._client(
             method="GET", path=self.base_path, params={"offset": offset, "limit": limit}
@@ -174,9 +180,28 @@ class ModifiableMixin(object):
         if self.modify_json_schema is not None:
             self.modify_json_schema.validate(post_args)
 
+    def perform_request(self, method, data=None, pk=False):
+        if data is None:
+            data = {}
+        self._process_post_arguments(data)
+        url = self.base_path if not pk else urljoin(self.base_path, str(pk) + "/")
+        return self._client(method=method, path=url, json=data)
+
     def send(self, **kwargs):
-        self._process_post_arguments(kwargs)
-        self._client(method="POST", path=self.base_path, json=kwargs)
+        # Created for backwards compatibility
+        self.create(**kwargs)
+
+    def create(self, **kwargs):
+        return self.perform_request("POST", data=kwargs)
+
+    def update(self, pk, **kwargs):
+        return self.perform_request("PUT", pk=pk, data=kwargs)
+
+    def partial_update(self, pk, **kwargs):
+        return self.perform_request("PATCH", pk=pk, data=kwargs)
+
+    def delete(self, pk):
+        return self.perform_request("DELETE", pk=pk)
 
 
 class ImagesAPI(APIBase):
