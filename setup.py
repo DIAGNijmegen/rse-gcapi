@@ -41,6 +41,9 @@ setup(
     keywords="gcapi",
     name="gcapi",
     packages=find_packages(include=["gcapi"]),
+    package_data={
+        "gcapi": ["schemas/*"]
+    },
     setup_requires=setup_requirements,
     test_suite="tests",
     tests_require=test_requirements,
