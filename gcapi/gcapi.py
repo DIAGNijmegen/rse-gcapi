@@ -54,8 +54,9 @@ def accept_datetime_string(org):
 
     """
     return org.redefine(
-        "datetime", lambda checker, instance: isinstance(instance, str)
-        and validate_rfc3339(instance)
+        "datetime",
+        lambda checker, instance: isinstance(instance, str)
+        and validate_rfc3339(instance),
     )
 
 
@@ -268,7 +269,9 @@ class RetinaLandmarkAnnotationSetsAPI(APIBase, ModifiableMixin):
     modify_json_schema = import_json_schema("post-landmark-annotation.json")
 
     def for_image(self, pk):
-        result = self._client(method="GET", path=self.base_path, params={"image_id": pk})
+        result = self._client(
+            method="GET", path=self.base_path, params={"image_id": pk}
+        )
         for i in result:
             self._verify_against_schema(i)
         return result

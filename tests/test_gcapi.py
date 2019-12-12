@@ -133,14 +133,8 @@ def test_create_landmark_annotation():
     create_data = {
         "grader": 0,
         "singlelandmarkannotation_set": [
-            {
-                "image": nil_uuid,
-                "landmarks": [[0, 0], [1, 1], [2, 2]],
-            },
-            {
-                "image": nil_uuid,
-                "landmarks": [[0, 0], [1, 1], [2, 2]],
-            },
+            {"image": nil_uuid, "landmarks": [[0, 0], [1, 1], [2, 2]]},
+            {"image": nil_uuid, "landmarks": [[0, 0], [1, 1], [2, 2]]},
         ],
     }
     with pytest.raises(HTTPError) as e:
@@ -150,7 +144,6 @@ def test_create_landmark_annotation():
     response = response.json()
     assert response["grader"][0] == 'Invalid pk "0" - object does not exist.'
     for sla_error in response["singlelandmarkannotation_set"]:
-        assert (
-            sla_error["image"][0]
-            == 'Invalid pk "{}" - object does not exist.'.format(nil_uuid)
-        )
+        assert sla_error["image"][
+            0
+        ] == 'Invalid pk "{}" - object does not exist.'.format(nil_uuid)
