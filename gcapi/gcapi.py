@@ -133,14 +133,14 @@ class APIBase(object):
         for k, api in list(self.sub_apis.items()):
             setattr(self, k, api(self._client))
 
-    def __verify_against_schema(self, value):
+    def _verify_against_schema(self, value):
         if self.json_schema is not None:
             self.json_schema.validate(value)
 
     def list(self):
         result = self._client(method="GET", path=self.base_path)
         for i in result:
-            self.__verify_against_schema(i)
+            self._verify_against_schema(i)
         return result
 
     def page(self, offset=0, limit=100):
@@ -148,7 +148,7 @@ class APIBase(object):
             method="GET", path=self.base_path, params={"offset": offset, "limit": limit}
         )["results"]
         for i in result:
-            self.__verify_against_schema(i)
+            self._verify_against_schema(i)
         return result
 
     def iterate_all(self):
@@ -164,7 +164,7 @@ class APIBase(object):
 
     def detail(self, pk):
         result = self._client(method="GET", path=urljoin(self.base_path, pk + "/"))
-        self.__verify_against_schema(result)
+        self._verify_against_schema(result)
         return result
 
 
@@ -266,6 +266,12 @@ class RetinaLandmarkAnnotationSetsAPI(APIBase, ModifiableMixin):
     base_path = "retina/landmark-annotation/"
     json_schema = import_json_schema("landmark-annotation.json")
     modify_json_schema = import_json_schema("post-landmark-annotation.json")
+
+    def for_image(self, pk):
+        result = self._client(method="GET", path=self.base_path, params={"image_id": pk})
+        for i in result:
+            self._verify_against_schema(i)
+        return result
 
 
 class ChunkedUploadsAPI(APIBase):
