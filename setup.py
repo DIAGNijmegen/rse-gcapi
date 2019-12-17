@@ -14,8 +14,7 @@ with open("HISTORY.rst") as history_file:
 requirements = [
     "Click>=6.0",
     "Requests",
-    "jsonschema>=3.0",
-    "rfc3339-validator>=0.1.2",
+    "jsonschema[format_nongpl]>=3.0",
     "future>=0.17.1",
 ]
 

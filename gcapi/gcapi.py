@@ -14,7 +14,6 @@ from time import sleep, time
 from future.moves.urllib.parse import urljoin
 
 from requests import Session, post, ConnectionError
-from rfc3339_validator import validate_rfc3339
 
 
 def is_uuid(s):
@@ -37,32 +36,6 @@ def accept_tuples_as_arrays(org):
 Draft7ValidatorWithTupleSupport = jsonschema.validators.extend(
     jsonschema.Draft7Validator,
     type_checker=accept_tuples_as_arrays(jsonschema.Draft7Validator.TYPE_CHECKER),
-)
-
-
-def accept_datetime_string(org):
-    """
-    Adds support for validation of datetime strings in schemas by adding a new value
-    for the `type` key in schemas called `datetime`. Instances validated using this
-    type will be
-    Parameters
-    ----------
-    org
-
-    Returns
-    -------
-
-    """
-    return org.redefine(
-        "datetime",
-        lambda checker, instance: isinstance(instance, str)
-        and validate_rfc3339(instance),
-    )
-
-
-Draft7ValidatorWithTupleAndDateTimeSupport = jsonschema.validators.extend(
-    Draft7ValidatorWithTupleSupport,
-    type_checker=accept_datetime_string(Draft7ValidatorWithTupleSupport.TYPE_CHECKER),
 )
 
 
@@ -107,7 +80,7 @@ def import_json_schema(filename):
     try:
         with open(filename, "r") as f:
             jsn = json.load(f)
-        return Draft7ValidatorWithTupleAndDateTimeSupport(jsn)
+        return Draft7ValidatorWithTupleSupport(jsn, format_checker=jsonschema.draft7_format_checker)
     except ValueError as e:
         # I want missing/failing json imports to be an import error because that
         # is what they should indicate: a "broken" library
