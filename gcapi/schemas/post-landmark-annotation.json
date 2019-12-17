@@ -38,7 +38,8 @@
                     "minimum": 0
                 },
                 "created": {
-                    "type": "datetime"
+                    "type": "string",
+                    "format": "date-time"
                 },
                 "singlelandmarkannotation_set": {
                     "type": "array",
