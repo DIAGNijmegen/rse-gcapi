@@ -46,7 +46,7 @@
                     "items": { "$ref": "#/definitions/single-landmark-annotation" }
                 }
             },
-            "required": ["grader", "singlelandmarkannotation_set"]
+            "required": ["singlelandmarkannotation_set"]
         }
      },
 
