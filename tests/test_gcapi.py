@@ -11,7 +11,6 @@ from requests.exceptions import HTTPError
 
 from gcapi import Client
 from gcapi import cli
-from gcapi.gcapi import Draft7ValidatorWithTupleAndDateTimeSupport
 
 
 def test_no_auth_exception():
@@ -93,24 +92,6 @@ def test_local_response():
     )
     # Empty response, but it didn't error out so the server is responding
     assert c.algorithms.page() == []
-
-
-@pytest.mark.parametrize(
-    "datetime_string,valid",
-    (
-        ("teststring", False),
-        (1, False),
-        ({}, False),
-        ("2019-13-11T13:55:00.123456Z", False),
-        ("2019-12-11T25:55:00.123456Z", False),
-        ("2019-12-11T13:60:00.123456Z", False),
-        ("2019-12-11T13:55:00.123456Z", True),
-        ("2019-12-11T13:55:00Z", True),
-    ),
-)
-def test_datetime_string_type_support(datetime_string, valid):
-    validator = Draft7ValidatorWithTupleAndDateTimeSupport({"type": "datetime"})
-    assert validator.is_valid(datetime_string) == valid
 
 
 def test_list_landmark_annotations():
