@@ -80,7 +80,7 @@ def import_json_schema(filename):
     try:
         with open(filename, "r") as f:
             jsn = json.load(f)
-        return Draft7ValidatorWithTupleSupport(jsn)
+        return Draft7ValidatorWithTupleSupport(jsn, format_checker=jsonschema.draft7_format_checker)
     except ValueError as e:
         # I want missing/failing json imports to be an import error because that
         # is what they should indicate: a "broken" library
@@ -107,16 +107,22 @@ class APIBase(object):
         for k, api in list(self.sub_apis.items()):
             setattr(self, k, api(self._client))
 
-    def __verify_against_schema(self, value):
+    def _verify_against_schema(self, value):
         if self.json_schema is not None:
             self.json_schema.validate(value)
+
+    def list(self):
+        result = self._client(method="GET", path=self.base_path)
+        for i in result:
+            self._verify_against_schema(i)
+        return result
 
     def page(self, offset=0, limit=100):
         result = self._client(
             method="GET", path=self.base_path, params={"offset": offset, "limit": limit}
         )["results"]
         for i in result:
-            self.__verify_against_schema(i)
+            self._verify_against_schema(i)
         return result
 
     def iterate_all(self):
@@ -132,7 +138,7 @@ class APIBase(object):
 
     def detail(self, pk):
         result = self._client(method="GET", path=urljoin(self.base_path, pk + "/"))
-        self.__verify_against_schema(result)
+        self._verify_against_schema(result)
         return result
 
 
@@ -148,9 +154,28 @@ class ModifiableMixin(object):
         if self.modify_json_schema is not None:
             self.modify_json_schema.validate(post_args)
 
+    def perform_request(self, method, data=None, pk=False):
+        if data is None:
+            data = {}
+        self._process_post_arguments(data)
+        url = self.base_path if not pk else urljoin(self.base_path, str(pk) + "/")
+        return self._client(method=method, path=url, json=data)
+
     def send(self, **kwargs):
-        self._process_post_arguments(kwargs)
-        self._client(method="POST", path=self.base_path, json=kwargs)
+        # Created for backwards compatibility
+        self.create(**kwargs)
+
+    def create(self, **kwargs):
+        return self.perform_request("POST", data=kwargs)
+
+    def update(self, pk, **kwargs):
+        return self.perform_request("PUT", pk=pk, data=kwargs)
+
+    def partial_update(self, pk, **kwargs):
+        return self.perform_request("PATCH", pk=pk, data=kwargs)
+
+    def delete(self, pk):
+        return self.perform_request("DELETE", pk=pk)
 
 
 class ImagesAPI(APIBase):
@@ -209,6 +234,20 @@ class AlgorithmResultsAPI(APIBase):
 
 class AlgorithmJobsAPI(APIBase):
     base_path = "algorithms/jobs/"
+
+
+class RetinaLandmarkAnnotationSetsAPI(APIBase, ModifiableMixin):
+    base_path = "retina/landmark-annotation/"
+    json_schema = import_json_schema("landmark-annotation.json")
+    modify_json_schema = import_json_schema("post-landmark-annotation.json")
+
+    def for_image(self, pk):
+        result = self._client(
+            method="GET", path=self.base_path, params={"image_id": pk}
+        )
+        for i in result:
+            self._verify_against_schema(i)
+        return result
 
 
 class ChunkedUploadsAPI(APIBase):
@@ -331,6 +370,7 @@ class Client(Session):
         self.algorithm_results = AlgorithmResultsAPI(client=self)
         self.algorithm_jobs = AlgorithmJobsAPI(client=self)
         self.workstation_configs = WorkstationConfigsAPI(client=self)
+        self.retina_landmark_annotations = RetinaLandmarkAnnotationSetsAPI(client=self)
 
     @property
     def base_url(self):

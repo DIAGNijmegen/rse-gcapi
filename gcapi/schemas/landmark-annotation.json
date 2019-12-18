@@ -1,0 +1,54 @@
+{
+    "$schema": "http://json-schema.org/draft-07/schema#",
+    "definitions": {
+        "uuid": {
+            "type": "string",
+            "pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$"
+        },
+        "single-landmark-annotation": {
+            "type": "object",
+            "properties": {
+                "id": {
+                    "$ref": "#/definitions/uuid"
+                },
+                "image": {
+                    "$ref": "#/definitions/uuid"
+                },
+                "landmarks": {
+                    "type": "array",
+                    "items": {
+                        "type": "array",
+                        "items": {"type": "number"},
+                        "minItems": 2,
+                        "maxItems": 2
+                    },
+                    "minItems": 0
+                }
+            },
+            "required": ["id", "image", "landmarks"]
+        },
+        "landmark-annotation-set": {
+            "type": "object",
+            "properties": {
+                "id": {
+                    "$ref": "#/definitions/uuid"
+                },
+                "grader": {
+                    "type": "integer",
+                    "minimum": 0
+                },
+                "created": {
+                    "type": "string",
+                    "format": "date-time"
+                },
+                "singlelandmarkannotation_set": {
+                    "type": "array",
+                    "items": { "$ref": "#/definitions/single-landmark-annotation" }
+                }
+            },
+            "required": ["id", "grader", "created", "singlelandmarkannotation_set"]
+        }
+     },
+
+    "$ref": "#/definitions/landmark-annotation-set"
+}
