@@ -181,6 +181,11 @@ class ModifiableMixin(object):
 class ImagesAPI(APIBase):
     base_path = "cases/images/"
 
+class ImageFilesAPI(APIBase):
+    base_path = "cases/image-files/"
+
+class UploadSessionsAPI(APIBase):
+    base_path = "cases/upload-sessions/"
 
 class WorkstationSessionsAPI(APIBase):
     base_path = "workstations/sessions/"
@@ -371,6 +376,8 @@ class Client(Session):
         self.algorithm_jobs = AlgorithmJobsAPI(client=self)
         self.workstation_configs = WorkstationConfigsAPI(client=self)
         self.retina_landmark_annotations = RetinaLandmarkAnnotationSetsAPI(client=self)
+        self.raw_image_files = ImageFilesAPI(client=self)
+        self.raw_image_upload_sessions = UploadSessionsAPI(client=self)
 
     @property
     def base_url(self):
