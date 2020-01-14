@@ -154,12 +154,20 @@ class ModifiableMixin(object):
         if self.modify_json_schema is not None:
             self.modify_json_schema.validate(post_args)
 
-    def perform_request(self, method, data=None, pk=False):
+    def __validate_data(self, data):
         if data is None:
             data = {}
         self._process_post_arguments(data)
+        return data
+
+    def __execute_request(self, method, data, pk):
         url = self.base_path if not pk else urljoin(self.base_path, str(pk) + "/")
         return self._client(method=method, path=url, json=data)
+
+    def perform_request(self, method, data=None, pk=False, validate=True):
+        if validate:
+            data = self.__validate_data(data)
+        self.__execute_request(method, data, pk)
 
     def send(self, **kwargs):
         # Created for backwards compatibility
@@ -175,7 +183,7 @@ class ModifiableMixin(object):
         return self.perform_request("PATCH", pk=pk, data=kwargs)
 
     def delete(self, pk):
-        return self.perform_request("DELETE", pk=pk)
+        return self.perform_request("DELETE", pk=pk, validate=False)
 
 
 class ImagesAPI(APIBase):
