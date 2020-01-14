@@ -80,7 +80,9 @@ def import_json_schema(filename):
     try:
         with open(filename, "r") as f:
             jsn = json.load(f)
-        return Draft7ValidatorWithTupleSupport(jsn, format_checker=jsonschema.draft7_format_checker)
+        return Draft7ValidatorWithTupleSupport(
+            jsn, format_checker=jsonschema.draft7_format_checker
+        )
     except ValueError as e:
         # I want missing/failing json imports to be an import error because that
         # is what they should indicate: a "broken" library
@@ -189,11 +191,14 @@ class ModifiableMixin(object):
 class ImagesAPI(APIBase):
     base_path = "cases/images/"
 
+
 class ImageFilesAPI(APIBase):
     base_path = "cases/image-files/"
 
+
 class UploadSessionsAPI(APIBase):
     base_path = "cases/upload-sessions/"
+
 
 class WorkstationSessionsAPI(APIBase):
     base_path = "workstations/sessions/"
