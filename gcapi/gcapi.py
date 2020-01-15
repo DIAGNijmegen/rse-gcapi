@@ -421,3 +421,7 @@ class Client(Session):
         )
         response.raise_for_status()
         return response.json()
+
+    def run_external_algorithm(self, algorithm_name, files_to_upload, output_dir):
+        return True
+
