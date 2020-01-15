@@ -422,6 +422,12 @@ class Client(Session):
         response.raise_for_status()
         return response.json()
 
-    def run_external_algorithm(self, algorithm_name, files_to_upload, output_dir):
-        return True
-
+    def run_external_algorithm(self, algorithm_name, file_to_upload, output_dir):
+        if not os.path.exists(output_dir):
+            os.mkdir(output_dir)
+        algorithm = list(filter(lambda a: a["title"] == algorithm_name, self.algorithms.list()["results"]))
+        if not algorithm:
+            raise IOError(f"{algorithm_name} is not found in available list of algorithms")
+        algorithm_image = algorithm[0]["algorithm_container_images"]
+        self.chunked_uploads.send(file_to_upload)
+        staged_file_id = self.chunked_uploads.list()["results"][-1]["uuid"] # TODO: Need to find a way to filter with filename, filename is "file" for anything that gets uploaded
