@@ -80,7 +80,9 @@ def import_json_schema(filename):
     try:
         with open(filename, "r") as f:
             jsn = json.load(f)
-        return Draft7ValidatorWithTupleSupport(jsn, format_checker=jsonschema.draft7_format_checker)
+        return Draft7ValidatorWithTupleSupport(
+            jsn, format_checker=jsonschema.draft7_format_checker
+        )
     except ValueError as e:
         # I want missing/failing json imports to be an import error because that
         # is what they should indicate: a "broken" library
@@ -141,6 +143,15 @@ class APIBase(object):
         self._verify_against_schema(result)
         return result
 
+    def perform_request(self, method, data=None, pk=False):
+        if data is None:
+            data = {}
+        url = self.base_path if not pk else urljoin(self.base_path, str(pk) + "/")
+        return self._client(method=method, path=url, data=data)
+
+    def create(self, **kwargs):
+        return self.perform_request("POST", data=kwargs)
+
 
 class ModifiableMixin(object):
     _client = None  # type: Client
@@ -181,11 +192,14 @@ class ModifiableMixin(object):
 class ImagesAPI(APIBase):
     base_path = "cases/images/"
 
+
 class ImageFilesAPI(APIBase):
     base_path = "cases/image-files/"
 
+
 class UploadSessionsAPI(APIBase):
     base_path = "cases/upload-sessions/"
+
 
 class WorkstationSessionsAPI(APIBase):
     base_path = "workstations/sessions/"
@@ -425,9 +439,30 @@ class Client(Session):
     def run_external_algorithm(self, algorithm_name, file_to_upload, output_dir):
         if not os.path.exists(output_dir):
             os.mkdir(output_dir)
-        algorithm = list(filter(lambda a: a["title"] == algorithm_name, self.algorithms.list()["results"]))
+        algorithm = list(
+            filter(
+                lambda a: a["title"] == algorithm_name,
+                self.algorithms.list()["results"],
+            )
+        )
         if not algorithm:
-            raise IOError(f"{algorithm_name} is not found in available list of algorithms")
+            raise IOError(
+                f"{algorithm_name} is not found in available list of algorithms"
+            )
         algorithm_image = algorithm[0]["algorithm_container_images"]
         self.chunked_uploads.send(file_to_upload)
-        staged_file_id = self.chunked_uploads.list()["results"][-1]["uuid"] # TODO: Need to find a way to filter with filename, filename is "file" for anything that gets uploaded
+        staged_file_id = self.chunked_uploads.list()["results"][-1][
+            "uuid"
+        ]  # TODO: Need to find a way to filter with filename, filename is "file" for anything that gets uploaded
+        raw_image_upload_session_create_response = self.raw_image_upload_sessions.create(
+            algorithm_image=algorithm_image
+        )
+        raw_image_files_create_data = {
+            "upload_session": raw_image_upload_session_create_response["api_url"],
+            "staged_file_id": staged_file_id,
+            "filename":"file"
+        }
+        raw_image_files_response = self.raw_image_files.create(
+            **raw_image_files_create_data
+        )
+        print(self.raw_image_files.list())
