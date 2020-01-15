@@ -80,7 +80,9 @@ def import_json_schema(filename):
     try:
         with open(filename, "r") as f:
             jsn = json.load(f)
-        return Draft7ValidatorWithTupleSupport(jsn, format_checker=jsonschema.draft7_format_checker)
+        return Draft7ValidatorWithTupleSupport(
+            jsn, format_checker=jsonschema.draft7_format_checker
+        )
     except ValueError as e:
         # I want missing/failing json imports to be an import error because that
         # is what they should indicate: a "broken" library
@@ -154,12 +156,20 @@ class ModifiableMixin(object):
         if self.modify_json_schema is not None:
             self.modify_json_schema.validate(post_args)
 
-    def perform_request(self, method, data=None, pk=False):
+    def __validate_data(self, data):
         if data is None:
             data = {}
         self._process_post_arguments(data)
+        return data
+
+    def __execute_request(self, method, data, pk):
         url = self.base_path if not pk else urljoin(self.base_path, str(pk) + "/")
         return self._client(method=method, path=url, json=data)
+
+    def perform_request(self, method, data=None, pk=False, validate=True):
+        if validate:
+            data = self.__validate_data(data)
+        self.__execute_request(method, data, pk)
 
     def send(self, **kwargs):
         # Created for backwards compatibility
@@ -175,17 +185,20 @@ class ModifiableMixin(object):
         return self.perform_request("PATCH", pk=pk, data=kwargs)
 
     def delete(self, pk):
-        return self.perform_request("DELETE", pk=pk)
+        return self.perform_request("DELETE", pk=pk, validate=False)
 
 
 class ImagesAPI(APIBase):
     base_path = "cases/images/"
 
+
 class ImageFilesAPI(APIBase):
     base_path = "cases/image-files/"
 
+
 class UploadSessionsAPI(APIBase):
     base_path = "cases/upload-sessions/"
+
 
 class WorkstationSessionsAPI(APIBase):
     base_path = "workstations/sessions/"
