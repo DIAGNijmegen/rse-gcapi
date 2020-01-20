@@ -169,7 +169,7 @@ class ModifiableMixin(object):
     def perform_request(self, method, data=None, pk=False, validate=True):
         if validate:
             data = self.__validate_data(data)
-        self.__execute_request(method, data, pk)
+        return self.__execute_request(method, data, pk)
 
     def send(self, **kwargs):
         # Created for backwards compatibility
