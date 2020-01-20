@@ -433,4 +433,7 @@ class Client(Session):
             json=json,
         )
         response.raise_for_status()
-        return response.json()
+        if response.headers.get("Content-Type") == "application/json":
+            return response.json()
+        else:
+            return response
