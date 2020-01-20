@@ -143,14 +143,20 @@ class APIBase(object):
         self._verify_against_schema(result)
         return result
 
-    def perform_request(self, method, data=None, pk=False):
+    def perform_request(self, method, data=None, pk=""):
         if data is None:
             data = {}
-        url = self.base_path if not pk else urljoin(self.base_path, str(pk) + "/")
+        if method == "PATCH":
+            url = urljoin(self.base_path, str(pk) + "/" + "process_images/")
+        else:
+            url = self.base_path if not pk else urljoin(self.base_path, str(pk) + "/")
         return self._client(method=method, path=url, data=data)
 
     def create(self, **kwargs):
         return self.perform_request("POST", data=kwargs)
+
+    def partial_update(self, pk, **kwargs):
+        return self.perform_request("PATCH", data=kwargs, pk=pk)
 
 
 class ModifiableMixin(object):
@@ -459,18 +465,19 @@ class Client(Session):
             )
         algorithm_image = algorithm[0]["algorithm_container_images"]
         self.chunked_uploads.send(file_to_upload)
-        staged_file_id = self.chunked_uploads.list()["results"][-1][
-            "uuid"
-        ]  # TODO: Need to find a way to filter with filename, filename is "file" for anything that gets uploaded
+        staged_file_id = uuid.UUID(
+            self.chunked_uploads.list()["results"][-1]["uuid"]
+        )  # TODO: Need to find a way to filter with filename, filename is "file" for anything that gets uploaded
         raw_image_upload_session_create_response = self.raw_image_upload_sessions.create(
             algorithm_image=algorithm_image
         )
+        upload_session_pk = uuid.UUID(raw_image_upload_session_create_response["pk"])
         raw_image_files_create_data = {
             "upload_session": raw_image_upload_session_create_response["api_url"],
             "staged_file_id": staged_file_id,
-            "filename":"file"
+            "filename": "file",
         }
-        raw_image_files_response = self.raw_image_files.create(
-            **raw_image_files_create_data
-        )
-        print(self.raw_image_files.list())
+        self.raw_image_files.create(**raw_image_files_create_data)
+        self.raw_image_upload_sessions.partial_update(pk=upload_session_pk)
+
+        print(self.algorithm_jobs.list())
