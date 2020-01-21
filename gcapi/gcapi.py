@@ -307,7 +307,9 @@ class ChunkedUploadsAPI(APIBase):
                 self._client(
                     method="POST",
                     path=self.base_path,
-                    files={"file": BytesIO(file_info["chunk"])},
+                    files={
+                        "file": (file_info["filename"], BytesIO(file_info["chunk"]))
+                    },
                     data={
                         "filename": file_info["filename"],
                         "X-Upload-ID": file_info["upload_id"],
@@ -451,6 +453,8 @@ class Client(Session):
         return response.json()
 
     def run_external_algorithm(self, algorithm_name, file_to_upload, output_dir):
+        _, filename = os.path.split(file_to_upload)
+        print(filename)
         if not os.path.exists(output_dir):
             os.mkdir(output_dir)
         algorithm = list(
@@ -465,9 +469,18 @@ class Client(Session):
             )
         algorithm_image = algorithm[0]["algorithm_container_images"]
         self.chunked_uploads.send(file_to_upload)
-        staged_file_id = uuid.UUID(
-            self.chunked_uploads.list()["results"][-1]["uuid"]
-        )  # TODO: Need to find a way to filter with filename, filename is "file" for anything that gets uploaded
+        uploaded_file_list = list(
+            filter(
+                lambda a: a["filename"] == filename,
+                self.chunked_uploads.list()["results"],
+            )
+        )
+        if not uploaded_file_list:
+            raise IOError(
+                f"{filename} has not been uploaded proeprly"
+            )
+        staged_file_id = uuid.UUID(uploaded_file_list[0]["uuid"])
+
         raw_image_upload_session_create_response = self.raw_image_upload_sessions.create(
             algorithm_image=algorithm_image
         )
@@ -475,7 +488,7 @@ class Client(Session):
         raw_image_files_create_data = {
             "upload_session": raw_image_upload_session_create_response["api_url"],
             "staged_file_id": staged_file_id,
-            "filename": "file",
+            "filename": filename,
         }
         self.raw_image_files.create(**raw_image_files_create_data)
         self.raw_image_upload_sessions.partial_update(pk=upload_session_pk)
