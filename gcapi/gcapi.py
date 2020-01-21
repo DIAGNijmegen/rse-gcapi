@@ -452,10 +452,21 @@ class Client(Session):
         response.raise_for_status()
         return response.json()
 
-    def run_external_algorithm(self, algorithm_name, file_to_upload, output_dir):
+    def run_external_algorithm(self, algorithm_name, file_to_upload):
+        """
+            This function uploads an input image to grand challenge and runs an already uploaded algorithm which the
+            user has access to. If the upload is finished correctly, grand challenge will automatically submit a job
+            which you can access via AlgorithmJobsAPI. After the job is finished successfully the result will be
+            available via AlgorithmResultsAPI.
+
+            Parameters
+            ----------
+            algorithm_name: str
+                Title of the algorithm which has already been uploaded.
+            file_to_upload: os.path
+                Full path of the image to be uploaded
+            """
         _, filename = os.path.split(file_to_upload)
-        if not os.path.exists(output_dir):
-            os.mkdir(output_dir)
         algorithm = list(
             filter(
                 lambda a: a["title"] == algorithm_name,
