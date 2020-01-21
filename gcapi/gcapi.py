@@ -476,9 +476,7 @@ class Client(Session):
             )
         )
         if not uploaded_file_list:
-            raise IOError(
-                f"{filename} has not been uploaded proeprly"
-            )
+            raise IOError(f"{filename} has not been uploaded properly.")
         staged_file_id = uuid.UUID(uploaded_file_list[0]["uuid"])
 
         raw_image_upload_session_create_response = self.raw_image_upload_sessions.create(
@@ -492,5 +490,3 @@ class Client(Session):
         }
         self.raw_image_files.create(**raw_image_files_create_data)
         self.raw_image_upload_sessions.partial_update(pk=upload_session_pk)
-
-        print(self.algorithm_jobs.list())
