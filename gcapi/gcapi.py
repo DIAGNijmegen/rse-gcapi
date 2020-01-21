@@ -214,7 +214,7 @@ class UploadSessionsAPI(APIBase, ModifiableMixin):
     base_path = "cases/upload-sessions/"
 
 
-class WorkstationSessionsAPI(APIBase, ModifiableMixin):
+class WorkstationSessionsAPI(APIBase):
     base_path = "workstations/sessions/"
 
 
@@ -479,7 +479,6 @@ class Client(Session):
                 f"{algorithm_name} is not found in available list of algorithms"
             )
         algorithm_image = algorithm[0]["algorithm_container_images"][0]
-        print(algorithm_image)
         self.chunked_uploads.send(file_to_upload)
         uploaded_file_list = list(
             filter(
