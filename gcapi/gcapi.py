@@ -476,7 +476,7 @@ class Client(Session):
         )
         if not algorithm:
             raise IOError(
-                f"{algorithm_name} is not found in available list of algorithms"
+                "{} is not found in available list of algorithms".format(algorithm_name)
             )
         algorithm_image = algorithm[0]["algorithm_container_images"][0]
         self.chunked_uploads.send(file_to_upload)
@@ -487,7 +487,7 @@ class Client(Session):
             )
         )
         if not uploaded_file_list:
-            raise IOError(f"{filename} has not been uploaded properly.")
+            raise IOError("{} has not been uploaded properly.".format(filename))
         staged_file_id = uploaded_file_list[0]["uuid"]
         raw_image_upload_session_create_data = {
             "algorithm_image": algorithm_image,
