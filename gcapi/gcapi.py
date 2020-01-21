@@ -454,7 +454,6 @@ class Client(Session):
 
     def run_external_algorithm(self, algorithm_name, file_to_upload, output_dir):
         _, filename = os.path.split(file_to_upload)
-        print(filename)
         if not os.path.exists(output_dir):
             os.mkdir(output_dir)
         algorithm = list(
