@@ -184,7 +184,7 @@ class ModifiableMixin(object):
     def perform_request(self, method, data=None, pk=False, validate=True):
         if validate:
             data = self.__validate_data(data)
-        self.__execute_request(method, data, pk)
+        return self.__execute_request(method, data, pk)
 
     def send(self, **kwargs):
         # Created for backwards compatibility
@@ -450,7 +450,10 @@ class Client(Session):
             json=json,
         )
         response.raise_for_status()
-        return response.json()
+        if response.headers.get("Content-Type") == "application/json":
+            return response.json()
+        else:
+            return response
 
     def run_external_algorithm(self, algorithm_name, file_to_upload):
         """
