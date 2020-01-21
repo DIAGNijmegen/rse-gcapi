@@ -143,21 +143,6 @@ class APIBase(object):
         self._verify_against_schema(result)
         return result
 
-    def perform_request(self, method, data=None, pk=""):
-        if data is None:
-            data = {}
-        if method == "PATCH":
-            url = urljoin(self.base_path, str(pk) + "/" + "process_images/")
-        else:
-            url = self.base_path if not pk else urljoin(self.base_path, str(pk) + "/")
-        return self._client(method=method, path=url, data=data)
-
-    def create(self, **kwargs):
-        return self.perform_request("POST", data=kwargs)
-
-    def partial_update(self, pk, **kwargs):
-        return self.perform_request("PATCH", data=kwargs, pk=pk)
-
 
 class ModifiableMixin(object):
     _client = None  # type: Client
@@ -177,27 +162,41 @@ class ModifiableMixin(object):
         self._process_post_arguments(data)
         return data
 
-    def __execute_request(self, method, data, pk):
-        url = self.base_path if not pk else urljoin(self.base_path, str(pk) + "/")
+    def __execute_request(self, method, data, pk, path_to_patch):
+        url = (
+            self.base_path
+            if not pk
+            else urljoin(self.base_path, str(pk) + "/" + path_to_patch)
+        )
         return self._client(method=method, path=url, json=data)
 
-    def perform_request(self, method, data=None, pk=False, validate=True):
+    def perform_request(
+        self, method, data=None, pk=False, validate=True, path_to_patch=""
+    ):
         if validate:
             data = self.__validate_data(data)
-        return self.__execute_request(method, data, pk)
+        return self.__execute_request(method, data, pk, path_to_patch)
 
     def send(self, **kwargs):
         # Created for backwards compatibility
         self.create(**kwargs)
 
     def create(self, **kwargs):
-        return self.perform_request("POST", data=kwargs)
+        return self.perform_request(
+            "POST", data=kwargs, validate=kwargs.get("validate", True)
+        )
 
     def update(self, pk, **kwargs):
         return self.perform_request("PUT", pk=pk, data=kwargs)
 
     def partial_update(self, pk, **kwargs):
-        return self.perform_request("PATCH", pk=pk, data=kwargs)
+        return self.perform_request(
+            "PATCH",
+            pk=pk,
+            data=kwargs,
+            validate=kwargs.get("validate", True),
+            path_to_patch=kwargs.get("path_to_patch", ""),
+        )
 
     def delete(self, pk):
         return self.perform_request("DELETE", pk=pk, validate=False)
@@ -207,15 +206,15 @@ class ImagesAPI(APIBase):
     base_path = "cases/images/"
 
 
-class ImageFilesAPI(APIBase):
+class ImageFilesAPI(APIBase, ModifiableMixin):
     base_path = "cases/image-files/"
 
 
-class UploadSessionsAPI(APIBase):
+class UploadSessionsAPI(APIBase, ModifiableMixin):
     base_path = "cases/upload-sessions/"
 
 
-class WorkstationSessionsAPI(APIBase):
+class WorkstationSessionsAPI(APIBase, ModifiableMixin):
     base_path = "workstations/sessions/"
 
 
@@ -436,7 +435,6 @@ class Client(Session):
             extra_headers["Content-Type"] = "application/json"
 
         self._validate_url(url)
-
         response = self.request(
             method=method,
             url=url,
@@ -480,7 +478,8 @@ class Client(Session):
             raise IOError(
                 f"{algorithm_name} is not found in available list of algorithms"
             )
-        algorithm_image = algorithm[0]["algorithm_container_images"]
+        algorithm_image = algorithm[0]["algorithm_container_images"][0]
+        print(algorithm_image)
         self.chunked_uploads.send(file_to_upload)
         uploaded_file_list = list(
             filter(
@@ -490,16 +489,26 @@ class Client(Session):
         )
         if not uploaded_file_list:
             raise IOError(f"{filename} has not been uploaded properly.")
-        staged_file_id = uuid.UUID(uploaded_file_list[0]["uuid"])
-
+        staged_file_id = uploaded_file_list[0]["uuid"]
+        raw_image_upload_session_create_data = {
+            "algorithm_image": algorithm_image,
+            "validate": False,
+        }
         raw_image_upload_session_create_response = self.raw_image_upload_sessions.create(
-            algorithm_image=algorithm_image
+            **raw_image_upload_session_create_data
         )
-        upload_session_pk = uuid.UUID(raw_image_upload_session_create_response["pk"])
+        upload_session_pk = raw_image_upload_session_create_response["pk"]
         raw_image_files_create_data = {
             "upload_session": raw_image_upload_session_create_response["api_url"],
             "staged_file_id": staged_file_id,
             "filename": filename,
+            "validate": False,
         }
         self.raw_image_files.create(**raw_image_files_create_data)
-        self.raw_image_upload_sessions.partial_update(pk=upload_session_pk)
+        raw_image_upload_sessions_partial_update_data = {
+            "path_to_patch": "process_images/",
+            "validate": False,
+        }
+        self.raw_image_upload_sessions.partial_update(
+            pk=upload_session_pk, **raw_image_upload_sessions_partial_update_data
+        )
