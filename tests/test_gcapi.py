@@ -184,11 +184,11 @@ def test_create_landmark_annotation():
             0
         ] == 'Invalid pk "{}" - object does not exist.'.format(nil_uuid)
 
-class test_raw_image_and_upload_session():
+class test_raw_image_and_upload_session:
     c = Client(
         base_url="https://gc.localhost/api/v1/",
         verify=False,
         token="1b9436200001f2eaf57cd77db075cbb60a49a00a",  # admin token
     )
-    assert c.raw_image_files.page() == []
+    assert c.raw_image_upload_session_files.page() == []
     assert c.raw_image_upload_sessions.page() == []

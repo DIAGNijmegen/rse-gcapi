@@ -206,8 +206,8 @@ class ImagesAPI(APIBase):
     base_path = "cases/images/"
 
 
-class ImageFilesAPI(APIBase, ModifiableMixin):
-    base_path = "cases/image-files/"
+class UploadSessionFilesAPI(APIBase, ModifiableMixin):
+    base_path = "cases/upload-sessions/files"
 
 
 class UploadSessionsAPI(APIBase, ModifiableMixin):
@@ -405,7 +405,7 @@ class Client(Session):
         self.algorithm_jobs = AlgorithmJobsAPI(client=self)
         self.workstation_configs = WorkstationConfigsAPI(client=self)
         self.retina_landmark_annotations = RetinaLandmarkAnnotationSetsAPI(client=self)
-        self.raw_image_files = ImageFilesAPI(client=self)
+        self.raw_image_upload_session_files = UploadSessionFilesAPI(client=self)
         self.raw_image_upload_sessions = UploadSessionsAPI(client=self)
 
     @property
@@ -497,13 +497,15 @@ class Client(Session):
             **raw_image_upload_session_create_data
         )
         upload_session_pk = raw_image_upload_session_create_response["pk"]
-        raw_image_files_create_data = {
+        raw_image_upload_session_files_create_data = {
             "upload_session": raw_image_upload_session_create_response["api_url"],
             "staged_file_id": staged_file_id,
             "filename": filename,
             "validate": False,
         }
-        self.raw_image_files.create(**raw_image_files_create_data)
+        self.raw_image_upload_session_files.create(
+            **raw_image_upload_session_files_create_data
+        )
         raw_image_upload_sessions_partial_update_data = {
             "path_to_patch": "process_images/",
             "validate": False,
