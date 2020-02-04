@@ -184,7 +184,8 @@ def test_create_landmark_annotation():
             0
         ] == 'Invalid pk "{}" - object does not exist.'.format(nil_uuid)
 
-class test_raw_image_and_upload_session:
+
+def test_raw_image_and_upload_session():
     c = Client(
         base_url="https://gc.localhost/api/v1/",
         verify=False,
@@ -192,3 +193,25 @@ class test_raw_image_and_upload_session:
     )
     assert c.raw_image_upload_session_files.page() == []
     assert c.raw_image_upload_sessions.page() == []
+
+
+def test_run_external_algorithm():
+    c = Client(
+        base_url="https://gc.localhost/api/v1/",
+        verify=False,
+        token="dc3526c2008609b429514b6361a33f8516541464",  # user token
+    )
+    image_to_upload = os.path.join(
+        os.path.dirname(os.path.realpath(__file__)), "testdata", "image10x10x101.mha"
+    )
+    assert c.algorithm_jobs.list()["count"] == 0
+    c.run_external_algorithm("Test Algorithm", image_to_upload)
+    # Need to login again to access updated information
+    c = Client(
+        base_url="https://gc.localhost/api/v1/",
+        verify=False,
+        token="dc3526c2008609b429514b6361a33f8516541464",  # user token
+    )
+    assert c.raw_image_upload_sessions.list()["count"] == 1
+    assert c.raw_image_upload_sessions.page()[0]["status"] == "Succeeded"
+    assert c.algorithm_jobs.list()["count"] == 1
