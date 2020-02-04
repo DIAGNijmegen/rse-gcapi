@@ -162,20 +162,14 @@ class ModifiableMixin(object):
         self._process_post_arguments(data)
         return data
 
-    def __execute_request(self, method, data, pk, path_to_patch):
-        url = (
-            self.base_path
-            if not pk
-            else urljoin(self.base_path, str(pk) + "/" + path_to_patch)
-        )
+    def __execute_request(self, method, data, pk):
+        url = self.base_path if not pk else urljoin(self.base_path, str(pk) + "/")
         return self._client(method=method, path=url, json=data)
 
-    def perform_request(
-        self, method, data=None, pk=False, validate=True, path_to_patch=""
-    ):
+    def perform_request(self, method, data=None, pk=False, validate=True):
         if validate:
             data = self.__validate_data(data)
-        return self.__execute_request(method, data, pk, path_to_patch)
+        return self.__execute_request(method, data, pk)
 
     def send(self, **kwargs):
         # Created for backwards compatibility
@@ -190,13 +184,7 @@ class ModifiableMixin(object):
         return self.perform_request("PUT", pk=pk, data=kwargs)
 
     def partial_update(self, pk, **kwargs):
-        return self.perform_request(
-            "PATCH",
-            pk=pk,
-            data=kwargs,
-            validate=kwargs.get("validate", True),
-            path_to_patch=kwargs.get("path_to_patch", ""),
-        )
+        return self.perform_request("PATCH", pk=pk, data=kwargs)
 
     def delete(self, pk):
         return self.perform_request("DELETE", pk=pk, validate=False)
@@ -212,6 +200,10 @@ class UploadSessionFilesAPI(APIBase, ModifiableMixin):
 
 class UploadSessionsAPI(APIBase, ModifiableMixin):
     base_path = "cases/upload-sessions/"
+
+    def process_images(self, pk, json=None):
+        url = urljoin(self.base_path, str(pk) + "/process_images/")
+        return self._client(method="PATCH", path=url, json=json)
 
 
 class WorkstationSessionsAPI(APIBase):
@@ -506,10 +498,4 @@ class Client(Session):
         self.raw_image_upload_session_files.create(
             **raw_image_upload_session_files_create_data
         )
-        raw_image_upload_sessions_partial_update_data = {
-            "path_to_patch": "process_images/",
-            "validate": False,
-        }
-        self.raw_image_upload_sessions.partial_update(
-            pk=upload_session_pk, **raw_image_upload_sessions_partial_update_data
-        )
+        self.raw_image_upload_sessions.process_images(pk=upload_session_pk)
