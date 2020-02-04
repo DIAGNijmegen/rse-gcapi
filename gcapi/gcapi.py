@@ -207,7 +207,7 @@ class ImagesAPI(APIBase):
 
 
 class UploadSessionFilesAPI(APIBase, ModifiableMixin):
-    base_path = "cases/upload-sessions/files"
+    base_path = "cases/upload-sessions/files/"
 
 
 class UploadSessionsAPI(APIBase, ModifiableMixin):
