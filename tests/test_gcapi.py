@@ -199,7 +199,7 @@ def test_run_external_algorithm():
     c = Client(
         base_url="https://gc.localhost/api/v1/",
         verify=False,
-        token="dc3526c2008609b429514b6361a33f8516541464",  # user token
+        token="dc3526c2008609b429514b6361a33f8516541464",  # algorithmuser token
     )
     image_to_upload = os.path.join(
         os.path.dirname(os.path.realpath(__file__)), "testdata", "image10x10x101.mha"
@@ -210,7 +210,7 @@ def test_run_external_algorithm():
     c = Client(
         base_url="https://gc.localhost/api/v1/",
         verify=False,
-        token="dc3526c2008609b429514b6361a33f8516541464",  # user token
+        token="dc3526c2008609b429514b6361a33f8516541464",  # algorithmuser token
     )
     assert c.raw_image_upload_sessions.list()["count"] == 1
     assert c.raw_image_upload_sessions.page()[0]["status"] == "Succeeded"
