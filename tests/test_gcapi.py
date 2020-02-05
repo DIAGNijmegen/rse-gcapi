@@ -213,5 +213,5 @@ def test_run_external_algorithm():
         token="dc3526c2008609b429514b6361a33f8516541464",  # algorithmuser token
     )
     assert c.raw_image_upload_sessions.list()["count"] == 1
-    assert c.raw_image_upload_sessions.page()[0]["status"] == "Succeeded"
+    assert c.raw_image_upload_sessions.detail(us_pk)["status"] == "Succeeded"
     assert c.algorithm_jobs.list()["count"] == 1
