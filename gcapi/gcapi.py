@@ -458,6 +458,13 @@ class Client(Session):
                 Title of the algorithm which has already been uploaded.
             file_to_upload: os.path
                 Full path of the image to be uploaded
+
+            Returns
+            -------
+            upload_session_pk: UUID
+            This can be used to construct a query like /api/v1/cases/images/?origin__pk=upload_session_pk to find out
+            which Image did this RawImageUploadSession give rise to. This can be further used to identify the submitted
+            job.
             """
         _, filename = os.path.split(file_to_upload)
         algorithm = list(
