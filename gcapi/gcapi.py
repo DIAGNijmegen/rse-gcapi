@@ -499,3 +499,4 @@ class Client(Session):
             **raw_image_upload_session_files_create_data
         )
         self.raw_image_upload_sessions.process_images(pk=upload_session_pk)
+        return upload_session_pk
