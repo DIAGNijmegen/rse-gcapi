@@ -205,7 +205,7 @@ def test_run_external_algorithm():
         os.path.dirname(os.path.realpath(__file__)), "testdata", "image10x10x101.mha"
     )
     assert c.algorithm_jobs.list()["count"] == 0
-    c.run_external_algorithm("Test Algorithm", image_to_upload)
+    us_pk = c.run_external_algorithm("Test Algorithm", image_to_upload)
     # Need to login again to access updated information
     c = Client(
         base_url="https://gc.localhost/api/v1/",
