@@ -39,7 +39,7 @@ def test_create_landmark_annotation(local_grand_challenge):
 
 def test_raw_image_and_upload_session(local_grand_challenge):
     c = Client(base_url=local_grand_challenge, verify=False, token=ADMIN_TOKEN,)
-    assert c.raw_image_files.page() == []
+    assert c.raw_image_upload_session_files.page() == []
     assert c.raw_image_upload_sessions.page() == []
 
 
@@ -66,7 +66,7 @@ def test_chunked_uploads(local_grand_challenge):
     c = Client(token="whatever")
     with pytest.raises(HTTPError):
         c.chunked_uploads.send(file_to_upload)
-        
+
 def test_run_external_algorithm():
     c = Client(
         base_url="https://gc.localhost/api/v1/",
@@ -85,5 +85,10 @@ def test_run_external_algorithm():
         token="dc3526c2008609b429514b6361a33f8516541464",  # algorithmuser token
     )
     assert c.raw_image_upload_sessions.list()["count"] == 1
-    assert c.raw_image_upload_sessions.detail(us_pk)["status"] == "Succeeded"
     assert c.algorithm_jobs.list()["count"] == 1
+    c = Client(
+        base_url="https://gc.localhost/api/v1/",
+        verify=False,
+        token="dc3526c2008609b429514b6361a33f8516541464",  # algorithmuser token
+    )
+    assert c.raw_image_upload_sessions.detail(us_pk)["status"] == "Succeeded"
