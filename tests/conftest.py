@@ -7,37 +7,59 @@ import pytest
 import requests
 import yaml
 
+from tests.integration_tests import ADMIN_TOKEN
+
 GRAND_CHALLENGE_COMMIT_ID = "0708cd89"
 
 
 @pytest.yield_fixture(scope="session")
 def local_grand_challenge():
 
-    with TemporaryDirectory() as tmp_path:
+    local_api_url = "https://gc.localhost/api/v1/"
 
-        for f in ["docker-compose.yml", "dockerfiles/db/postgres.test.conf"]:
-            get_grand_challenge_file(Path(f), Path(tmp_path))
+    try:
+        r = requests.get(
+            local_api_url,
+            verify=False,
+            headers={"Authorization": "TOKEN {}".format(ADMIN_TOKEN)},
+        )
+        r.raise_for_status()
+        local_gc_running = True
+    except requests.exceptions.ConnectionError:
+        local_gc_running = False
 
-        try:
-            check_call(["docker-compose", "pull"], cwd=tmp_path)
-            for command in ["migrate", "check_permissions", "init_gc_demo"]:
-                check_call(
-                    [
-                        "docker-compose",
-                        "run",
-                        "--rm",
-                        "web",
-                        "python",
-                        "manage.py",
-                        command,
-                    ],
-                    cwd=tmp_path,
-                )
-            check_call(["docker-compose", "up", "-d"], cwd=tmp_path)
-            check_call(["docker-compose-wait", "-w", "-t", "2m"], cwd=tmp_path)
-            yield
-        finally:
-            check_call(["docker-compose", "down"], cwd=tmp_path)
+    if local_gc_running:
+        yield local_api_url
+    else:
+        # Start our own version of grand challenge
+        with TemporaryDirectory() as tmp_path:
+
+            for f in ["docker-compose.yml", "dockerfiles/db/postgres.test.conf"]:
+                get_grand_challenge_file(Path(f), Path(tmp_path))
+
+            try:
+                check_call(["docker-compose", "pull"], cwd=tmp_path)
+
+                for command in ["migrate", "check_permissions", "init_gc_demo"]:
+                    check_call(
+                        [
+                            "docker-compose",
+                            "run",
+                            "--rm",
+                            "web",
+                            "python",
+                            "manage.py",
+                            command,
+                        ],
+                        cwd=tmp_path,
+                    )
+                check_call(["docker-compose", "up", "-d"], cwd=tmp_path)
+                check_call(["docker-compose-wait", "-w", "-t", "2m"], cwd=tmp_path)
+
+                yield local_api_url
+
+            finally:
+                check_call(["docker-compose", "down"], cwd=tmp_path)
 
 
 def get_grand_challenge_file(repo_path: Path, output_directory: Path):
