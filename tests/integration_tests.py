@@ -1,4 +1,5 @@
 import os
+from pathlib import Path
 from time import sleep
 
 import pytest
@@ -73,30 +74,29 @@ def test_chunked_uploads(local_grand_challenge):
         c.chunked_uploads.send(file_to_upload)
 
 
-def test_run_external_algorithm(local_grand_challenge):
+@pytest.mark.parametrize(
+    "files", (["image10x10x101.mha",], ["image10x10x10.mhd", "image10x10x10.zraw"],)
+)
+def test_run_external_algorithm(local_grand_challenge, files):
     c = Client(base_url=local_grand_challenge, verify=False, token=ALGORITHMUSER_TOKEN)
-    existing_algoritm_jobs = c.algorithm_jobs.list()["count"]
 
-    image_to_upload = os.path.join(
-        os.path.dirname(os.path.realpath(__file__)), "testdata", "image10x10x101.mha"
-    )
-    assert c.algorithm_jobs.list()["count"] == existing_algoritm_jobs
+    existing_us_count = c.raw_image_upload_sessions.list()["count"]
+    existing_algorithm_jobs = c.algorithm_jobs.list()["count"]
+    existing_images = c.images.list()["count"]
 
-    existing_upload_sessions_count = c.raw_image_upload_sessions.list()["count"]
-    us_pk = c.run_external_algorithm("Test Algorithm", [image_to_upload])
-
-    assert (
-        c.raw_image_upload_sessions.list()["count"]
-        == 1 + existing_upload_sessions_count
+    us = c.run_external_algorithm(
+        "Test Algorithm", [Path(__file__).parent / "testdata" / f for f in files]
     )
 
     for _ in range(60):
-        if (c.raw_image_upload_sessions.detail(us_pk)["status"]) == "Succeeded":
+        us = c.raw_image_upload_sessions.detail(us["pk"])
+        if us["status"] == "Succeeded":
             break
         else:
             sleep(0.5)
     else:
         raise TimeoutError
 
-    assert c.raw_image_upload_sessions.detail(us_pk)["status"] == "Succeeded"
-    assert c.algorithm_jobs.list()["count"] == 1 + existing_algoritm_jobs
+    assert c.raw_image_upload_sessions.list()["count"] == 1 + existing_us_count
+    assert c.algorithm_jobs.list()["count"] == 1 + existing_algorithm_jobs
+    assert c.images.list()["count"] == 1 + existing_images

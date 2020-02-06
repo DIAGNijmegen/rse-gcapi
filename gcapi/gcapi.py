@@ -296,9 +296,7 @@ class ChunkedUploadsAPI(APIBase):
                 result = self._client(
                     method="POST",
                     path=self.base_path,
-                    files={
-                        "file": (file_info["filename"], BytesIO(file_info["chunk"]))
-                    },
+                    files={file_info["filename"]: BytesIO(file_info["chunk"])},
                     data={
                         "filename": file_info["filename"],
                         "X-Upload-ID": file_info["upload_id"],
@@ -359,7 +357,7 @@ class ChunkedUploadsAPI(APIBase):
                         "chunk": chunk,
                         "content": content,
                         "upload_id": upload_id,
-                        "filename": filename,
+                        "filename": str(filename),
                     }
                 )
             except ConnectionError as e:
@@ -455,7 +453,7 @@ class Client(Session):
 
     def run_external_algorithm(
         self, algorithm_name: str, files_to_upload: List[str]
-    ) -> str:
+    ) -> Dict:
         """
         This function uploads an input image to grand challenge and runs an
         already uploaded algorithm which the user has access to. If the upload
@@ -474,9 +472,9 @@ class Client(Session):
 
         Returns
         -------
-        upload_session_pk:
+        upload_session:
         This can be used to construct a query like
-        /api/v1/cases/images/?origin=upload_session_pk
+        /api/v1/cases/images/?origin=upload_session["pk"]
         to find out which Image did this RawImageUploadSession give rise to.
         This can be further used to identify the submitted job.
         """
@@ -500,7 +498,7 @@ class Client(Session):
 
         self.raw_image_upload_sessions.process_images(pk=raw_image_upload_session["pk"])
 
-        return raw_image_upload_session["pk"]
+        return raw_image_upload_session
 
     def _get_latest_algorithm_image(self, algorithm_name: str) -> Dict:
         """Get the latest algorithm image for the given algorithm name. """
