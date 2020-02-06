@@ -10,8 +10,6 @@ python:
 - 3.5
 - 2.7
 before_install:
-    - git submodule init
-    - git submodule update grand-challenge.org
     - sudo service postgresql stop
     - sudo service redis-server stop
 install:
