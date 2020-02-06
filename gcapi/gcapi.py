@@ -453,11 +453,13 @@ class Client(Session):
         else:
             return response
 
-    def run_external_algorithm(self, algorithm_name: str, files_to_upload: List) -> str:
+    def run_external_algorithm(
+        self, algorithm_name: str, files_to_upload: List[str]
+    ) -> str:
         """
         This function uploads an input image to grand challenge and runs an
         already uploaded algorithm which the user has access to. If the upload
-        is  finished correctly, grand challenge will automatically submit a job
+        is finished correctly, grand challenge will automatically submit a job
         which you can access via AlgorithmJobsAPI.
 
         After the job is finished successfully the result will be available via
@@ -467,8 +469,8 @@ class Client(Session):
         ----------
         algorithm_name:
             Title of the algorithm which has already been uploaded.
-        file_to_upload:
-            Full path of the image to be uploaded
+        files_to_upload:
+            List of files to upload.
 
         Returns
         -------
