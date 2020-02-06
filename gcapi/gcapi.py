@@ -502,7 +502,9 @@ class Client(Session):
         while True:
             if (
                 self.raw_image_upload_sessions.detail(upload_session_pk)["status"]
-            ) == "Succeeded":
+            ) != "Succeeded":
+                sleep(0.3)
+            else:
                 break
 
         return upload_session_pk
