@@ -1,4 +1,0 @@
-[submodule "grand-challenge.org"]
-	path = grand-challenge.org
-	url = https://github.com/comic/grand-challenge.org
-	branch = master
