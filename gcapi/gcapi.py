@@ -484,10 +484,7 @@ class Client(Session):
         if not uploaded_file_list:
             raise IOError("{} has not been uploaded properly.".format(filename))
         staged_file_id = uploaded_file_list[0]["uuid"]
-        raw_image_upload_session_create_data = {
-            "algorithm_image": algorithm_image,
-            "validate": False,
-        }
+        raw_image_upload_session_create_data = {"algorithm_image": algorithm_image}
         raw_image_upload_session_create_response = self.raw_image_upload_sessions.create(
             **raw_image_upload_session_create_data
         )
