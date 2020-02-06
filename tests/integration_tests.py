@@ -77,6 +77,6 @@ def test_run_external_algorithm(local_grand_challenge):
     )
     assert c.algorithm_jobs.list()["count"] == 0
     us_pk = c.run_external_algorithm("Test Algorithm", image_to_upload)
-    # Need to login again to access updated information
-    c = Client(base_url=local_grand_challenge, verify=False, token=ALGORITHMUSER_TOKEN)
     assert c.raw_image_upload_sessions.list()["count"] == 1
+    assert c.algorithm_jobs.list()["count"] == 1
+    assert c.raw_image_upload_sessions.detail(us_pk)["status"] == "Succeeded"
