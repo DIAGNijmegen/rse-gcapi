@@ -11,7 +11,6 @@ from tests.integration_tests import ADMIN_TOKEN
 
 GRAND_CHALLENGE_COMMIT_ID = "b85080ac"
 
-
 @pytest.yield_fixture(scope="session")
 def local_grand_challenge():
 
@@ -90,15 +89,9 @@ def rewrite_docker_compose(content: bytes) -> bytes:
         if s != "postgres" and "volumes" in spec["services"][s]:
             del spec["services"][s]["volumes"]
 
-        # Replace the containers that would be built with their versions from master
+        # Replace test with production containers
         if spec["services"][s]["image"] == "grandchallenge/web-test:latest":
-            spec["services"][s]["image"] = "grandchallenge/web:{}-master".format(
-                GRAND_CHALLENGE_COMMIT_ID
-            )
-        if spec["services"][s]["image"] == "grandchallenge/http:latest":
-            spec["services"][s]["image"] = "grandchallenge/http:{}-master".format(
-                GRAND_CHALLENGE_COMMIT_ID
-            )
+            spec["services"][s]["image"] = "grandchallenge/web:latest"
 
     # Use the production web server as the test one is not included
     spec["services"]["web"][
