@@ -1,4 +1,5 @@
 import os
+from time import sleep
 
 import pytest
 from requests import HTTPError
@@ -51,18 +52,21 @@ def test_local_response(local_grand_challenge):
 
 
 def test_chunked_uploads(local_grand_challenge):
+
     file_to_upload = os.path.join(
         os.path.dirname(os.path.realpath(__file__)), "testdata", "rnddata"
     )
     # admin
     c_admin = Client(token=ADMIN_TOKEN, base_url=local_grand_challenge, verify=False)
+    existing_chunks_admin = c_admin(path="chunked-uploads/")["count"]
     c_admin.chunked_uploads.send(file_to_upload)
-    assert c_admin(path="chunked-uploads/")["count"] == 1
+    assert c_admin(path="chunked-uploads/")["count"] == 1 + existing_chunks_admin
 
     # retina
     c_retina = Client(token=RETINA_TOKEN, base_url=local_grand_challenge, verify=False)
+    existing_chunks_retina = c_retina(path="chunked-uploads/")["count"]
     c_retina.chunked_uploads.send(file_to_upload)
-    assert c_retina(path="chunked-uploads/")["count"] == 1
+    assert c_retina(path="chunked-uploads/")["count"] == 1 + existing_chunks_retina
 
     c = Client(token="whatever")
     with pytest.raises(HTTPError):
@@ -71,12 +75,28 @@ def test_chunked_uploads(local_grand_challenge):
 
 def test_run_external_algorithm(local_grand_challenge):
     c = Client(base_url=local_grand_challenge, verify=False, token=ALGORITHMUSER_TOKEN)
+    existing_algoritm_jobs = c.algorithm_jobs.list()["count"]
 
     image_to_upload = os.path.join(
         os.path.dirname(os.path.realpath(__file__)), "testdata", "image10x10x101.mha"
     )
-    assert c.algorithm_jobs.list()["count"] == 0
-    us_pk = c.run_external_algorithm("Test Algorithm", image_to_upload)
-    assert c.raw_image_upload_sessions.list()["count"] == 1
-    assert c.algorithm_jobs.list()["count"] == 1
+    assert c.algorithm_jobs.list()["count"] == existing_algoritm_jobs
+
+    existing_upload_sessions_count = c.raw_image_upload_sessions.list()["count"]
+    us_pk = c.run_external_algorithm("Test Algorithm", [image_to_upload])
+
+    assert (
+        c.raw_image_upload_sessions.list()["count"]
+        == 1 + existing_upload_sessions_count
+    )
+
+    for _ in range(60):
+        if (c.raw_image_upload_sessions.detail(us_pk)["status"]) == "Succeeded":
+            break
+        else:
+            sleep(0.5)
+    else:
+        raise TimeoutError
+
     assert c.raw_image_upload_sessions.detail(us_pk)["status"] == "Succeeded"
+    assert c.algorithm_jobs.list()["count"] == 1 + existing_algoritm_jobs

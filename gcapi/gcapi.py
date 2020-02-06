@@ -1,6 +1,8 @@
+import itertools
 import json
 import os
 import uuid
+from typing import List, Dict
 from urllib.parse import urljoin
 
 import jsonschema
@@ -291,7 +293,7 @@ class ChunkedUploadsAPI(APIBase):
         e = Exception
         while num_retries < 3:
             try:
-                self._client(
+                result = self._client(
                     method="POST",
                     path=self.base_path,
                     files={
@@ -317,6 +319,8 @@ class ChunkedUploadsAPI(APIBase):
         else:
             raise e
 
+        return result
+
     def send(self, filename):
         """
         Uploads a file in chunks using rest api.
@@ -337,15 +341,18 @@ class ChunkedUploadsAPI(APIBase):
         start_byte = 0
         content_io = BytesIO(content)
         max_chunk_length = 2 ** 23
+        results = []
 
         while True:
             chunk = content_io.read(max_chunk_length)
+
             if not chunk:
                 break
 
             end_byte = start_byte + len(chunk)
+
             try:
-                self._upload_file_with_exponential_backoff(
+                result = self._upload_file_with_exponential_backoff(
                     {
                         "start_byte": start_byte,
                         "end_byte": end_byte,
@@ -357,7 +364,12 @@ class ChunkedUploadsAPI(APIBase):
                 )
             except ConnectionError as e:
                 raise e
+
+            results.append(result)
+
             start_byte += len(chunk)
+
+        return list(itertools.chain(*results))
 
 
 class WorkstationConfigsAPI(APIBase):
@@ -441,70 +453,67 @@ class Client(Session):
         else:
             return response
 
-    def run_external_algorithm(self, algorithm_name, file_to_upload):
+    def run_external_algorithm(self, algorithm_name: str, files_to_upload: List) -> str:
         """
-            This function uploads an input image to grand challenge and runs an already uploaded algorithm which the
-            user has access to. If the upload is finished correctly, grand challenge will automatically submit a job
-            which you can access via AlgorithmJobsAPI. After the job is finished successfully the result will be
-            available via AlgorithmResultsAPI.
+        This function uploads an input image to grand challenge and runs an
+        already uploaded algorithm which the user has access to. If the upload
+        is  finished correctly, grand challenge will automatically submit a job
+        which you can access via AlgorithmJobsAPI.
 
-            Parameters
-            ----------
-            algorithm_name: str
-                Title of the algorithm which has already been uploaded.
-            file_to_upload: os.path
-                Full path of the image to be uploaded
+        After the job is finished successfully the result will be available via
+        AlgorithmResultsAPI.
 
-            Returns
-            -------
-            upload_session_pk: UUID
-            This can be used to construct a query like /api/v1/cases/images/?origin__pk=upload_session_pk to find out
-            which Image did this RawImageUploadSession give rise to. This can be further used to identify the submitted
-            job.
-            """
-        _, filename = os.path.split(file_to_upload)
-        algorithm = list(
-            filter(
-                lambda a: a["title"] == algorithm_name,
-                self.algorithms.list()["results"],
-            )
+        Parameters
+        ----------
+        algorithm_name:
+            Title of the algorithm which has already been uploaded.
+        file_to_upload:
+            Full path of the image to be uploaded
+
+        Returns
+        -------
+        upload_session_pk:
+        This can be used to construct a query like
+        /api/v1/cases/images/?origin=upload_session_pk
+        to find out which Image did this RawImageUploadSession give rise to.
+        This can be further used to identify the submitted job.
+        """
+        algorithm_image = self._get_latest_algorithm_image(algorithm_name)
+
+        raw_image_upload_session = self.raw_image_upload_sessions.create(
+            algorithm_image=algorithm_image
         )
-        if not algorithm:
-            raise IOError(
+
+        uploaded_files = {}
+        for file in files_to_upload:
+            uploaded_chunks = self.chunked_uploads.send(file)
+            uploaded_files.update({c["uuid"]: c["filename"] for c in uploaded_chunks})
+
+        for uuid, fname in uploaded_files.items():
+            self.raw_image_upload_session_files.create(
+                upload_session=raw_image_upload_session["api_url"],
+                staged_file_id=uuid,
+                filename=fname,
+            )
+
+        self.raw_image_upload_sessions.process_images(pk=raw_image_upload_session["pk"])
+
+        return raw_image_upload_session["pk"]
+
+    def _get_latest_algorithm_image(self, algorithm_name: str) -> Dict:
+        """Get the latest algorithm image for the given algorithm name. """
+        algorithms = [
+            a for a in self.algorithms.list()["results"] if a["title"] == algorithm_name
+        ]
+
+        if len(algorithms) != 1:
+            raise ValueError(
                 "{} is not found in available list of algorithms".format(algorithm_name)
             )
-        algorithm_image = algorithm[0]["algorithm_container_images"][0]
-        self.chunked_uploads.send(file_to_upload)
-        uploaded_file_list = list(
-            filter(
-                lambda a: a["filename"] == filename,
-                self.chunked_uploads.list()["results"],
-            )
-        )
-        if not uploaded_file_list:
-            raise IOError("{} has not been uploaded properly.".format(filename))
-        staged_file_id = uploaded_file_list[0]["uuid"]
-        raw_image_upload_session_create_data = {"algorithm_image": algorithm_image}
-        raw_image_upload_session_create_response = self.raw_image_upload_sessions.create(
-            **raw_image_upload_session_create_data
-        )
-        upload_session_pk = raw_image_upload_session_create_response["pk"]
-        raw_image_upload_session_files_create_data = {
-            "upload_session": raw_image_upload_session_create_response["api_url"],
-            "staged_file_id": staged_file_id,
-            "filename": filename,
-            "validate": False,
-        }
-        self.raw_image_upload_session_files.create(
-            **raw_image_upload_session_files_create_data
-        )
-        self.raw_image_upload_sessions.process_images(pk=upload_session_pk)
-        while True:
-            if (
-                self.raw_image_upload_sessions.detail(upload_session_pk)["status"]
-            ) != "Succeeded":
-                sleep(0.3)
-            else:
-                break
 
-        return upload_session_pk
+        if not algorithms[0]["algorithm_container_images"]:
+            raise ValueError("{} is not ready to be used".format(algorithm_name))
+
+        algorithm_image = algorithms[0]["algorithm_container_images"][0]
+
+        return algorithm_image
