@@ -34,6 +34,7 @@ def local_grand_challenge():
                     cwd=tmp_path,
                 )
             check_call(["docker-compose", "up", "-d"], cwd=tmp_path)
+            check_call(["docker-compose-wait", "-w", "-t", "2m"], cwd=tmp_path)
             yield
         finally:
             check_call(["docker-compose", "down"], cwd=tmp_path)

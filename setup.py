@@ -19,7 +19,7 @@ requirements = [
 
 setup_requirements = ["pytest-runner"]
 
-test_requirements = ["pytest", "pyyaml"]
+test_requirements = ["pytest", "pyyaml", "docker-compose-wait"]
 
 setup(
     author="James Meakin",
