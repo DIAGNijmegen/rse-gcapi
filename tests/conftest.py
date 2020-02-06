@@ -53,9 +53,9 @@ def get_grand_challenge_file(repo_path: Path, output_directory: Path):
         content = r.content
 
     output_file = output_directory / repo_path
-    makedirs(output_file.parent, exist_ok=True)
+    makedirs(str(output_file.parent), exist_ok=True)
 
-    with open(output_file, "wb") as f:
+    with open(str(output_file), "wb") as f:
         f.write(content)
 
 
