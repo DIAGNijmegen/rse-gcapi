@@ -72,13 +72,14 @@ def rewrite_docker_compose(content: bytes) -> bytes:
             spec["services"][s]["image"] = "grandchallenge/web:{}-master".format(
                 GRAND_CHALLENGE_COMMIT_ID
             )
-            spec["services"][s][
-                "command"
-            ] = "gunicorn -w 4 -b 0.0.0.0 -k uvicorn.workers.UvicornWorker config.asgi:application"
-
         if spec["services"][s]["image"] == "grandchallenge/http:latest":
             spec["services"][s]["image"] = "grandchallenge/http:{}-master".format(
                 GRAND_CHALLENGE_COMMIT_ID
             )
+
+    # Use the production web server as the test one is not included
+    spec["services"]["web"][
+        "command"
+    ] = "gunicorn -w 4 -b 0.0.0.0 -k uvicorn.workers.UvicornWorker config.asgi:application"
 
     return yaml.safe_dump(spec).encode("utf-8")
