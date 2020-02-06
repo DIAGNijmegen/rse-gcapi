@@ -1,12 +1,13 @@
 import json
 import os
 import uuid
+from urllib.parse import urljoin
+
 import jsonschema
 from io import BytesIO
 from random import randint, random
 from time import sleep, time
 
-from future.moves.urllib.parse import urljoin
 
 from requests import Session, ConnectionError
 
