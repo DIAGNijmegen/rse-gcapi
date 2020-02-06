@@ -495,12 +495,14 @@ class Client(Session):
             "filename": filename,
             "validate": False,
         }
-        upload_session_files_pk = self.raw_image_upload_session_files.create(
+        self.raw_image_upload_session_files.create(
             **raw_image_upload_session_files_create_data
-        )["pk"]
+        )
         self.raw_image_upload_sessions.process_images(pk=upload_session_pk)
-        while not self.raw_image_upload_session_files.detail(upload_session_files_pk)[
-            "consumed"
-        ]:
-            sleep(0.1)
+        while True:
+            if (
+                self.raw_image_upload_sessions.detail(upload_session_pk)["status"]
+            ) == "Succeeded":
+                break
+
         return upload_session_pk
