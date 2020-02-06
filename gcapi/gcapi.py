@@ -2,6 +2,7 @@ import itertools
 import json
 import os
 import uuid
+from pathlib import Path
 from typing import List, Dict
 from urllib.parse import urljoin
 
@@ -38,7 +39,7 @@ Draft7ValidatorWithTupleSupport = jsonschema.validators.extend(
 
 
 def load_input_data(input_file):
-    with open(os.path.join(os.path.dirname(__file__), input_file), "rb") as f:
+    with open(str(Path(__file__).parent / input_file), "rb") as f:
         return f.read()
 
 
