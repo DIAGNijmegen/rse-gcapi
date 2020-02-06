@@ -9,7 +9,7 @@ import yaml
 
 from tests.integration_tests import ADMIN_TOKEN
 
-GRAND_CHALLENGE_COMMIT_ID = "0708cd89"
+GRAND_CHALLENGE_COMMIT_ID = "a80e76a7"
 
 
 @pytest.yield_fixture(scope="session")
