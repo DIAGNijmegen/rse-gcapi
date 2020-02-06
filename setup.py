@@ -15,12 +15,11 @@ requirements = [
     "Click>=6.0",
     "Requests",
     "jsonschema[format_nongpl]>=3.0",
-    "future>=0.17.1",
 ]
 
 setup_requirements = ["pytest-runner"]
 
-test_requirements = ["pytest"]
+test_requirements = ["pytest", "pyyaml"]
 
 setup(
     author="James Meakin",
@@ -38,6 +37,7 @@ setup(
     ],
     description="Python client for the grand-challenge.org API",
     entry_points={"console_scripts": ["gcapi=gcapi.cli:main"]},
+    extras_require={"test": test_requirements,},
     install_requires=requirements,
     license="Apache Software License 2.0",
     long_description=readme + "\n\n" + history,

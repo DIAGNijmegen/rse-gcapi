@@ -1,13 +1,12 @@
 import os
 
 import pytest
-from jsonschema import ValidationError
 from requests import HTTPError
 
 from gcapi import Client
 
 
-def test_list_landmark_annotations():
+def test_list_landmark_annotations(local_grand_challenge):
     c = Client(
         base_url="https://gc.localhost/api/v1/",
         verify=False,
@@ -17,7 +16,7 @@ def test_list_landmark_annotations():
     assert len(response) == 0
 
 
-def test_create_landmark_annotation():
+def test_create_landmark_annotation(local_grand_challenge):
     c = Client(
         base_url="https://gc.localhost/api/v1/",
         verify=False,
@@ -43,7 +42,7 @@ def test_create_landmark_annotation():
         ] == 'Invalid pk "{}" - object does not exist.'.format(nil_uuid)
 
 
-def test_raw_image_and_upload_session():
+def test_raw_image_and_upload_session(local_grand_challenge):
     c = Client(
         base_url="https://gc.localhost/api/v1/",
         verify=False,
@@ -53,61 +52,7 @@ def test_raw_image_and_upload_session():
     assert c.raw_image_upload_sessions.page() == []
 
 
-@pytest.mark.parametrize(
-    "datetime_string,valid",
-    (
-        ("teststring", False),
-        (1, False),
-        ({}, False),
-        ("2019-13-11T13:55:00.123456Z", False),
-        ("2019-12-11T25:55:00.123456Z", False),
-        ("2019-12-11T13:60:00.123456Z", False),
-        ("2019-12-11T13:55:00.123456Z", True),
-        ("2019-12-11T13:55:00Z", True),
-    ),
-)
-def test_datetime_string_format_validation(datetime_string, valid):
-    landmark_annotation = {
-        "id": "4d5721f8-485d-4a17-8507-e06a8f897dd3",
-        "grader": 7,
-        "created": datetime_string,
-        "singlelandmarkannotation_set": [
-            {
-                "id": "69ea96c2-9a96-4080-9b2c-0b9d0417dda1",
-                "image": "70ec13fd-7fcf-4c84-bcd0-5fa3ac34a6b0",
-                "landmarks": [
-                    [249.029700179422, 194.950491966439],
-                    [308.910901038675, 210.158411188267],
-                    [270.891081357472, 353.683160558702],
-                ],
-            },
-            {
-                "id": "8055d041-d78d-4fa6-94af-1e57e80e11d8",
-                "image": "46ba46f4-7fcd-418d-a43f-f668b286daeb",
-                "landmarks": [
-                    [759.567661360211, 495.505389057573],
-                    [911.79182925945, 646.176269350096],
-                    [672.582428997143, 726.948261175343],
-                ],
-            },
-        ],
-    }
-    c = Client(
-        base_url="https://gc.localhost/api/v1/",
-        verify=False,
-        token="f1f98a1733c05b12118785ffd995c250fe4d90da",  # retina token
-    )
-    if valid:
-        assert (
-            c.retina_landmark_annotations._verify_against_schema(landmark_annotation)
-            is None
-        )
-    else:
-        with pytest.raises(ValidationError):
-            c.retina_landmark_annotations._verify_against_schema(landmark_annotation)
-
-
-def test_local_response():
+def test_local_response(local_grand_challenge):
     c = Client(
         base_url="https://gc.localhost/api/v1/",
         verify=False,
@@ -117,7 +62,7 @@ def test_local_response():
     assert c.algorithms.page() == []
 
 
-def test_chunked_uploads():
+def test_chunked_uploads(local_grand_challenge):
     file_to_upload = os.path.join(
         os.path.dirname(os.path.realpath(__file__)), "testdata", "rnddata"
     )
