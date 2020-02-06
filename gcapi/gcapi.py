@@ -1,10 +1,5 @@
-# -*- coding: utf-8 -*-
-from __future__ import print_function, division, absolute_import
-
-from builtins import object
 import json
 import os
-import sys
 import uuid
 import jsonschema
 from io import BytesIO
@@ -13,7 +8,7 @@ from time import sleep, time
 
 from future.moves.urllib.parse import urljoin
 
-from requests import Session, post, ConnectionError
+from requests import Session, ConnectionError
 
 
 def is_uuid(s):
@@ -93,7 +88,7 @@ def import_json_schema(filename):
         )
 
 
-class APIBase(object):
+class APIBase:
     _client = None  # type: Client
     base_path = ""
     sub_apis = {}
@@ -144,7 +139,7 @@ class APIBase(object):
         return result
 
 
-class ModifiableMixin(object):
+class ModifiableMixin:
     _client = None  # type: Client
 
     modify_json_schema = None  # type: jsonschema.Draft7Validator

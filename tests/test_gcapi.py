@@ -1,6 +1,3 @@
-#!/usr/bin/env python
-# -*- coding: utf-8 -*-
-
 """Tests for `gcapi` package."""
 import sys
 import os
@@ -55,7 +52,7 @@ def test_mixed_string_and_unicode():
     c = Client(token="whatever")
     with pytest.raises(HTTPError):
         # The call should get here after calling urljoin
-        c(path=unicode("dsfa"))
+        c(path="dsfa")
 
 
 def test_chunked_uploads():
@@ -156,7 +153,7 @@ def test_list_landmark_annotations():
         token="f1f98a1733c05b12118785ffd995c250fe4d90da",  # retina token
     )
     response = c.retina_landmark_annotations.list()
-    len(response) == 0
+    assert len(response) == 0
 
 
 def test_create_landmark_annotation():
@@ -184,7 +181,8 @@ def test_create_landmark_annotation():
             0
         ] == 'Invalid pk "{}" - object does not exist.'.format(nil_uuid)
 
-class test_raw_image_and_upload_session():
+
+class test_raw_image_and_upload_session:
     c = Client(
         base_url="https://gc.localhost/api/v1/",
         verify=False,
