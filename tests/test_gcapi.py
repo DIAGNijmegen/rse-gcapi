@@ -1,17 +1,8 @@
-#!/usr/bin/env python
-# -*- coding: utf-8 -*-
-
-"""Tests for `gcapi` package."""
-import sys
-import os
 import pytest
-
 from click.testing import CliRunner
 from jsonschema import ValidationError
-from requests.exceptions import HTTPError
 
-from gcapi import Client
-from gcapi import cli
+from gcapi import Client, cli
 
 
 def test_no_auth_exception():
@@ -48,51 +39,6 @@ def test_command_line_interface():
     help_result = runner.invoke(cli.main, ["--help"])
     assert help_result.exit_code == 0
     assert "--help  Show this message and exit." in help_result.output
-
-
-@pytest.mark.skipif(sys.version_info >= (3, 0), reason="Testing a bug in Py2")
-def test_mixed_string_and_unicode():
-    c = Client(token="whatever")
-    with pytest.raises(HTTPError):
-        # The call should get here after calling urljoin
-        c(path=unicode("dsfa"))
-
-
-def test_chunked_uploads():
-    file_to_upload = os.path.join(
-        os.path.dirname(os.path.realpath(__file__)), "testdata", "rnddata"
-    )
-    # admin
-    c_admin = Client(
-        token="1b9436200001f2eaf57cd77db075cbb60a49a00a",
-        base_url="https://gc.localhost/api/v1/",
-        verify=False,
-    )
-    c_admin.chunked_uploads.send(file_to_upload)
-    assert c_admin(path="chunked-uploads/")["count"] == 1
-
-    # retina
-    c_retina = Client(
-        token="f1f98a1733c05b12118785ffd995c250fe4d90da",
-        base_url="https://gc.localhost/api/v1/",
-        verify=False,
-    )
-    c_retina.chunked_uploads.send(file_to_upload)
-    assert c_retina(path="chunked-uploads/")["count"] == 1
-
-    c = Client(token="whatever")
-    with pytest.raises(HTTPError):
-        c.chunked_uploads.send(file_to_upload)
-
-
-def test_local_response():
-    c = Client(
-        base_url="https://gc.localhost/api/v1/",
-        verify=False,
-        token="1b9436200001f2eaf57cd77db075cbb60a49a00a",
-    )
-    # Empty response, but it didn't error out so the server is responding
-    assert c.algorithms.page() == []
 
 
 @pytest.mark.parametrize(
@@ -134,11 +80,7 @@ def test_datetime_string_format_validation(datetime_string, valid):
             },
         ],
     }
-    c = Client(
-        base_url="https://gc.localhost/api/v1/",
-        verify=False,
-        token="f1f98a1733c05b12118785ffd995c250fe4d90da",  # retina token
-    )
+    c = Client(verify=False, token="foo",)
     if valid:
         assert (
             c.retina_landmark_annotations._verify_against_schema(landmark_annotation)
@@ -147,48 +89,3 @@ def test_datetime_string_format_validation(datetime_string, valid):
     else:
         with pytest.raises(ValidationError):
             c.retina_landmark_annotations._verify_against_schema(landmark_annotation)
-
-
-def test_list_landmark_annotations():
-    c = Client(
-        base_url="https://gc.localhost/api/v1/",
-        verify=False,
-        token="f1f98a1733c05b12118785ffd995c250fe4d90da",  # retina token
-    )
-    response = c.retina_landmark_annotations.list()
-    len(response) == 0
-
-
-def test_create_landmark_annotation():
-    c = Client(
-        base_url="https://gc.localhost/api/v1/",
-        verify=False,
-        token="f1f98a1733c05b12118785ffd995c250fe4d90da",  # retina token
-    )
-    nil_uuid = "00000000-0000-4000-9000-000000000000"
-    create_data = {
-        "grader": 0,
-        "singlelandmarkannotation_set": [
-            {"image": nil_uuid, "landmarks": [[0, 0], [1, 1], [2, 2]]},
-            {"image": nil_uuid, "landmarks": [[0, 0], [1, 1], [2, 2]]},
-        ],
-    }
-    with pytest.raises(HTTPError) as e:
-        c.retina_landmark_annotations.create(**create_data)
-    response = e.value.response
-    assert response.status_code == 400
-    response = response.json()
-    assert response["grader"][0] == 'Invalid pk "0" - object does not exist.'
-    for sla_error in response["singlelandmarkannotation_set"]:
-        assert sla_error["image"][
-            0
-        ] == 'Invalid pk "{}" - object does not exist.'.format(nil_uuid)
-
-class test_raw_image_and_upload_session():
-    c = Client(
-        base_url="https://gc.localhost/api/v1/",
-        verify=False,
-        token="1b9436200001f2eaf57cd77db075cbb60a49a00a",  # admin token
-    )
-    assert c.raw_image_files.page() == []
-    assert c.raw_image_upload_sessions.page() == []

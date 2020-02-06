@@ -6,19 +6,15 @@ addons:
   hosts:
     - gc.localhost
 python:
-- 3.6
-- 3.5
-- 2.7
+    - 3.8
+    - 3.7
+    - 3.6
+    - 3.5
 before_install:
-    - git submodule init
-    - git submodule update grand-challenge.org
     - sudo service postgresql stop
     - sudo service redis-server stop
 install:
     - pip install -U tox-travis
-    - make -C grand-challenge.org -j2 build
-    - docker-compose -f grand-challenge.org/docker-compose.yml run --rm web python manage.py migrate
-    - docker-compose -f grand-challenge.org/docker-compose.yml up -d
 script: tox
 deploy:
   provider: pypi
