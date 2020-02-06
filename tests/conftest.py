@@ -9,7 +9,6 @@ import yaml
 
 from tests.integration_tests import ADMIN_TOKEN
 
-GRAND_CHALLENGE_COMMIT_ID = "b85080ac"
 
 @pytest.yield_fixture(scope="session")
 def local_grand_challenge():
