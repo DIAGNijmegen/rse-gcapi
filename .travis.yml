@@ -10,7 +10,6 @@ python:
     - 3.7
     - 3.6
     - 3.5
-    - 2.7
 before_install:
     - sudo service postgresql stop
     - sudo service redis-server stop
