@@ -7,6 +7,7 @@ from gcapi import Client
 
 RETINA_TOKEN = "f1f98a1733c05b12118785ffd995c250fe4d90da"
 ADMIN_TOKEN = "1b9436200001f2eaf57cd77db075cbb60a49a00a"
+ALGORITHMUSER_TOKEN = "dc3526c2008609b429514b6361a33f8516541464"
 
 
 def test_list_landmark_annotations(local_grand_challenge):
@@ -38,13 +39,13 @@ def test_create_landmark_annotation(local_grand_challenge):
 
 
 def test_raw_image_and_upload_session(local_grand_challenge):
-    c = Client(base_url=local_grand_challenge, verify=False, token=ADMIN_TOKEN,)
+    c = Client(base_url=local_grand_challenge, verify=False, token=ADMIN_TOKEN)
     assert c.raw_image_upload_session_files.page() == []
     assert c.raw_image_upload_sessions.page() == []
 
 
 def test_local_response(local_grand_challenge):
-    c = Client(base_url=local_grand_challenge, verify=False, token=ADMIN_TOKEN,)
+    c = Client(base_url=local_grand_challenge, verify=False, token=ADMIN_TOKEN)
     # Empty response, but it didn't error out so the server is responding
     assert c.algorithms.page() == []
 
@@ -54,12 +55,12 @@ def test_chunked_uploads(local_grand_challenge):
         os.path.dirname(os.path.realpath(__file__)), "testdata", "rnddata"
     )
     # admin
-    c_admin = Client(token=ADMIN_TOKEN, base_url=local_grand_challenge, verify=False,)
+    c_admin = Client(token=ADMIN_TOKEN, base_url=local_grand_challenge, verify=False)
     c_admin.chunked_uploads.send(file_to_upload)
     assert c_admin(path="chunked-uploads/")["count"] == 1
 
     # retina
-    c_retina = Client(token=RETINA_TOKEN, base_url=local_grand_challenge, verify=False,)
+    c_retina = Client(token=RETINA_TOKEN, base_url=local_grand_challenge, verify=False)
     c_retina.chunked_uploads.send(file_to_upload)
     assert c_retina(path="chunked-uploads/")["count"] == 1
 
@@ -67,28 +68,19 @@ def test_chunked_uploads(local_grand_challenge):
     with pytest.raises(HTTPError):
         c.chunked_uploads.send(file_to_upload)
 
-def test_run_external_algorithm():
-    c = Client(
-        base_url="https://gc.localhost/api/v1/",
-        verify=False,
-        token="dc3526c2008609b429514b6361a33f8516541464",  # algorithmuser token
-    )
+
+def test_run_external_algorithm(local_grand_challenge):
+    c = Client(base_url=local_grand_challenge, verify=False, token=ALGORITHMUSER_TOKEN)
+
     image_to_upload = os.path.join(
         os.path.dirname(os.path.realpath(__file__)), "testdata", "image10x10x101.mha"
     )
     assert c.algorithm_jobs.list()["count"] == 0
     us_pk = c.run_external_algorithm("Test Algorithm", image_to_upload)
     # Need to login again to access updated information
-    c = Client(
-        base_url="https://gc.localhost/api/v1/",
-        verify=False,
-        token="dc3526c2008609b429514b6361a33f8516541464",  # algorithmuser token
-    )
+    c = Client(base_url=local_grand_challenge, verify=False, token=ALGORITHMUSER_TOKEN)
     assert c.raw_image_upload_sessions.list()["count"] == 1
     assert c.algorithm_jobs.list()["count"] == 1
-    c = Client(
-        base_url="https://gc.localhost/api/v1/",
-        verify=False,
-        token="dc3526c2008609b429514b6361a33f8516541464",  # algorithmuser token
-    )
+
+    c = Client(base_url=local_grand_challenge, verify=False, token=ALGORITHMUSER_TOKEN)
     assert c.raw_image_upload_sessions.detail(us_pk)["status"] == "Succeeded"
