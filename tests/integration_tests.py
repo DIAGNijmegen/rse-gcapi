@@ -1,4 +1,6 @@
 import os
+from pathlib import Path
+from time import sleep
 
 import pytest
 from requests import HTTPError
@@ -7,6 +9,7 @@ from gcapi import Client
 
 RETINA_TOKEN = "f1f98a1733c05b12118785ffd995c250fe4d90da"
 ADMIN_TOKEN = "1b9436200001f2eaf57cd77db075cbb60a49a00a"
+ALGORITHMUSER_TOKEN = "dc3526c2008609b429514b6361a33f8516541464"
 
 
 def test_list_landmark_annotations(local_grand_challenge):
@@ -38,31 +41,62 @@ def test_create_landmark_annotation(local_grand_challenge):
 
 
 def test_raw_image_and_upload_session(local_grand_challenge):
-    c = Client(base_url=local_grand_challenge, verify=False, token=ADMIN_TOKEN,)
-    assert c.raw_image_files.page() == []
+    c = Client(base_url=local_grand_challenge, verify=False, token=ADMIN_TOKEN)
+    assert c.raw_image_upload_session_files.page() == []
     assert c.raw_image_upload_sessions.page() == []
 
 
 def test_local_response(local_grand_challenge):
-    c = Client(base_url=local_grand_challenge, verify=False, token=ADMIN_TOKEN,)
+    c = Client(base_url=local_grand_challenge, verify=False, token=ADMIN_TOKEN)
     # Empty response, but it didn't error out so the server is responding
     assert c.algorithms.page() == []
 
 
 def test_chunked_uploads(local_grand_challenge):
+
     file_to_upload = os.path.join(
         os.path.dirname(os.path.realpath(__file__)), "testdata", "rnddata"
     )
     # admin
-    c_admin = Client(token=ADMIN_TOKEN, base_url=local_grand_challenge, verify=False,)
+    c_admin = Client(token=ADMIN_TOKEN, base_url=local_grand_challenge, verify=False)
+    existing_chunks_admin = c_admin(path="chunked-uploads/")["count"]
     c_admin.chunked_uploads.send(file_to_upload)
-    assert c_admin(path="chunked-uploads/")["count"] == 1
+    assert c_admin(path="chunked-uploads/")["count"] == 1 + existing_chunks_admin
 
     # retina
-    c_retina = Client(token=RETINA_TOKEN, base_url=local_grand_challenge, verify=False,)
+    c_retina = Client(token=RETINA_TOKEN, base_url=local_grand_challenge, verify=False)
+    existing_chunks_retina = c_retina(path="chunked-uploads/")["count"]
     c_retina.chunked_uploads.send(file_to_upload)
-    assert c_retina(path="chunked-uploads/")["count"] == 1
+    assert c_retina(path="chunked-uploads/")["count"] == 1 + existing_chunks_retina
 
     c = Client(token="whatever")
     with pytest.raises(HTTPError):
         c.chunked_uploads.send(file_to_upload)
+
+
+@pytest.mark.parametrize(
+    "files", (["image10x10x101.mha",], ["image10x10x10.mhd", "image10x10x10.zraw"],)
+)
+def test_run_external_algorithm(local_grand_challenge, files):
+    c = Client(base_url=local_grand_challenge, verify=False, token=ALGORITHMUSER_TOKEN)
+
+    existing_us_count = c.raw_image_upload_sessions.list()["count"]
+    existing_algorithm_jobs = c.algorithm_jobs.list()["count"]
+    existing_images = c.images.list()["count"]
+
+    us = c.run_external_algorithm(
+        "Test Algorithm", [Path(__file__).parent / "testdata" / f for f in files]
+    )
+
+    for _ in range(60):
+        us = c.raw_image_upload_sessions.detail(us["pk"])
+        if us["status"] == "Succeeded":
+            break
+        else:
+            sleep(0.5)
+    else:
+        raise TimeoutError
+
+    assert c.raw_image_upload_sessions.list()["count"] == 1 + existing_us_count
+    assert c.algorithm_jobs.list()["count"] == 1 + existing_algorithm_jobs
+    assert c.images.list()["count"] == 1 + existing_images

@@ -1,6 +1,9 @@
+import itertools
 import json
 import os
 import uuid
+from pathlib import Path
+from typing import List, Dict
 from urllib.parse import urljoin
 
 import jsonschema
@@ -36,7 +39,7 @@ Draft7ValidatorWithTupleSupport = jsonschema.validators.extend(
 
 
 def load_input_data(input_file):
-    with open(os.path.join(os.path.dirname(__file__), input_file), "rb") as f:
+    with open(str(Path(__file__).parent / input_file), "rb") as f:
         return f.read()
 
 
@@ -172,7 +175,9 @@ class ModifiableMixin:
         self.create(**kwargs)
 
     def create(self, **kwargs):
-        return self.perform_request("POST", data=kwargs)
+        return self.perform_request(
+            "POST", data=kwargs, validate=kwargs.get("validate", True)
+        )
 
     def update(self, pk, **kwargs):
         return self.perform_request("PUT", pk=pk, data=kwargs)
@@ -188,12 +193,16 @@ class ImagesAPI(APIBase):
     base_path = "cases/images/"
 
 
-class ImageFilesAPI(APIBase):
-    base_path = "cases/image-files/"
+class UploadSessionFilesAPI(APIBase, ModifiableMixin):
+    base_path = "cases/upload-sessions/files/"
 
 
-class UploadSessionsAPI(APIBase):
+class UploadSessionsAPI(APIBase, ModifiableMixin):
     base_path = "cases/upload-sessions/"
+
+    def process_images(self, pk, json=None):
+        url = urljoin(self.base_path, str(pk) + "/process_images/")
+        return self._client(method="PATCH", path=url, json=json)
 
 
 class WorkstationSessionsAPI(APIBase):
@@ -285,10 +294,10 @@ class ChunkedUploadsAPI(APIBase):
         e = Exception
         while num_retries < 3:
             try:
-                self._client(
+                result = self._client(
                     method="POST",
                     path=self.base_path,
-                    files={"file": BytesIO(file_info["chunk"])},
+                    files={file_info["filename"]: BytesIO(file_info["chunk"])},
                     data={
                         "filename": file_info["filename"],
                         "X-Upload-ID": file_info["upload_id"],
@@ -308,6 +317,8 @@ class ChunkedUploadsAPI(APIBase):
                 sleep((2 ** num_retries) + (randint(0, 1000) / 1000))
         else:
             raise e
+
+        return result
 
     def send(self, filename):
         """
@@ -329,27 +340,35 @@ class ChunkedUploadsAPI(APIBase):
         start_byte = 0
         content_io = BytesIO(content)
         max_chunk_length = 2 ** 23
+        results = []
 
         while True:
             chunk = content_io.read(max_chunk_length)
+
             if not chunk:
                 break
 
             end_byte = start_byte + len(chunk)
+
             try:
-                self._upload_file_with_exponential_backoff(
+                result = self._upload_file_with_exponential_backoff(
                     {
                         "start_byte": start_byte,
                         "end_byte": end_byte,
                         "chunk": chunk,
                         "content": content,
                         "upload_id": upload_id,
-                        "filename": filename,
+                        "filename": str(filename),
                     }
                 )
             except ConnectionError as e:
                 raise e
+
+            results.append(result)
+
             start_byte += len(chunk)
+
+        return list(itertools.chain(*results))
 
 
 class WorkstationConfigsAPI(APIBase):
@@ -385,7 +404,7 @@ class Client(Session):
         self.algorithm_jobs = AlgorithmJobsAPI(client=self)
         self.workstation_configs = WorkstationConfigsAPI(client=self)
         self.retina_landmark_annotations = RetinaLandmarkAnnotationSetsAPI(client=self)
-        self.raw_image_files = ImageFilesAPI(client=self)
+        self.raw_image_upload_session_files = UploadSessionFilesAPI(client=self)
         self.raw_image_upload_sessions = UploadSessionsAPI(client=self)
 
     @property
@@ -415,7 +434,6 @@ class Client(Session):
             extra_headers["Content-Type"] = "application/json"
 
         self._validate_url(url)
-
         response = self.request(
             method=method,
             url=url,
@@ -433,3 +451,70 @@ class Client(Session):
             return response.json()
         else:
             return response
+
+    def run_external_algorithm(
+        self, algorithm_name: str, files_to_upload: List[str]
+    ) -> Dict:
+        """
+        This function uploads an input image to grand challenge and runs an
+        already uploaded algorithm which the user has access to. If the upload
+        is finished correctly, grand challenge will automatically submit a job
+        which you can access via AlgorithmJobsAPI.
+
+        After the job is finished successfully the result will be available via
+        AlgorithmResultsAPI.
+
+        Parameters
+        ----------
+        algorithm_name:
+            Title of the algorithm which has already been uploaded.
+        files_to_upload:
+            List of files to upload.
+
+        Returns
+        -------
+        upload_session:
+        This can be used to construct a query like
+        /api/v1/cases/images/?origin=upload_session["pk"]
+        to find out which Image did this RawImageUploadSession give rise to.
+        This can be further used to identify the submitted job.
+        """
+        algorithm_image = self._get_latest_algorithm_image(algorithm_name)
+
+        raw_image_upload_session = self.raw_image_upload_sessions.create(
+            algorithm_image=algorithm_image
+        )
+
+        uploaded_files = {}
+        for file in files_to_upload:
+            uploaded_chunks = self.chunked_uploads.send(file)
+            uploaded_files.update({c["uuid"]: c["filename"] for c in uploaded_chunks})
+
+        for uuid, fname in uploaded_files.items():
+            self.raw_image_upload_session_files.create(
+                upload_session=raw_image_upload_session["api_url"],
+                staged_file_id=uuid,
+                filename=fname,
+            )
+
+        self.raw_image_upload_sessions.process_images(pk=raw_image_upload_session["pk"])
+
+        return raw_image_upload_session
+
+    def _get_latest_algorithm_image(self, algorithm_name: str) -> Dict:
+        """Get the latest algorithm image for the given algorithm name. """
+        algorithms = [
+            a for a in self.algorithms.list()["results"] if a["title"] == algorithm_name
+        ]
+
+        if len(algorithms) != 1:
+            raise ValueError(
+                "{} is not found in available list of algorithms".format(algorithm_name)
+            )
+
+        if not algorithms[0]["algorithm_container_images"]:
+            raise ValueError("{} is not ready to be used".format(algorithm_name))
+
+        algorithm_image = algorithms[0]["algorithm_container_images"][0]
+
+        return algorithm_image

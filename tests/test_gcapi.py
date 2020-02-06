@@ -80,7 +80,7 @@ def test_datetime_string_format_validation(datetime_string, valid):
             },
         ],
     }
-    c = Client(verify=False, token="foo",)
+    c = Client(verify=False, token="foo")
     if valid:
         assert (
             c.retina_landmark_annotations._verify_against_schema(landmark_annotation)
