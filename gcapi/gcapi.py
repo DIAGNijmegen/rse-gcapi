@@ -379,7 +379,7 @@ class Client(Session):
     def __init__(
         self, token=None, base_url="https://grand-challenge.org/api/v1/", verify=True
     ):
-        super(Client, self).__init__()
+        super().__init__()
 
         self.headers.update({"Accept": "application/json"})
 
