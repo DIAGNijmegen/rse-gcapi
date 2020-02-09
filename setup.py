@@ -16,8 +16,6 @@ requirements = [
     "jsonschema[format_nongpl]>=3.0",
 ]
 
-setup_requirements = ["pytest-runner"]
-
 test_requirements = [
     "pytest",
     "pyyaml",
@@ -55,7 +53,6 @@ setup(
     name=NAME,
     packages=find_packages(include=["gcapi"]),
     package_data={"gcapi": ["schemas/*"]},
-    setup_requires=setup_requirements,
     test_suite="tests",
     tests_require=test_requirements,
     url="https://github.com/DIAGNijmegen/gcapi",
