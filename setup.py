@@ -1,4 +1,8 @@
+import os
+
 from setuptools import find_packages, setup
+
+NAME = "gcapi"
 
 with open("README.rst") as readme_file:
     readme = readme_file.read()
@@ -20,6 +24,11 @@ test_requirements = [
     "docker-compose-wait",
     "pytest-cov",
 ]
+
+about = {}
+here = os.path.abspath(os.path.dirname(__file__))
+with open(os.path.join(here, NAME, "__version__.py")) as f:
+    exec(f.read(), about)
 
 setup(
     author="James Meakin",
@@ -43,13 +52,13 @@ setup(
     long_description=readme + "\n\n" + history,
     include_package_data=True,
     keywords="gcapi",
-    name="gcapi",
+    name=NAME,
     packages=find_packages(include=["gcapi"]),
     package_data={"gcapi": ["schemas/*"]},
     setup_requires=setup_requirements,
     test_suite="tests",
     tests_require=test_requirements,
     url="https://github.com/DIAGNijmegen/gcapi",
-    version="0.1.1",
+    version=about["__version__"],
     zip_safe=False,
 )

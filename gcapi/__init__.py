@@ -4,5 +4,4 @@ from gcapi.gcapi import Client
 
 __author__ = """James Meakin"""
 __email__ = "code@jmsmkn.com"
-__version__ = "0.2.0"
 __all__ = ["Client"]
