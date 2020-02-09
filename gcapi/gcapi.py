@@ -159,13 +159,13 @@ class ModifiableMixin:
         if self.modify_json_schema is not None:
             self.modify_json_schema.validate(post_args)
 
-    def __validate_data(self, data):
+    def _validate_data(self, data):
         if data is None:
             data = {}
         self._process_post_arguments(data)
         return data
 
-    def __execute_request(self, method, data, pk):
+    def _execute_request(self, method, data, pk):
         url = (
             self.base_path
             if not pk
@@ -175,8 +175,8 @@ class ModifiableMixin:
 
     def perform_request(self, method, data=None, pk=False, validate=True):
         if validate:
-            data = self.__validate_data(data)
-        return self.__execute_request(method, data, pk)
+            data = self._validate_data(data)
+        return self._execute_request(method, data, pk)
 
     def send(self, **kwargs):
         # Created for backwards compatibility
@@ -334,7 +334,7 @@ class ChunkedUploadsAPI(APIBase):
 
         return result
 
-    def send(self, filename):
+    def upload_file(self, filename):
         """
         Uploads a file in chunks using rest api.
 
@@ -509,7 +509,7 @@ class Client(Session):
 
         uploaded_files = {}
         for file in files_to_upload:
-            uploaded_chunks = self.chunked_uploads.send(file)
+            uploaded_chunks = self.chunked_uploads.upload_file(file)
             uploaded_files.update(
                 {c["uuid"]: c["filename"] for c in uploaded_chunks}
             )

@@ -1,10 +1,11 @@
 import sys
+from typing import Any
 
 import click
 
 
 @click.command()
-def main(*_, **__):
+def main(*_: Any, **__: Any) -> int:
     """Console script for gcapi."""
     click.echo("Replace this message by putting your code into gcapi.cli.main")
     click.echo("See click documentation at http://click.pocoo.org/")
