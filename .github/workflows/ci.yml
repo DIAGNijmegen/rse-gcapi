@@ -37,6 +37,12 @@ jobs:
       - name: Install Tox and any other packages
         run: |
           pip install -U pip
-          pip install tox
+          pip install tox codecov
       - name: Run Tox with system python
         run: tox -e py
+      - name: Upload coverage results
+        if: matrix.python == '3.6'
+        run: codecov
+        env:
+            CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }}
+
