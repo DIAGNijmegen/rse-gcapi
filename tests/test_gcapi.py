@@ -13,7 +13,7 @@ def test_no_auth_exception():
 def test_headers():
     token = "foo"
     c = Client(token=token)
-    assert c.headers["Authorization"] == "TOKEN {}".format(token)
+    assert c.headers["Authorization"] == f"TOKEN {token}"
     assert c.headers["Accept"] == "application/json"
 
 

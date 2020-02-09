@@ -401,7 +401,7 @@ class Client(Session):
         self.headers.update({"Accept": "application/json"})
 
         if token:
-            self.headers.update({"Authorization": "TOKEN {}".format(token)})
+            self.headers.update({"Authorization": f"TOKEN {token}"})
         else:
             raise RuntimeError("Token must be set")
 
@@ -434,9 +434,7 @@ class Client(Session):
 
     def _validate_url(self, url):
         if not url.startswith(self._base_url):
-            raise RuntimeError(
-                "{} does not start with {}".format(url, self._base_url)
-            )
+            raise RuntimeError(f"{url} does not start with {self._base_url}")
 
     def __call__(
         self,
@@ -545,9 +543,7 @@ class Client(Session):
             )
 
         if not algorithms[0]["algorithm_container_images"]:
-            raise ValueError(
-                "{} is not ready to be used".format(algorithm_name)
-            )
+            raise ValueError(f"{algorithm_name} is not ready to be used")
 
         algorithm_image = algorithms[0]["algorithm_container_images"][0]
 

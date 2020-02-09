@@ -39,9 +39,10 @@ def test_create_landmark_annotation(local_grand_challenge):
     response = response.json()
     assert response["grader"][0] == 'Invalid pk "0" - object does not exist.'
     for sla_error in response["singlelandmarkannotation_set"]:
-        assert sla_error["image"][
-            0
-        ] == 'Invalid pk "{}" - object does not exist.'.format(nil_uuid)
+        assert (
+            sla_error["image"][0]
+            == f'Invalid pk "{nil_uuid}" - object does not exist.'
+        )
 
 
 def test_raw_image_and_upload_session(local_grand_challenge):

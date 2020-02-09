@@ -18,7 +18,7 @@ def local_grand_challenge():
         r = requests.get(
             local_api_url,
             verify=False,
-            headers={"Authorization": "TOKEN {}".format(ADMIN_TOKEN)},
+            headers={"Authorization": f"TOKEN {ADMIN_TOKEN}"},
         )
         r.raise_for_status()
         local_gc_running = True
@@ -70,8 +70,9 @@ def local_grand_challenge():
 
 def get_grand_challenge_file(repo_path: Path, output_directory: Path):
     r = requests.get(
-        "https://raw.githubusercontent.com/comic/grand-challenge.org/master/{}".format(  # noqa:B950
-            repo_path
+        (
+            f"https://raw.githubusercontent.com/comic/grand-challenge.org/"
+            f"master/{repo_path}"
         ),
         allow_redirects=True,
     )
