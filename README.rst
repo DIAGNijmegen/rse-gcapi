@@ -11,7 +11,7 @@ Grand Challenge API Client
    :alt: Build Status
 
 .. image:: https://codecov.io/gh/DIAGNijmegen/rse-gcapi/branch/master/graph/badge.svg
-   :target: https://codecov.io/gh/DIAGNijmegen/rse-gcapi.org
+   :target: https://codecov.io/gh/DIAGNijmegen/rse-gcapi
    :alt: Code Coverage Status
 
 .. image:: https://readthedocs.org/projects/gcapi/badge/?version=latest
