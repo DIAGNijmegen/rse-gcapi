@@ -392,9 +392,9 @@ class WorkstationConfigsAPI(APIBase):
 class Client(Session):
     def __init__(
         self,
-        token=None,
-        base_url="https://grand-challenge.org/api/v1/",
-        verify=True,
+        token: str = "",
+        base_url: str = "https://grand-challenge.org/api/v1/",
+        verify: bool = True,
     ):
         super().__init__()
 
@@ -460,10 +460,7 @@ class Client(Session):
             url=url,
             files={} if files is None else files,
             data={} if data is None else data,
-            headers=dict(
-                list(dict(self.headers).items())
-                + list(dict(extra_headers).items())
-            ),
+            headers={**self.headers, **extra_headers},
             verify=self._verify,
             params={} if params is None else params,
             json=json,
