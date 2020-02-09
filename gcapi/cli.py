@@ -1,5 +1,6 @@
 """Console script for gcapi."""
 import sys
+
 import click
 
 

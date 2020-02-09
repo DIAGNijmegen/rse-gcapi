@@ -1,9 +1,4 @@
-#!/usr/bin/env python
-# -*- coding: utf-8 -*-
-
-"""The setup script."""
-
-from setuptools import setup, find_packages
+from setuptools import find_packages, setup
 
 with open("README.rst") as readme_file:
     readme = readme_file.read()
@@ -37,7 +32,7 @@ setup(
     ],
     description="Python client for the grand-challenge.org API",
     entry_points={"console_scripts": ["gcapi=gcapi.cli:main"]},
-    extras_require={"test": test_requirements,},
+    extras_require={"test": test_requirements},
     install_requires=requirements,
     license="Apache Software License 2.0",
     long_description=readme + "\n\n" + history,

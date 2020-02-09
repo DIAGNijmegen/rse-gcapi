@@ -2,17 +2,15 @@ import itertools
 import json
 import os
 import uuid
+from io import BytesIO
 from pathlib import Path
-from typing import List, Dict
+from random import randint, random
+from time import sleep, time
+from typing import Dict, List
 from urllib.parse import urljoin
 
 import jsonschema
-from io import BytesIO
-from random import randint, random
-from time import sleep, time
-
-
-from requests import Session, ConnectionError
+from requests import ConnectionError, Session
 
 
 def is_uuid(s):
@@ -34,7 +32,9 @@ def accept_tuples_as_arrays(org):
 
 Draft7ValidatorWithTupleSupport = jsonschema.validators.extend(
     jsonschema.Draft7Validator,
-    type_checker=accept_tuples_as_arrays(jsonschema.Draft7Validator.TYPE_CHECKER),
+    type_checker=accept_tuples_as_arrays(
+        jsonschema.Draft7Validator.TYPE_CHECKER
+    ),
 )
 
 
@@ -120,25 +120,29 @@ class APIBase:
 
     def page(self, offset=0, limit=100):
         result = self._client(
-            method="GET", path=self.base_path, params={"offset": offset, "limit": limit}
+            method="GET",
+            path=self.base_path,
+            params={"offset": offset, "limit": limit},
         )["results"]
         for i in result:
             self._verify_against_schema(i)
         return result
 
     def iterate_all(self):
-        REQ_COUNT = 100
+        req_count = 100
         offset = 0
         while True:
-            current_list = self.page(offset=offset, limit=REQ_COUNT)
+            current_list = self.page(offset=offset, limit=req_count)
             if len(current_list) == 0:
                 break
             for item in current_list:
                 yield item
-            offset += REQ_COUNT
+            offset += req_count
 
     def detail(self, pk):
-        result = self._client(method="GET", path=urljoin(self.base_path, pk + "/"))
+        result = self._client(
+            method="GET", path=urljoin(self.base_path, pk + "/")
+        )
         self._verify_against_schema(result)
         return result
 
@@ -162,7 +166,11 @@ class ModifiableMixin:
         return data
 
     def __execute_request(self, method, data, pk):
-        url = self.base_path if not pk else urljoin(self.base_path, str(pk) + "/")
+        url = (
+            self.base_path
+            if not pk
+            else urljoin(self.base_path, str(pk) + "/")
+        )
         return self._client(method=method, path=url, json=data)
 
     def perform_request(self, method, data=None, pk=False, validate=True):
@@ -230,7 +238,9 @@ class ReaderStudyAnswersAPI(APIBase, ModifiableMixin):
     def _process_post_arguments(self, post_args):
         if is_uuid(post_args["question"]):
             post_args["question"] = urljoin(
-                urljoin(self._client.base_url, ReaderStudyQuestionsAPI.base_path),
+                urljoin(
+                    self._client.base_url, ReaderStudyQuestionsAPI.base_path
+                ),
                 post_args["question"] + "/",
             )
 
@@ -241,7 +251,10 @@ class ReaderStudiesAPI(APIBase):
     base_path = "reader-studies/"
     json_schema = import_json_schema("reader-study.json")
 
-    sub_apis = {"answers": ReaderStudyAnswersAPI, "questions": ReaderStudyQuestionsAPI}
+    sub_apis = {
+        "answers": ReaderStudyAnswersAPI,
+        "questions": ReaderStudyQuestionsAPI,
+    }
 
     answers = None  # type: ReaderStudyAnswersAPI
     questions = None  # type: ReaderStudyQuestionsAPI
@@ -278,7 +291,8 @@ class ChunkedUploadsAPI(APIBase):
 
     def _upload_file_with_exponential_backoff(self, file_info):
         """
-        Uploads a chunk with an exponential backoff retry strategy. The maximum number of attempt is 3.
+        Uploads a chunk with an exponential backoff retry strategy. The
+        maximum number of attempts is 3.
 
         Parameters
         ----------
@@ -377,7 +391,10 @@ class WorkstationConfigsAPI(APIBase):
 
 class Client(Session):
     def __init__(
-        self, token=None, base_url="https://grand-challenge.org/api/v1/", verify=True
+        self,
+        token=None,
+        base_url="https://grand-challenge.org/api/v1/",
+        verify=True,
     ):
         super().__init__()
 
@@ -403,8 +420,12 @@ class Client(Session):
         self.algorithm_results = AlgorithmResultsAPI(client=self)
         self.algorithm_jobs = AlgorithmJobsAPI(client=self)
         self.workstation_configs = WorkstationConfigsAPI(client=self)
-        self.retina_landmark_annotations = RetinaLandmarkAnnotationSetsAPI(client=self)
-        self.raw_image_upload_session_files = UploadSessionFilesAPI(client=self)
+        self.retina_landmark_annotations = RetinaLandmarkAnnotationSetsAPI(
+            client=self
+        )
+        self.raw_image_upload_session_files = UploadSessionFilesAPI(
+            client=self
+        )
         self.raw_image_upload_sessions = UploadSessionsAPI(client=self)
 
     @property
@@ -413,7 +434,9 @@ class Client(Session):
 
     def _validate_url(self, url):
         if not url.startswith(self._base_url):
-            raise RuntimeError("{} does not start with {}".format(url, self._base_url))
+            raise RuntimeError(
+                "{} does not start with {}".format(url, self._base_url)
+            )
 
     def __call__(
         self,
@@ -440,7 +463,8 @@ class Client(Session):
             files={} if files is None else files,
             data={} if data is None else data,
             headers=dict(
-                list(dict(self.headers).items()) + list(dict(extra_headers).items())
+                list(dict(self.headers).items())
+                + list(dict(extra_headers).items())
             ),
             verify=self._verify,
             params={} if params is None else params,
@@ -488,32 +512,42 @@ class Client(Session):
         uploaded_files = {}
         for file in files_to_upload:
             uploaded_chunks = self.chunked_uploads.send(file)
-            uploaded_files.update({c["uuid"]: c["filename"] for c in uploaded_chunks})
+            uploaded_files.update(
+                {c["uuid"]: c["filename"] for c in uploaded_chunks}
+            )
 
-        for uuid, fname in uploaded_files.items():
+        for id, fname in uploaded_files.items():
             self.raw_image_upload_session_files.create(
                 upload_session=raw_image_upload_session["api_url"],
-                staged_file_id=uuid,
+                staged_file_id=id,
                 filename=fname,
             )
 
-        self.raw_image_upload_sessions.process_images(pk=raw_image_upload_session["pk"])
+        self.raw_image_upload_sessions.process_images(
+            pk=raw_image_upload_session["pk"]
+        )
 
         return raw_image_upload_session
 
     def _get_latest_algorithm_image(self, algorithm_name: str) -> Dict:
         """Get the latest algorithm image for the given algorithm name. """
         algorithms = [
-            a for a in self.algorithms.list()["results"] if a["title"] == algorithm_name
+            a
+            for a in self.algorithms.list()["results"]
+            if a["title"] == algorithm_name
         ]
 
         if len(algorithms) != 1:
             raise ValueError(
-                "{} is not found in available list of algorithms".format(algorithm_name)
+                "{} is not found in available list of algorithms".format(
+                    algorithm_name
+                )
             )
 
         if not algorithms[0]["algorithm_container_images"]:
-            raise ValueError("{} is not ready to be used".format(algorithm_name))
+            raise ValueError(
+                "{} is not ready to be used".format(algorithm_name)
+            )
 
         algorithm_image = algorithms[0]["algorithm_container_images"][0]
 
