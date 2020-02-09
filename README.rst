@@ -18,11 +18,6 @@ Grand Challenge API Client
    :target: https://gcapi.readthedocs.io/en/latest/?badge=latest
    :alt: Documentation Status
 
-.. image:: https://pyup.io/repos/github/DIAGNijmegen/gcapi/shield.svg
-   :target: https://pyup.io/repos/github/DIAGNijmegen/gcapi/
-   :alt: Updates
-
-
 
 Python client for the grand-challenge.org API
 
