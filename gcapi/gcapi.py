@@ -1,8 +1,8 @@
 import itertools
-import json
 import os
 import uuid
 from io import BytesIO
+from json import load
 from pathlib import Path
 from random import randint, random
 from time import sleep, time
@@ -78,7 +78,7 @@ def import_json_schema(filename):
 
     try:
         with open(filename, "r") as f:
-            jsn = json.load(f)
+            jsn = load(f)
         return Draft7ValidatorWithTupleSupport(
             jsn, format_checker=jsonschema.draft7_format_checker
         )
@@ -514,11 +514,11 @@ class Client(Session):
                 {c["uuid"]: c["filename"] for c in uploaded_chunks}
             )
 
-        for id, fname in uploaded_files.items():
+        for file_id, filename in uploaded_files.items():
             self.raw_image_upload_session_files.create(
                 upload_session=raw_image_upload_session["api_url"],
-                staged_file_id=id,
-                filename=fname,
+                staged_file_id=file_id,
+                filename=filename,
             )
 
         self.raw_image_upload_sessions.process_images(
