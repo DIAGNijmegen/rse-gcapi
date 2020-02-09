@@ -1,4 +1,5 @@
 import os
+from typing import Dict
 
 from setuptools import find_packages, setup
 
@@ -23,7 +24,7 @@ test_requirements = [
     "pytest-cov",
 ]
 
-about = {}
+about: Dict[str, str] = {}
 here = os.path.abspath(os.path.dirname(__file__))
 with open(os.path.join(here, NAME, "__version__.py")) as f:
     exec(f.read(), about)

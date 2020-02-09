@@ -6,7 +6,7 @@ from json import load
 from pathlib import Path
 from random import randint, random
 from time import sleep, time
-from typing import Dict, List
+from typing import Dict, List, Type
 from urllib.parse import urljoin
 
 import jsonschema
@@ -95,7 +95,7 @@ def import_json_schema(filename):
 class APIBase:
     _client = None  # type: Client
     base_path = ""
-    sub_apis = {}
+    sub_apis: Dict[str, Type["APIBase"]] = {}
 
     json_schema = None
 
