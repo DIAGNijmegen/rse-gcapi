@@ -12,14 +12,13 @@ from tests.integration_tests import ADMIN_TOKEN
 
 @pytest.yield_fixture(scope="session")
 def local_grand_challenge():
-
     local_api_url = "https://gc.localhost/api/v1/"
 
     try:
         r = requests.get(
             local_api_url,
             verify=False,
-            headers={"Authorization": "TOKEN {}".format(ADMIN_TOKEN)},
+            headers={"Authorization": f"TOKEN {ADMIN_TOKEN}"},
         )
         r.raise_for_status()
         local_gc_running = True
@@ -32,13 +31,20 @@ def local_grand_challenge():
         # Start our own version of grand challenge
         with TemporaryDirectory() as tmp_path:
 
-            for f in ["docker-compose.yml", "dockerfiles/db/postgres.test.conf"]:
+            for f in [
+                "docker-compose.yml",
+                "dockerfiles/db/postgres.test.conf",
+            ]:
                 get_grand_challenge_file(Path(f), Path(tmp_path))
 
             try:
                 check_call(["docker-compose", "pull"], cwd=tmp_path)
 
-                for command in ["migrate", "check_permissions", "init_gc_demo"]:
+                for command in [
+                    "migrate",
+                    "check_permissions",
+                    "init_gc_demo",
+                ]:
                     check_call(
                         [
                             "docker-compose",
@@ -52,7 +58,9 @@ def local_grand_challenge():
                         cwd=tmp_path,
                     )
                 check_call(["docker-compose", "up", "-d"], cwd=tmp_path)
-                check_call(["docker-compose-wait", "-w", "-t", "2m"], cwd=tmp_path)
+                check_call(
+                    ["docker-compose-wait", "-w", "-t", "2m"], cwd=tmp_path
+                )
 
                 yield local_api_url
 
@@ -62,8 +70,9 @@ def local_grand_challenge():
 
 def get_grand_challenge_file(repo_path: Path, output_directory: Path):
     r = requests.get(
-        "https://raw.githubusercontent.com/comic/grand-challenge.org/master/{}".format(
-            repo_path
+        (
+            f"https://raw.githubusercontent.com/comic/grand-challenge.org/"
+            f"master/{repo_path}"
         ),
         allow_redirects=True,
     )
@@ -95,6 +104,6 @@ def rewrite_docker_compose(content: bytes) -> bytes:
     # Use the production web server as the test one is not included
     spec["services"]["web"][
         "command"
-    ] = "gunicorn -w 4 -b 0.0.0.0 -k uvicorn.workers.UvicornWorker config.asgi:application"
+    ] = "gunicorn -b 0.0.0.0 -k uvicorn.workers.UvicornWorker config.asgi:application"
 
     return yaml.safe_dump(spec).encode("utf-8")

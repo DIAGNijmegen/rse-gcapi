@@ -1,9 +1,8 @@
-#!/usr/bin/env python
-# -*- coding: utf-8 -*-
+import os
 
-"""The setup script."""
+from setuptools import find_packages, setup
 
-from setuptools import setup, find_packages
+NAME = "gcapi"
 
 with open("README.rst") as readme_file:
     readme = readme_file.read()
@@ -17,9 +16,17 @@ requirements = [
     "jsonschema[format_nongpl]>=3.0",
 ]
 
-setup_requirements = ["pytest-runner"]
+test_requirements = [
+    "pytest",
+    "pyyaml",
+    "docker-compose-wait",
+    "pytest-cov",
+]
 
-test_requirements = ["pytest", "pyyaml", "docker-compose-wait"]
+about = {}
+here = os.path.abspath(os.path.dirname(__file__))
+with open(os.path.join(here, NAME, "__version__.py")) as f:
+    exec(f.read(), about)
 
 setup(
     author="James Meakin",
@@ -30,26 +37,24 @@ setup(
         "License :: OSI Approved :: Apache Software License",
         "Natural Language :: English",
         "Programming Language :: Python :: 3",
-        "Programming Language :: Python :: 3.5",
         "Programming Language :: Python :: 3.6",
         "Programming Language :: Python :: 3.7",
         "Programming Language :: Python :: 3.8",
     ],
     description="Python client for the grand-challenge.org API",
     entry_points={"console_scripts": ["gcapi=gcapi.cli:main"]},
-    extras_require={"test": test_requirements,},
+    extras_require={"test": test_requirements},
     install_requires=requirements,
     license="Apache Software License 2.0",
     long_description=readme + "\n\n" + history,
     include_package_data=True,
     keywords="gcapi",
-    name="gcapi",
+    name=NAME,
     packages=find_packages(include=["gcapi"]),
     package_data={"gcapi": ["schemas/*"]},
-    setup_requires=setup_requirements,
     test_suite="tests",
     tests_require=test_requirements,
     url="https://github.com/DIAGNijmegen/gcapi",
-    version="0.1.1",
+    version=about["__version__"],
     zip_safe=False,
 )
