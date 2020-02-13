@@ -542,9 +542,9 @@ class Client(Session):
                 )
             )
 
-        if not algorithms[0]["algorithm_container_images"]:
+        if not algorithms[0]["latest_ready_image"]:
             raise ValueError(f"{algorithm_name} is not ready to be used")
 
-        algorithm_image = algorithms[0]["algorithm_container_images"][0]
+        algorithm_image = algorithms[0]["latest_ready_image"]
 
         return algorithm_image
