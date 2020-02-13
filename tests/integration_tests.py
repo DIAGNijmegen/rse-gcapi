@@ -89,7 +89,7 @@ def test_chunked_uploads(local_grand_challenge):
 
 @pytest.mark.parametrize(
     "files",
-    (["image10x10x101.mha"], ["image10x10x10.mhd", "image10x10x10.zraw"],),
+    (["image10x10x101.mha"], ["image10x10x10.mhd", "image10x10x10.zraw"]),
 )
 def test_run_external_algorithm(local_grand_challenge, files, monkeypatch):
     c = Client(
@@ -99,10 +99,12 @@ def test_run_external_algorithm(local_grand_challenge, files, monkeypatch):
     existing_us_count = c.raw_image_upload_sessions.list()["count"]
     existing_algorithm_jobs = c.algorithm_jobs.list()["count"]
     existing_images = c.images.list()["count"]
+
+    def return_algorithm_container_image(*args, **kwargs):
+        return c.algorithms.page()[0]["algorithm_container_images"][0]
+
     monkeypatch.setattr(
-        c,
-        "_get_latest_algorithm_image",
-        c.algorithms.page()[0]["algorithm_container_images"][0],
+        c, "_get_latest_algorithm_image", return_algorithm_container_image
     )
     us = c.run_external_algorithm(
         "Test Algorithm",
