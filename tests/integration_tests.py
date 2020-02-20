@@ -66,7 +66,7 @@ def test_chunked_uploads(local_grand_challenge):
         token=ADMIN_TOKEN, base_url=local_grand_challenge, verify=False
     )
     existing_chunks_admin = c_admin(path="chunked-uploads/")["count"]
-    c_admin.chunked_uploads.send(file_to_upload)
+    c_admin.chunked_uploads.upload_file(file_to_upload)
     assert (
         c_admin(path="chunked-uploads/")["count"] == 1 + existing_chunks_admin
     )
@@ -76,7 +76,7 @@ def test_chunked_uploads(local_grand_challenge):
         token=RETINA_TOKEN, base_url=local_grand_challenge, verify=False
     )
     existing_chunks_retina = c_retina(path="chunked-uploads/")["count"]
-    c_retina.chunked_uploads.send(file_to_upload)
+    c_retina.chunked_uploads.upload_file(file_to_upload)
     assert (
         c_retina(path="chunked-uploads/")["count"]
         == 1 + existing_chunks_retina
@@ -84,7 +84,7 @@ def test_chunked_uploads(local_grand_challenge):
 
     c = Client(token="whatever")
     with pytest.raises(HTTPError):
-        c.chunked_uploads.send(file_to_upload)
+        c.chunked_uploads.upload_file(file_to_upload)
 
 
 @pytest.mark.parametrize(

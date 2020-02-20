@@ -2,6 +2,7 @@ from os import makedirs
 from pathlib import Path
 from subprocess import check_call
 from tempfile import TemporaryDirectory
+from typing import Generator
 
 import pytest
 import requests
@@ -11,7 +12,7 @@ from tests.integration_tests import ADMIN_TOKEN
 
 
 @pytest.yield_fixture(scope="session")
-def local_grand_challenge():
+def local_grand_challenge() -> Generator[str, None, None]:
     local_api_url = "https://gc.localhost/api/v1/"
 
     try:
@@ -68,7 +69,7 @@ def local_grand_challenge():
                 check_call(["docker-compose", "down"], cwd=tmp_path)
 
 
-def get_grand_challenge_file(repo_path: Path, output_directory: Path):
+def get_grand_challenge_file(repo_path: Path, output_directory: Path) -> None:
     r = requests.get(
         (
             f"https://raw.githubusercontent.com/comic/grand-challenge.org/"

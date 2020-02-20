@@ -20,6 +20,7 @@
 #
 import os
 import sys
+from typing import Dict
 
 sys.path.insert(0, os.path.abspath(".."))
 
@@ -104,7 +105,7 @@ htmlhelp_basename = "gcapidoc"
 
 # -- Options for LaTeX output ------------------------------------------
 
-latex_elements = {
+latex_elements: Dict[str, str] = {
     # The paper size ('letterpaper' or 'a4paper').
     #
     # 'papersize': 'letterpaper',
