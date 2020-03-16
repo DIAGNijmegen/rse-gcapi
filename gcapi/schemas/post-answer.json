@@ -24,6 +24,19 @@
             },
             "required": ["start", "end"]
         },
+        "point-object": {
+            "type": "object",
+            "properties": {
+                "name": {"type": "string"},
+                "point": {
+                    "type": "array",
+                    "items": {"type": "number"},
+                    "minItems": 3,
+                    "maxItems": 3
+                }
+            },
+            "required": ["point"]
+        },
         "2DBB": {
             "type": "object",
             "properties": {
@@ -92,13 +105,31 @@
             },
             "required": ["type" ,"version", "lines"]
         },
+        "MPTS": {
+            "type": "object",
+            "properties": {
+                "type": { "enum": [ "Multiple points" ] },
+                "version": {
+                   "type": "object",
+                    "additionalProperties": {"type": "number"},
+                    "required": ["major", "minor"]
+                },
+                "name": {"type": "string"},
+                "points": {
+                    "type": "array",
+                    "items": {"allOf": [{"$ref": "#/definitions/point-object"}]}
+                }
+            },
+            "required": ["type" ,"version", "points"]
+        },
         "valid-answers": {
             "anyOf": [
                 { "type": "boolean" },
                 { "type": "string" },
                 { "$ref": "#/definitions/2DBB"},
                 { "$ref": "#/definitions/DIST"},
-                { "$ref": "#/definitions/MDIS"}
+                { "$ref": "#/definitions/MDIS"},
+                { "$ref": "#/definitions/MPTS"}
             ]
         }
     },

@@ -65,7 +65,8 @@
                             "enum": [
                                 "2D bounding box",
                                 "Distance measurement",
-                                "Multiple distance measurements"
+                                "Multiple distance measurements",
+                                "Multiple points"
                             ]
                         },
                         "image_port" : {

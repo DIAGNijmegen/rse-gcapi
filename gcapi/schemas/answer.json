@@ -12,12 +12,8 @@
         "gc-db-object": {
             "type": "object",
             "properties": {
-                "pk": {
-                    "$ref": "#/definitions/uuid"
-                },
-                "api_url": {
-                    "$ref": "#/definitions/api-link"
-                }
+                "pk": {"$ref": "#/definitions/uuid"},
+                "api_url": {"$ref": "#/definitions/api-link"}
             },
             "required": ["pk", "api_url"]
         },
@@ -40,104 +36,131 @@
             },
             "required": ["start", "end"]
         },
-        "2DBB":  {
+        "point-object": {
             "type": "object",
             "properties": {
-                "type": { "enum": [ "2D bounding box" ] },
+                "name": {"type": "string"},
+                "point": {
+                    "type": "array",
+                    "items": {"type": "number"},
+                    "minItems": 3,
+                    "maxItems": 3
+                }
+            },
+            "required": ["point"]
+        },
+        "2DBB": {
+            "type": "object",
+            "properties": {
+                "type": {"enum": ["2D bounding box"]},
                 "version": {
                     "type": "object",
-                    "additionalProperties": {
-                        "type": "number"
-                    },
+                    "additionalProperties": {"type": "number"},
                     "required": ["major", "minor"]
                 },
                 "corners": {
                     "type": "array",
                     "items": {
                         "type": "array",
-                        "items": { "type": "number" },
+                        "items": {"type": "number"},
                         "minItems": 3,
                         "maxItems": 3
                     },
                     "minItems": 4,
                     "maxItems": 4
                 },
-                "name": { "type": "string" }
+                "name": {"type": "string"}
             },
-            "required": ["type" ,"version", "corners"]
+            "required": ["type", "version", "corners"]
         },
         "DIST": {
             "type": "object",
             "properties": {
-                "type": { "enum": [ "Distance measurement" ] },
+                "type": {"enum": ["Distance measurement"]},
                 "version": {
-                   "type": "object",
+                    "type": "object",
                     "additionalProperties": {"type": "number"},
                     "required": ["major", "minor"]
                 },
-                "name": { "type": "string" },
+                "name": {"type": "string"},
                 "start": {
                     "type": "array",
-                    "items": { "type": "number" },
+                    "items": {"type": "number"},
                     "minItems": 3,
                     "maxItems": 3
                 },
                 "end": {
                     "type": "array",
-                    "items": { "type": "number" },
+                    "items": {"type": "number"},
                     "minItems": 3,
                     "maxItems": 3
                 }
             },
-            "required": ["type" ,"version", "start", "end"]
+            "required": ["type", "version", "start", "end"]
         },
         "MDIS": {
             "type": "object",
             "properties": {
-                "type": { "enum": [ "Multiple distance measurements" ] },
+                "type": {"enum": ["Multiple distance measurements"]},
                 "version": {
-                   "type": "object",
+                    "type": "object",
                     "additionalProperties": {"type": "number"},
                     "required": ["major", "minor"]
                 },
                 "name": {"type": "string"},
                 "lines": {
                     "type": "array",
-                    "items": {"allOf": [{"$ref": "#/definitions/line-object"}]}
+                    "items": {
+                        "allOf": [{"$ref": "#/definitions/line-object"}]
+                    }
                 }
             },
-            "required": ["type" ,"version", "lines"]
+            "required": ["type", "version", "lines"]
+        },
+        "MPTS": {
+            "type": "object",
+            "properties": {
+                "type": {"enum": ["Multiple points"]},
+                "version": {
+                    "type": "object",
+                    "additionalProperties": {"type": "number"},
+                    "required": ["major", "minor"]
+                },
+                "name": {"type": "string"},
+                "points": {
+                    "type": "array",
+                    "items": {
+                        "allOf": [{"$ref": "#/definitions/point-object"}]
+                    }
+                }
+            },
+            "required": ["type", "version", "points"]
         },
         "valid-answers": {
             "anyOf": [
-                { "type": "boolean" },
-                { "type": "string" },
-                { "$ref": "#/definitions/2DBB"},
-                { "$ref": "#/definitions/DIST"},
-                { "$ref": "#/definitions/MDIS"}
+                {"type": "boolean"},
+                {"type": "string"},
+                {"$ref": "#/definitions/2DBB"},
+                {"$ref": "#/definitions/DIST"},
+                {"$ref": "#/definitions/MDIS"},
+                {"$ref": "#/definitions/MPTS"}
             ]
         }
     },
-
     "allOf": [
-        { "$ref": "#/definitions/gc-db-object" },
+        {"$ref": "#/definitions/gc-db-object"},
         {
             "type": "object",
             "properties": {
-                "answer": { "$ref": "#/definitions/valid-answers" },
-                "creator": { "type": "string" },
-                "question": { "$ref": "#/definitions/api-link" },
+                "answer": {"$ref": "#/definitions/valid-answers"},
+                "creator": {"type": "string"},
+                "question": {"$ref": "#/definitions/api-link"},
                 "images": {
                     "type": "array",
-                    "items": { "$ref": "#/definitions/api-link" }
+                    "items": {"$ref": "#/definitions/api-link"}
                 }
             },
-            "required": [
-                "answer",
-                "creator",
-                "question",
-                "images"
-            ]
+            "required": ["answer", "creator", "question", "images"]
         }
     ]
 }
