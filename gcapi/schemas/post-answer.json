@@ -37,111 +37,188 @@
             },
             "required": ["point"]
         },
+        "polygon-object": {
+            "type": "object",
+            "properties": {
+                "name": {"type": "string"},
+                "seed_point": {
+                    "type": "array",
+                    "items": {"type": "number"},
+                    "minItems": 3,
+                    "maxItems": 3
+                },
+                "path_points": {
+                    "type": "array",
+                    "items": {
+                        "type": "array",
+                        "items": {"type": "number"},
+                        "minItems": 3,
+                        "maxItems": 3
+                    }
+                },
+                "sub_type": {"type": "string"},
+                "groups": {"type": "array", "items": {"type": "string"}}
+            },
+            "required": [
+                "name",
+                "seed_point",
+                "path_points",
+                "sub_type",
+                "groups"
+            ]
+        },
         "2DBB": {
             "type": "object",
             "properties": {
-                "type": { "enum": [ "2D bounding box" ] },
+                "type": {"enum": ["2D bounding box"]},
                 "version": {
                     "type": "object",
-                    "additionalProperties": {
-                        "type": "number"
-                    },
+                    "additionalProperties": {"type": "number"},
                     "required": ["major", "minor"]
                 },
                 "corners": {
                     "type": "array",
                     "items": {
                         "type": "array",
-                        "items": { "type": "number" },
+                        "items": {"type": "number"},
                         "minItems": 3,
                         "maxItems": 3
                     },
                     "minItems": 4,
                     "maxItems": 4
                 },
-                "name": { "type": "string" }
+                "name": {"type": "string"}
             },
-            "required": ["type" ,"version", "corners"]
+            "required": ["type", "version", "corners"]
         },
         "DIST": {
             "type": "object",
             "properties": {
-                "type": { "enum": [ "Distance measurement" ] },
+                "type": {"enum": ["Distance measurement"]},
                 "version": {
-                   "type": "object",
+                    "type": "object",
                     "additionalProperties": {"type": "number"},
                     "required": ["major", "minor"]
                 },
-                "name": { "type": "string" },
+                "name": {"type": "string"},
                 "start": {
                     "type": "array",
-                    "items": { "type": "number" },
+                    "items": {"type": "number"},
                     "minItems": 3,
                     "maxItems": 3
                 },
                 "end": {
                     "type": "array",
-                    "items": { "type": "number" },
+                    "items": {"type": "number"},
                     "minItems": 3,
                     "maxItems": 3
                 }
             },
-            "required": ["type" ,"version", "start", "end"]
+            "required": ["type", "version", "start", "end"]
         },
         "MDIS": {
             "type": "object",
             "properties": {
-                "type": { "enum": [ "Multiple distance measurements" ] },
+                "type": {"enum": ["Multiple distance measurements"]},
                 "version": {
-                   "type": "object",
+                    "type": "object",
                     "additionalProperties": {"type": "number"},
                     "required": ["major", "minor"]
                 },
                 "name": {"type": "string"},
                 "lines": {
                     "type": "array",
-                    "items": {"allOf": [{"$ref": "#/definitions/line-object"}]}
+                    "items": {
+                        "allOf": [{"$ref": "#/definitions/line-object"}]
+                    }
                 }
             },
-            "required": ["type" ,"version", "lines"]
+            "required": ["type", "version", "lines"]
         },
         "MPTS": {
             "type": "object",
             "properties": {
-                "type": { "enum": [ "Multiple points" ] },
+                "type": {"enum": ["Multiple points"]},
                 "version": {
-                   "type": "object",
+                    "type": "object",
                     "additionalProperties": {"type": "number"},
                     "required": ["major", "minor"]
                 },
                 "name": {"type": "string"},
                 "points": {
                     "type": "array",
-                    "items": {"allOf": [{"$ref": "#/definitions/point-object"}]}
+                    "items": {
+                        "allOf": [{"$ref": "#/definitions/point-object"}]
+                    }
                 }
             },
-            "required": ["type" ,"version", "points"]
+            "required": ["type", "version", "points"]
+        },
+        "POLY": {
+            "type": "object",
+            "properties": {
+                "name": {"type": "string"},
+                "seed_point": {
+                    "type": "array",
+                    "items": {"type": "number"},
+                    "minItems": 3,
+                    "maxItems": 3
+                },
+                "path_points": {
+                    "type": "array",
+                    "items": {
+                        "type": "array",
+                        "items": {"type": "number"},
+                        "minItems": 3,
+                        "maxItems": 3
+                    }
+                },
+                "sub_type": {"type": "string"},
+                "groups": {"type": "array", "items": {"type": "string"}}
+            },
+            "required": [
+                "name",
+                "seed_point",
+                "path_points",
+                "sub_type",
+                "groups"
+            ]
+        },
+        "MPOL": {
+            "type": "object",
+            "properties": {
+                "type": {"enum": ["Multiple polygons"]},
+                "version": {
+                    "type": "object",
+                    "additionalProperties": {"type": "number"},
+                    "required": ["major", "minor"]
+                },
+                "name": {"type": "string"},
+                "polygons": {
+                    "type": "array",
+                    "items": {"$ref": "#/definitions/polygon-object"}
+                }
+            },
+            "required": ["type", "version", "polygons"]
         },
         "valid-answers": {
             "anyOf": [
-                { "type": "boolean" },
-                { "type": "string" },
-                { "$ref": "#/definitions/2DBB"},
-                { "$ref": "#/definitions/DIST"},
-                { "$ref": "#/definitions/MDIS"},
-                { "$ref": "#/definitions/MPTS"}
+                {"type": "boolean"},
+                {"type": "string"},
+                {"$ref": "#/definitions/2DBB"},
+                {"$ref": "#/definitions/DIST"},
+                {"$ref": "#/definitions/MDIS"},
+                {"$ref": "#/definitions/MPTS"},
+                {"$ref": "#/definitions/POLY"},
+                {"$ref": "#/definitions/MPOL"}
             ]
         }
     },
-
     "type": "object",
     "properties": {
-        "question": { "$ref": "#/definitions/api-link" },
-        "images": {
-            "minItems": 1,
-            "items": { "$ref": "#/definitions/api-link" }
-        },
-        "answer": { "$ref": "#/definitions/valid-answers" }
+        "question": {"$ref": "#/definitions/api-link"},
+        "images": {"minItems": 1, "items": {"$ref": "#/definitions/api-link"}},
+        "answer": {"$ref": "#/definitions/valid-answers"}
     },
     "required": ["images", "question", "answer"]
 }

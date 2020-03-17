@@ -49,6 +49,35 @@
             },
             "required": ["point"]
         },
+        "polygon-object": {
+            "type": "object",
+            "properties": {
+                "name": { "type": "string" },
+                "seed_point": {
+                    "type": "array",
+                    "items": { "type": "number" },
+                    "minItems": 3,
+                    "maxItems": 3
+                },
+                "path_points": {
+                    "type": "array",
+                    "items": {
+                        "type": "array",
+                        "items": { "type": "number" },
+                        "minItems": 3,
+                        "maxItems": 3
+                    }
+                },
+                "sub_type": {
+                    "type": "string"
+                },
+                "groups": {
+                    "type": "array",
+                    "items": { "type": "string" }
+                }
+            },
+            "required": ["name" , "seed_point", "path_points", "sub_type", "groups"]
+        },
         "2DBB": {
             "type": "object",
             "properties": {
@@ -136,6 +165,53 @@
             },
             "required": ["type", "version", "points"]
         },
+        "POLY": {
+            "type": "object",
+            "properties": {
+                "name": {"type": "string"},
+                "seed_point": {
+                    "type": "array",
+                    "items": {"type": "number"},
+                    "minItems": 3,
+                    "maxItems": 3
+                },
+                "path_points": {
+                    "type": "array",
+                    "items": {
+                        "type": "array",
+                        "items": {"type": "number"},
+                        "minItems": 3,
+                        "maxItems": 3
+                    }
+                },
+                "sub_type": {"type": "string"},
+                "groups": {"type": "array", "items": {"type": "string"}}
+            },
+            "required": [
+                "name",
+                "seed_point",
+                "path_points",
+                "sub_type",
+                "groups"
+            ]
+        },
+        "MPOL": {
+            "type": "object",
+            "properties": {
+                "type": {"enum": ["Multiple polygons"]},
+                "version": {
+                    "type": "object",
+                    "additionalProperties": {"type": "number"},
+                    "required": ["major", "minor"]
+                },
+                "name": {"type": "string"},
+                "polygons": {
+                    "type": "array",
+                    "items": {"$ref": "#/definitions/polygon-object"}
+                }
+            },
+            "required": ["type", "version", "polygons"]
+        },
         "valid-answers": {
             "anyOf": [
                 {"type": "boolean"},
@@ -143,7 +219,9 @@
                 {"$ref": "#/definitions/2DBB"},
                 {"$ref": "#/definitions/DIST"},
                 {"$ref": "#/definitions/MDIS"},
-                {"$ref": "#/definitions/MPTS"}
+                {"$ref": "#/definitions/MPTS"},
+                {"$ref": "#/definitions/POLY"},
+                {"$ref": "#/definitions/MPOL"}
             ]
         }
     },
