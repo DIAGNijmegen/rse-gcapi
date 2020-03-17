@@ -286,6 +286,28 @@ class RetinaLandmarkAnnotationSetsAPI(APIBase, ModifiableMixin):
         return result
 
 
+class RetinaPolygonAnnotationSetsAPI(APIBase, ModifiableMixin):
+    base_path = "retina/polygon-annotation-set/"
+    json_schema = import_json_schema("polygon-annotation.json")
+    modify_json_schema = import_json_schema("post-polygon-annotation.json")
+
+    def for_image(self, pk):
+        result = self._client(
+            method="GET", path=self.base_path, params={"image_id": pk}
+        )
+        for i in result:
+            self._verify_against_schema(i)
+        return result
+
+
+class RetinaSinglePolygonAnnotationsAPI(APIBase, ModifiableMixin):
+    base_path = "retina/single-polygon-annotation/"
+    json_schema = import_json_schema("single-polygon-annotation.json")
+    modify_json_schema = import_json_schema(
+        "post-single-polygon-annotation.json"
+    )
+
+
 class ChunkedUploadsAPI(APIBase):
     base_path = "chunked-uploads/"
 
@@ -421,6 +443,12 @@ class Client(Session):
         self.algorithm_jobs = AlgorithmJobsAPI(client=self)
         self.workstation_configs = WorkstationConfigsAPI(client=self)
         self.retina_landmark_annotations = RetinaLandmarkAnnotationSetsAPI(
+            client=self
+        )
+        self.retina_polygon_annotation_sets = RetinaPolygonAnnotationSetsAPI(
+            client=self
+        )
+        self.retina_single_polygon_annotations = RetinaSinglePolygonAnnotationsAPI(
             client=self
         )
         self.raw_image_upload_session_files = UploadSessionFilesAPI(

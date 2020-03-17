@@ -1,0 +1,62 @@
+{
+    "$schema": "http://json-schema.org/draft-07/schema#",
+    "definitions": {
+        "uuid": {
+            "type": "string",
+            "pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$"
+        },
+        "single-polygon-annotation": {
+            "type": "object",
+            "properties": {
+                "id": {
+                    "$ref": "#/definitions/uuid"
+                },
+                "value": {
+                    "type": "array",
+                    "items": {
+                        "type": "array",
+                        "items": {"type": "number"},
+                        "minItems": 2,
+                        "maxItems": 2
+                    },
+                    "minItems": 0
+                },
+                "z": {
+                    "type": ["number", "null"]
+                },
+                "interpolated": {
+                    "type": "boolean"
+                }
+            }
+        },
+        "polygon-annotation-set": {
+            "type": "object",
+            "properties": {
+                "id": {
+                    "$ref": "#/definitions/uuid"
+                },
+                "grader": {
+                    "type": "integer",
+                    "minimum": 0
+                },
+                "image": {
+                    "$ref": "#/definitions/uuid"
+                },
+                "created": {
+                    "type": "string",
+                    "format": "date-time"
+                },
+                "name": {
+                    "type": "string",
+                    "maxLength": 255
+                },
+                "singlepolygonannotation_set": {
+                    "type": "array",
+                    "items": { "$ref": "#/definitions/single-polygon-annotation" }
+                }
+            }
+        }
+     },
+
+    "$ref": "#/definitions/polygon-annotation-set"
+}
