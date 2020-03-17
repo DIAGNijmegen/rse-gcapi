@@ -12,11 +12,19 @@ ADMIN_TOKEN = "1b9436200001f2eaf57cd77db075cbb60a49a00a"
 ALGORITHMUSER_TOKEN = "dc3526c2008609b429514b6361a33f8516541464"
 
 
-def test_list_landmark_annotations(local_grand_challenge):
+@pytest.mark.parametrize(
+    "annotation",
+    [
+        "retina_landmark_annotations",
+        "retina_polygon_annotation_sets",
+        "retina_single_polygon_annotations",
+    ],
+)
+def test_list_annotations(local_grand_challenge, annotation):
     c = Client(
         base_url=local_grand_challenge, verify=False, token=RETINA_TOKEN
     )
-    response = c.retina_landmark_annotations.list()
+    response = getattr(c, annotation).list()
     assert len(response) == 0
 
 
@@ -43,6 +51,47 @@ def test_create_landmark_annotation(local_grand_challenge):
             sla_error["image"][0]
             == f'Invalid pk "{nil_uuid}" - object does not exist.'
         )
+
+
+def test_create_polygon_annotation_set(local_grand_challenge):
+    c = Client(
+        base_url=local_grand_challenge, verify=False, token=RETINA_TOKEN
+    )
+    nil_uuid = "00000000-0000-4000-9000-000000000000"
+    create_data = {
+        "grader": 0,
+        "image": nil_uuid,
+        "singlepolygonannotation_set": [
+            {"z": 0, "value": [[0, 0], [1, 1], [2, 2]]},
+            {"z": 1, "value": [[0, 0], [1, 1], [2, 2]]},
+        ],
+    }
+    with pytest.raises(HTTPError) as e:
+        c.retina_polygon_annotation_sets.create(**create_data)
+    response = e.value.response
+    assert response.status_code == 400
+    response = response.json()
+    assert response["grader"][0] == 'Invalid pk "0" - object does not exist.'
+    assert (
+        response["image"][0]
+        == f'Invalid pk "{nil_uuid}" - object does not exist.'
+    )
+    assert response["name"][0] == "This field is required."
+
+
+def test_create_single_polygon_annotations(local_grand_challenge):
+    c = Client(
+        base_url=local_grand_challenge, verify=False, token=RETINA_TOKEN
+    )
+    nil_uuid = "00000000-0000-4000-9000-000000000000"
+    create_data = {"z": 0, "value": [[0, 0], [1, 1], [2, 2]], "annotation_set": 0}
+
+    with pytest.raises(HTTPError) as e:
+        c.retina_single_polygon_annotations.create(**create_data)
+    response = e.value.response
+    assert response.status_code == 400
+    response = response.json()
+    assert response["annotation_set"][0] == 'Invalid pk "0" - object does not exist.'
 
 
 def test_raw_image_and_upload_session(local_grand_challenge):
