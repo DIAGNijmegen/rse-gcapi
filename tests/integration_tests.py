@@ -83,15 +83,21 @@ def test_create_single_polygon_annotations(local_grand_challenge):
     c = Client(
         base_url=local_grand_challenge, verify=False, token=RETINA_TOKEN
     )
-    nil_uuid = "00000000-0000-4000-9000-000000000000"
-    create_data = {"z": 0, "value": [[0, 0], [1, 1], [2, 2]], "annotation_set": 0}
+    create_data = {
+        "z": 0,
+        "value": [[0, 0], [1, 1], [2, 2]],
+        "annotation_set": 0,
+    }
 
     with pytest.raises(HTTPError) as e:
         c.retina_single_polygon_annotations.create(**create_data)
     response = e.value.response
     assert response.status_code == 400
     response = response.json()
-    assert response["annotation_set"][0] == 'Invalid pk "0" - object does not exist.'
+    assert (
+        response["annotation_set"][0]
+        == 'Invalid pk "0" - object does not exist.'
+    )
 
 
 def test_raw_image_and_upload_session(local_grand_challenge):
