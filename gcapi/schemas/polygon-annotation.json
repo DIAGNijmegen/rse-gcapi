@@ -56,7 +56,7 @@
                     "items": { "$ref": "#/definitions/single-polygon-annotation" }
                 }
             },
-            "required": ["id", "grader", "image", "created", "singlelandmarkannotation_set"]
+            "required": ["id", "grader", "image", "created", "singlepolygonannotation_set"]
         }
      },
 
