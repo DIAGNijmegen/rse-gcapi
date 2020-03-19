@@ -17,6 +17,11 @@
             },
             "required": ["pk", "api_url"]
         },
+        "version": {
+            "type": "object",
+            "additionalProperties": {"type": "number"},
+            "required": ["major", "minor"]
+        },
         "line-object": {
             "type": "object",
             "properties": {
@@ -82,11 +87,7 @@
             "type": "object",
             "properties": {
                 "type": {"enum": ["2D bounding box"]},
-                "version": {
-                    "type": "object",
-                    "additionalProperties": {"type": "number"},
-                    "required": ["major", "minor"]
-                },
+                "version": {"$ref": "#/definitions/version"},
                 "corners": {
                     "type": "array",
                     "items": {
@@ -106,11 +107,7 @@
             "type": "object",
             "properties": {
                 "type": {"enum": ["Distance measurement"]},
-                "version": {
-                    "type": "object",
-                    "additionalProperties": {"type": "number"},
-                    "required": ["major", "minor"]
-                },
+                "version": {"$ref": "#/definitions/version"},
                 "name": {"type": "string"},
                 "start": {
                     "type": "array",
@@ -131,11 +128,7 @@
             "type": "object",
             "properties": {
                 "type": {"enum": ["Multiple distance measurements"]},
-                "version": {
-                    "type": "object",
-                    "additionalProperties": {"type": "number"},
-                    "required": ["major", "minor"]
-                },
+                "version": {"$ref": "#/definitions/version"},
                 "name": {"type": "string"},
                 "lines": {
                     "type": "array",
@@ -146,15 +139,26 @@
             },
             "required": ["type", "version", "lines"]
         },
-        "MPTS": {
+        "POIN": {
+            "type": "object",
+            "properties": {
+                "name": {"type": "string"},
+                "type": {"enum": ["Point"]},
+                "version": {"$ref": "#/definitions/version"},
+                "point": {
+                    "type": "array",
+                    "items": {"type": "number"},
+                    "minItems": 3,
+                    "maxItems": 3
+                }
+            },
+            "required": ["version", "type", "point"]
+        },
+        "MPOI": {
             "type": "object",
             "properties": {
                 "type": {"enum": ["Multiple points"]},
-                "version": {
-                    "type": "object",
-                    "additionalProperties": {"type": "number"},
-                    "required": ["major", "minor"]
-                },
+                "version": {"$ref": "#/definitions/version"},
                 "name": {"type": "string"},
                 "points": {
                     "type": "array",
@@ -169,6 +173,7 @@
             "type": "object",
             "properties": {
                 "name": {"type": "string"},
+                "version": {"$ref": "#/definitions/version"},
                 "seed_point": {
                     "type": "array",
                     "items": {"type": "number"},
@@ -192,18 +197,15 @@
                 "seed_point",
                 "path_points",
                 "sub_type",
-                "groups"
+                "groups",
+                "version"
             ]
         },
         "MPOL": {
             "type": "object",
             "properties": {
                 "type": {"enum": ["Multiple polygons"]},
-                "version": {
-                    "type": "object",
-                    "additionalProperties": {"type": "number"},
-                    "required": ["major", "minor"]
-                },
+                "version": {"$ref": "#/definitions/version"},
                 "name": {"type": "string"},
                 "polygons": {
                     "type": "array",
@@ -219,7 +221,8 @@
                 {"$ref": "#/definitions/2DBB"},
                 {"$ref": "#/definitions/DIST"},
                 {"$ref": "#/definitions/MDIS"},
-                {"$ref": "#/definitions/MPTS"},
+                {"$ref": "#/definitions/POIN"},
+                {"$ref": "#/definitions/MPOI"},
                 {"$ref": "#/definitions/POLY"},
                 {"$ref": "#/definitions/MPOL"}
             ]

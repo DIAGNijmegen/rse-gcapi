@@ -66,6 +66,7 @@
                                 "2D bounding box",
                                 "Distance measurement",
                                 "Multiple distance measurements",
+                                "Point",
                                 "Multiple points",
                                 "Polygon",
                                 "Multiple polygons"
