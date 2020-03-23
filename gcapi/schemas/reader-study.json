@@ -48,7 +48,9 @@
                                 "Bool",
                                 "Single line text",
                                 "Multi line text",
-                                "Heading"
+                                "Heading",
+                                "Choice",
+                                "Multiple choice"
                             ]
                         }
                     }
