@@ -498,10 +498,33 @@ class Client(Session):
         to find out which Image did this RawImageUploadSession give rise to.
         This can be further used to identify the submitted job.
         """
-        algorithm_image = self._get_latest_algorithm_image(algorithm_name)
+        return self.upload_cases(
+            algorithm=algorithm_name, files_to_upload=files_to_upload
+        )
+
+    def upload_cases(
+        self,
+        *,
+        files_to_upload: List[str],
+        reader_study: str = None,
+        archive: str = None,
+        algorithm: str = None,
+    ):
+        upload_session_data = {}
+
+        if reader_study is not None:
+            upload_session_data["reader_study"] = reader_study
+
+        if archive is not None:
+            upload_session_data["archive"] = archive
+
+        if algorithm is not None:
+            upload_session_data[
+                "algorithm_image"
+            ] = self._get_latest_algorithm_image(algorithm_name=algorithm)
 
         raw_image_upload_session = self.raw_image_upload_sessions.create(
-            algorithm_image=algorithm_image
+            **upload_session_data
         )
 
         uploaded_files = {}
