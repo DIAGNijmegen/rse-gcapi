@@ -547,7 +547,7 @@ class Client(Session):
 
         return raw_image_upload_session
 
-    def _get_latest_algorithm_image(self, algorithm_name: str) -> Dict:
+    def _get_latest_algorithm_image(self, algorithm_name: str) -> str:
         """Get the latest algorithm image for the given algorithm name. """
         algorithms = [
             a
