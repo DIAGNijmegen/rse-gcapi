@@ -2,6 +2,11 @@
 History
 =======
 
+0.2.2 (2020-03-24)
+------------------
+
+* Added support for uploading to archives and reader studies
+
 0.2.1 (2020-03-23)
 ------------------
 
