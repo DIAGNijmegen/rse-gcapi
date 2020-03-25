@@ -2,6 +2,11 @@
 History
 =======
 
+0.2.3 (2020-03-25)
+------------------
+
+* Added support for retina polygon annotation sets and retina single polygon annotations
+
 0.2.2 (2020-03-24)
 ------------------
 
