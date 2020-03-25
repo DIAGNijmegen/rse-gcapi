@@ -48,7 +48,9 @@
                                 "Bool",
                                 "Single line text",
                                 "Multi line text",
-                                "Heading"
+                                "Heading",
+                                "Choice",
+                                "Multiple choice"
                             ]
                         }
                     }
@@ -65,7 +67,11 @@
                             "enum": [
                                 "2D bounding box",
                                 "Distance measurement",
-                                "Multiple distance measurements"
+                                "Multiple distance measurements",
+                                "Point",
+                                "Multiple points",
+                                "Polygon",
+                                "Multiple polygons"
                             ]
                         },
                         "image_port" : {
