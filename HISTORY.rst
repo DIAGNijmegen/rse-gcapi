@@ -2,6 +2,11 @@
 History
 =======
 
+0.2.3 (2020-03-26)
+------------------
+
+* Added ground truth endpoint for reader studies
+
 0.2.2 (2020-03-24)
 ------------------
 
