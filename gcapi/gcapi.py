@@ -259,6 +259,13 @@ class ReaderStudiesAPI(APIBase):
     answers = None  # type: ReaderStudyAnswersAPI
     questions = None  # type: ReaderStudyQuestionsAPI
 
+    def ground_truth(self, pk, case_pk):
+        result = self._client(
+            method="GET",
+            path=urljoin(self.base_path, pk + "/ground-truth/" + case_pk),
+        )
+        return result
+
 
 class AlgorithmsAPI(APIBase):
     base_path = "algorithms/"
