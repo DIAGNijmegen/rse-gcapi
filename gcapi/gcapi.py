@@ -119,7 +119,7 @@ class APIBase:
         return result
 
     def page(self, offset=0, limit=100, params=None):
-        if not params:
+        if params is None:
             params = {}
         params["offset"] = offset
         params["limit"] = limit
