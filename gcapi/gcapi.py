@@ -112,27 +112,31 @@ class APIBase:
         if self.json_schema is not None:
             self.json_schema.validate(value)
 
-    def list(self):
-        result = self._client(method="GET", path=self.base_path)
+    def list(self, params=None):
+        result = self._client(method="GET", path=self.base_path, params=params)
         for i in result:
             self._verify_against_schema(i)
         return result
 
-    def page(self, offset=0, limit=100):
+    def page(self, offset=0, limit=100, params=None):
+        if params is None:
+            params = {}
+        params["offset"] = offset
+        params["limit"] = limit
         result = self._client(
-            method="GET",
-            path=self.base_path,
-            params={"offset": offset, "limit": limit},
+            method="GET", path=self.base_path, params=params,
         )["results"]
         for i in result:
             self._verify_against_schema(i)
         return result
 
-    def iterate_all(self):
+    def iterate_all(self, params=None):
         req_count = 100
         offset = 0
         while True:
-            current_list = self.page(offset=offset, limit=req_count)
+            current_list = self.page(
+                offset=offset, limit=req_count, params=params
+            )
             if len(current_list) == 0:
                 break
             for item in current_list:
