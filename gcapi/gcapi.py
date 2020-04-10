@@ -304,7 +304,7 @@ class RetinaPolygonAnnotationSetsAPI(APIBase, ModifiableMixin):
 
     def for_image(self, pk):
         result = self._client(
-            method="GET", path=self.base_path, params={"image_id": pk}
+            method="GET", path=self.base_path, params={"image": pk}
         )
         for i in result:
             self._verify_against_schema(i)
