@@ -2,10 +2,22 @@
 History
 =======
 
-0.2.3 (2020-03-25)
+
+0.2.5 (2020-04-10)
 ------------------
 
 * Added support for retina polygon annotation sets and retina single polygon annotations
+
+=======
+0.2.4 (2020-04-03)
+------------------
+
+* Added GET request params
+
+0.2.3 (2020-03-26)
+------------------
+
+* Added ground truth endpoint for reader studies
 
 0.2.2 (2020-03-24)
 ------------------

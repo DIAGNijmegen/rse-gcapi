@@ -50,7 +50,8 @@
                                 "Multi line text",
                                 "Heading",
                                 "Choice",
-                                "Multiple choice"
+                                "Multiple choice",
+                                "Multiple choice dropdown"
                             ]
                         }
                     }
