@@ -218,6 +218,7 @@
         "MCHO": {"type": "array", "items": {"type": "number"}},
         "valid-answers": {
             "anyOf": [
+                {"type": "null"},
                 {"type": "boolean"},
                 {"type": "string"},
                 {"$ref": "#/definitions/2DBB"},
