@@ -281,7 +281,7 @@ class ReaderStudiesAPI(APIBase):
     questions = None  # type: ReaderStudyQuestionsAPI
 
     def detail(self, pk):
-        result = LazyDict(lambda: super(ReaderStudiesAPI, self).detail(pk))
+        result = LazyDict(lambda: super().detail(pk))
         result.ground_truth = GroundTruthAPI(self._client, pk)
         return result
 
