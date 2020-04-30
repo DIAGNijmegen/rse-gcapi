@@ -97,20 +97,25 @@ def filter_arguments(*args, **kwargs):
     means NOOP. If an argument is not None, the argument must be a callable
     that takes a single argument as input.
     """
+
     def wrap(f):
         def result(*inner_args, **inner_kwargs):
             inner_args = list(inner_args)
-            inner_args[:min(len(inner_args), len(args))] = list(
+            inner_args[: min(len(inner_args), len(args))] = list(
                 inner_arg if mask_func is None else mask_func(inner_arg)
                 for inner_arg, mask_func in zip(inner_args, args)
             )
-            inner_kwargs.update({
-                k: kwargs[k](v)
-                for k, v in inner_kwargs.items()
-                if kwargs.get(k) is not None
-            })
+            inner_kwargs.update(
+                {
+                    k: kwargs[k](v)
+                    for k, v in inner_kwargs.items()
+                    if kwargs.get(k) is not None
+                }
+            )
             return f(*inner_args, **inner_kwargs)
+
         return result
+
     return wrap
 
 
