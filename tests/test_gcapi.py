@@ -3,6 +3,50 @@ from click.testing import CliRunner
 from jsonschema import ValidationError
 
 from gcapi import Client, cli
+from gcapi.gcapi import parse_uuid_from_url, filter_arguments
+
+
+def test_parse_uuid_from_url():
+    assert (
+        parse_uuid_from_url("abcdabcd-0000-0000-0000-123456789abc")
+        == "abcdabcd-0000-0000-0000-123456789abc"
+    )
+    assert (
+        parse_uuid_from_url(
+            "HTtps://dsfasdfda/abcdabcd-0000-0000-0000-000000000000/sfsd/dfregre&46%54564355/abcdabcd-0000-0000-0000-123456789abc/"
+        )
+        == "abcdabcd-0000-0000-0000-123456789abc"
+    )
+    with pytest.raises(ValueError):
+        parse_uuid_from_url("no uuid")
+
+
+def test_filter_arguments():
+    @filter_arguments(None, lambda x: max(0, x), bb=lambda x: max(0, x))
+    def test(a, b, aa=0, bb=0):
+        assert a == b
+        assert aa == bb
+
+    test(4, 4, 5, 5)
+    test(0, -12, aa=0)
+    test(0, -12, bb=-12)
+
+    @filter_arguments(None, None, None)
+    def test(a, b, aa=0, bb=0):
+        assert a == b
+        assert aa == bb
+
+    test(4, 4, 5, 5)
+    test(-12, -12, -5, -5)
+    test(-12, -12)
+
+    @filter_arguments(non=None, exiting=None, kw=None, args=None)
+    def test(a, b, aa=0, bb=0):
+        assert a == b
+        assert aa == bb
+
+    test(4, 4, 5, 5)
+    test(-12, -12, -5, -5)
 
 
 def test_no_auth_exception():
