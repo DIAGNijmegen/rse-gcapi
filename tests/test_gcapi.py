@@ -3,7 +3,6 @@ from click.testing import CliRunner
 from jsonschema import ValidationError
 
 from gcapi import Client, cli
-from gcapi.gcapi import filter_arguments, parse_uuid_from_url
 
 
 def test_no_auth_exception():

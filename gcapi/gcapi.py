@@ -1,6 +1,5 @@
 import itertools
 import os
-import re
 import uuid
 from io import BytesIO
 from json import load
