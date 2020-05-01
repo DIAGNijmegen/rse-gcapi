@@ -3,6 +3,15 @@ from click.testing import CliRunner
 from jsonschema import ValidationError
 
 from gcapi import Client, cli
+from gcapi.gcapi import LazyDict
+
+
+def test_lazy_dict():
+    ld = LazyDict(lambda: {1: 2})
+    assert len(ld) == 1
+
+    ld = LazyDict(lambda: {1: 2})
+    assert ld[1] == 2
 
 
 def test_no_auth_exception():
