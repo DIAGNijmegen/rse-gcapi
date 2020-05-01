@@ -282,6 +282,9 @@ class AlgorithmResultsAPI(APIBase):
 class AlgorithmJobsAPI(APIBase):
     base_path = "algorithms/jobs/"
 
+    def by_input_image(self, pk):
+        return self.iterate_all(params={"image": pk})
+
 
 class RetinaLandmarkAnnotationSetsAPI(APIBase, ModifiableMixin):
     base_path = "retina/landmark-annotation/"
