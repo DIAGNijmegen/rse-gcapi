@@ -1,6 +1,8 @@
 import itertools
 import os
 import uuid
+import warnings
+from collections import UserDict
 from io import BytesIO
 from json import load
 from pathlib import Path
@@ -36,6 +38,23 @@ Draft7ValidatorWithTupleSupport = jsonschema.validators.extend(
         jsonschema.Draft7Validator.TYPE_CHECKER
     ),
 )
+
+
+class LazyDict(UserDict):
+    def __init__(self, load_function):
+        self.__load_function = load_function
+        self.__data_loaded = False
+        self.__data = None
+
+    def load(self):
+        if not self.__data_loaded:
+            self.__data = self.__load_function()
+            self.__data_loaded = True
+
+    @property
+    def data(self):
+        self.load()
+        return self.__data
 
 
 def load_input_data(input_file):
@@ -77,7 +96,7 @@ def import_json_schema(filename):
     )
 
     try:
-        with open(filename, "r") as f:
+        with open(filename) as f:
             jsn = load(f)
         return Draft7ValidatorWithTupleSupport(
             jsn, format_checker=jsonschema.draft7_format_checker
@@ -139,8 +158,7 @@ class APIBase:
             )
             if len(current_list) == 0:
                 break
-            for item in current_list:
-                yield item
+            yield from current_list
             offset += req_count
 
     def detail(self, pk):
@@ -263,12 +281,28 @@ class ReaderStudiesAPI(APIBase):
     answers = None  # type: ReaderStudyAnswersAPI
     questions = None  # type: ReaderStudyQuestionsAPI
 
-    def ground_truth(self, pk, case_pk):
-        result = self._client(
-            method="GET",
-            path=urljoin(self.base_path, pk + "/ground-truth/" + case_pk),
-        )
+    def detail(self, pk):
+        result = LazyDict(lambda: super().detail(pk))
+        result.ground_truth = GroundTruthAPI(self._client, pk)
         return result
+
+    def ground_truth(self, pk, case_pk):
+        warnings.warn(
+            DeprecationWarning(
+                "Please use reader_studies.detail(pk).ground_truth.detail(case_pk) "
+                "instead of reader_studies.ground_truth(self, pk, case_pk)"
+            )
+        )
+        return self.detail(pk).ground_truth.detail(case_pk)
+
+
+class GroundTruthAPI(APIBase):
+    def __init__(self, client, pk):
+        self.base_path = urljoin(
+            ReaderStudiesAPI.base_path, f"{pk}/ground-truth/"
+        )
+
+        super().__init__(client)
 
 
 class AlgorithmsAPI(APIBase):
@@ -281,6 +315,9 @@ class AlgorithmResultsAPI(APIBase):
 
 class AlgorithmJobsAPI(APIBase):
     base_path = "algorithms/jobs/"
+
+    def by_input_image(self, pk):
+        return self.iterate_all(params={"image": pk})
 
 
 class RetinaLandmarkAnnotationSetsAPI(APIBase, ModifiableMixin):
