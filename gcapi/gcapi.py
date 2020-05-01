@@ -339,14 +339,6 @@ class RetinaPolygonAnnotationSetsAPI(APIBase, ModifiableMixin):
     json_schema = import_json_schema("polygon-annotation.json")
     modify_json_schema = import_json_schema("post-polygon-annotation.json")
 
-    def for_image(self, pk):
-        result = self._client(
-            method="GET", path=self.base_path, params={"image": pk}
-        )
-        for i in result:
-            self._verify_against_schema(i)
-        return result
-
 
 class RetinaSinglePolygonAnnotationsAPI(APIBase, ModifiableMixin):
     base_path = "retina/single-polygon-annotation/"
