@@ -31,96 +31,6 @@ def accept_tuples_as_arrays(org):
     )
 
 
-def parse_uuid_from_url(url: str) -> str:
-    """
-    Attempts to parse a uuid from a url of the form:
-
-    http://xxx/x/x/00000000-0000-0000-0000-000000000000
-
-    If the uuid occurs earlier than in the last portion of the URL or the URL
-    contains get-query arguments, the method will fail. If the supplied string
-    already is a uuid, the function will do nothing.
-
-    Parameters
-    ----------
-    url: str
-        A grand-challenge api_url to extract a uuid from or a uuid string
-        returned verbatim.
-
-    Returns
-    -------
-    str
-        The extracted uuid
-
-    Raises
-    ------
-    ValueError
-        Raised in case no uuid can extracted from the supplied string.
-    """
-    match = re.match(
-        r"(?:|https?://.+/)(?P<uuid>"
-        r"[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-"
-        r"[0-9a-f]{4}-[0-9a-f]{12})/?",
-        str(url).lower(),
-    )
-    if not match:
-        raise ValueError(f"Cannot extract valid uuid from '{url}'")
-    return match.group("uuid")
-
-
-def filter_arguments(*args, **kwargs):
-    """
-    This decorator helps to define filter functions that are applied to a
-    functions arguments before a they are passed to the function. For example,
-    when defining the function:
-
-    .. code-block:: python
-
-        def example(a, b, aa=1, bb=2):
-            print(a, b, aa=1, bb=2)
-
-    filter_arguments can be used to preprocess each argument with a separate
-    function, for example, to preprocess arguments:
-
-    .. code-block:: python
-
-        @filter_arguments(None, lambda x: max(0, x), bb=lambda x: max(0, x))
-        def example(a, b, aa=1, bb=2):
-            print(a, b, aa=1, bb=2)
-
-    Decorating example like this will make sure that b and bb always are at
-    least 0 when passing a numeric argument. Passing `None` for any of the
-    arguments means NOOP.
-
-    Arguments
-    ---------
-    The arguments of this function must match the called function's argument
-    stack. See the example above for details. Passing None for any argument
-    means NOOP. If an argument is not None, the argument must be a callable
-    that takes a single argument as input.
-    """
-
-    def wrap(f):
-        def result(*inner_args, **inner_kwargs):
-            inner_args = list(inner_args)
-            inner_args[: min(len(inner_args), len(args))] = list(
-                inner_arg if mask_func is None else mask_func(inner_arg)
-                for inner_arg, mask_func in zip(inner_args, args)
-            )
-            inner_kwargs.update(
-                {
-                    k: kwargs[k](v)
-                    for k, v in inner_kwargs.items()
-                    if kwargs.get(k) is not None
-                }
-            )
-            return f(*inner_args, **inner_kwargs)
-
-        return result
-
-    return wrap
-
-
 Draft7ValidatorWithTupleSupport = jsonschema.validators.extend(
     jsonschema.Draft7Validator,
     type_checker=accept_tuples_as_arrays(
@@ -234,7 +144,6 @@ class APIBase:
                 yield item
             offset += req_count
 
-    @filter_arguments(None, parse_uuid_from_url)
     def detail(self, pk):
         result = self._client(
             method="GET", path=urljoin(self.base_path, pk + "/")
@@ -283,15 +192,12 @@ class ModifiableMixin:
             "POST", data=kwargs, validate=kwargs.get("validate", True)
         )
 
-    @filter_arguments(None, parse_uuid_from_url)
     def update(self, pk, **kwargs):
         return self.perform_request("PUT", pk=pk, data=kwargs)
 
-    @filter_arguments(None, parse_uuid_from_url)
     def partial_update(self, pk, **kwargs):
         return self.perform_request("PATCH", pk=pk, data=kwargs)
 
-    @filter_arguments(None, parse_uuid_from_url)
     def delete(self, pk):
         return self.perform_request("DELETE", pk=pk, validate=False)
 
@@ -307,7 +213,6 @@ class UploadSessionFilesAPI(APIBase, ModifiableMixin):
 class UploadSessionsAPI(APIBase, ModifiableMixin):
     base_path = "cases/upload-sessions/"
 
-    @filter_arguments(None, parse_uuid_from_url)
     def process_images(self, pk, json=None):
         url = urljoin(self.base_path, str(pk) + "/process_images/")
         return self._client(method="PATCH", path=url, json=json)
@@ -359,7 +264,6 @@ class ReaderStudiesAPI(APIBase):
     answers = None  # type: ReaderStudyAnswersAPI
     questions = None  # type: ReaderStudyQuestionsAPI
 
-    @filter_arguments(None, parse_uuid_from_url, parse_uuid_from_url)
     def ground_truth(self, pk, case_pk):
         result = self._client(
             method="GET",
@@ -379,7 +283,6 @@ class AlgorithmResultsAPI(APIBase):
 class AlgorithmJobsAPI(APIBase):
     base_path = "algorithms/jobs/"
 
-    @filter_arguments(None, parse_uuid_from_url)
     def by_input_image(self, pk):
         return self.iterate_all(params={"image": pk})
 
@@ -389,7 +292,6 @@ class RetinaLandmarkAnnotationSetsAPI(APIBase, ModifiableMixin):
     json_schema = import_json_schema("landmark-annotation.json")
     modify_json_schema = import_json_schema("post-landmark-annotation.json")
 
-    @filter_arguments(None, parse_uuid_from_url)
     def for_image(self, pk):
         result = self._client(
             method="GET", path=self.base_path, params={"image_id": pk}
