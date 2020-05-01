@@ -58,7 +58,9 @@ def parse_uuid_from_url(url: str) -> str:
         Raised in case no uuid can extracted from the supplied string.
     """
     match = re.match(
-        r"(?:|https?://.+/)(?P<uuid>[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12})/?",
+        r"(?:|https?://.+/)(?P<uuid>"
+        r"[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-"
+        r"[0-9a-f]{4}-[0-9a-f]{12})/?",
         str(url).lower(),
     )
     if not match:

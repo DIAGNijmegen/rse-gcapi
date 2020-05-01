@@ -3,7 +3,7 @@ from click.testing import CliRunner
 from jsonschema import ValidationError
 
 from gcapi import Client, cli
-from gcapi.gcapi import parse_uuid_from_url, filter_arguments
+from gcapi.gcapi import filter_arguments, parse_uuid_from_url
 
 
 def test_parse_uuid_from_url():
@@ -13,7 +13,8 @@ def test_parse_uuid_from_url():
     )
     assert (
         parse_uuid_from_url(
-            "HTtps://dsfasdfda/abcdabcd-0000-0000-0000-000000000000/sfsd/dfregre&46%54564355/abcdabcd-0000-0000-0000-123456789abc/"
+            "HTtps://dsfasdfda/abcdabcd-0000-0000-0000-000000000000/sfsd/"
+            "regre&46%54564355/abcdabcd-0000-0000-0000-123456789abc/"
         )
         == "abcdabcd-0000-0000-0000-123456789abc"
     )
