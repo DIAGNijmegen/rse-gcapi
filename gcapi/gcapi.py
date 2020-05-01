@@ -1,6 +1,7 @@
 import itertools
 import os
 import uuid
+import warnings
 from collections import UserDict
 from io import BytesIO
 from json import load
@@ -286,10 +287,11 @@ class ReaderStudiesAPI(APIBase):
         return result
 
     def ground_truth(self, pk, case_pk):
-        print(
-            "GCAPI DEPRECATION WARNING: Please use "
-            "reader_studies.detail(pk).ground_truth.detail(case_pk) instead of "
-            "reader_studies.ground_truth(self, pk, case_pk)"
+        warnings.warn(
+            DeprecationWarning(
+                "Please use reader_studies.detail(pk).ground_truth.detail(case_pk) "
+                "instead of reader_studies.ground_truth(self, pk, case_pk)"
+            )
         )
         return self.detail(pk).ground_truth.detail(case_pk)
 
