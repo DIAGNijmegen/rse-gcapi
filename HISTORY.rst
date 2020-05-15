@@ -2,10 +2,11 @@
 History
 =======
 
-0.2.6 (unreleased)
+0.2.6 (2020-05-15)
 ------------------
 
 * Added support for retina polygon annotation sets and retina single polygon annotations
+* If authentication token is unset, the `GRAND_CHALLENGE_AUTHORIZATION` will be used as a fallback
 
 0.2.5 (2020-04-24)
 ------------------
