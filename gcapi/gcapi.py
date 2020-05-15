@@ -465,7 +465,7 @@ class Client(Session):
         if token:
             self.headers.update({"Authorization": f"TOKEN {token}"})
         else:
-            token = os.getenv("GRAND_CHALLENGE_AUTHORIZATION")
+            token = str(os.getenv("GRAND_CHALLENGE_AUTHORIZATION", ""))
             if token:
                 # Already contains TOKEN prefix
                 self.headers.update({"Authorization": token})
