@@ -465,7 +465,12 @@ class Client(Session):
         if token:
             self.headers.update({"Authorization": f"TOKEN {token}"})
         else:
-            raise RuntimeError("Token must be set")
+            token = os.getenv("GRAND_CHALLENGE_AUTHORIZATION")
+            if token:
+                # Already contains TOKEN prefix
+                self.headers.update({"Authorization": token})
+            else:
+                raise RuntimeError("Token must be set")
 
         self._base_url = base_url
         if not self._base_url.startswith("https://"):
