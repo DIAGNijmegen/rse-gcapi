@@ -26,6 +26,13 @@ def test_headers():
     assert c.headers["Accept"] == "application/json"
 
 
+def test_token_via_env_var():
+    token = "TOKEN 1b9436200001f2eaf57cd77db075cbb60a49a00a"
+    os.environ["GRAND_CHALLENGE_AUTHORIZATION"] = token
+    c = Client()
+    assert c.headers["Authorization"] == token
+
+
 def test_http_base_url():
     with pytest.raises(RuntimeError):
         Client(token="foo", base_url="http://example.com")
