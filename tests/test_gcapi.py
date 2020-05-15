@@ -1,4 +1,5 @@
 import pytest
+import os
 from click.testing import CliRunner
 from jsonschema import ValidationError
 
