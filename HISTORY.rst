@@ -2,9 +2,15 @@
 History
 =======
 
+0.2.7 (2020-05-16)
+------------------
+
+* Fixed reader study detail lookups
+
 0.2.6 (2020-05-15)
 ------------------
 
+* Note: this release has been yanked from pypi
 * Added support for retina polygon annotation sets and retina single polygon annotations
 * If authentication token is unset, the `GRAND_CHALLENGE_AUTHORIZATION` will be used as a fallback
 
