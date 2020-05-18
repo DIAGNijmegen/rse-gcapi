@@ -224,9 +224,7 @@ class ReaderStudyQuestionsAPI(APIBase):
 
 class ReaderStudyMineAnswersAPI(APIBase, ModifiableMixin):
     base_path = "reader-studies/answers/mine/"
-    validation_schemas = {
-        "GET": import_json_schema("answer.json")
-    }
+    validation_schemas = {"GET": import_json_schema("answer.json")}
 
 
 class ReaderStudyAnswersAPI(APIBase, ModifiableMixin):
