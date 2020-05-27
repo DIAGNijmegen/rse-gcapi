@@ -97,9 +97,12 @@ class APIBase:
     base_path = ""
     sub_apis: Dict[str, Type["APIBase"]] = {}
 
-    json_schema = None
+    validation_schemas = None  # type: Dict[str, jsonschema.Draft7Validator]
 
     def __init__(self, client):
+        if self.validation_schemas is None:
+            self.validation_schemas = {}
+
         if isinstance(self, ModifiableMixin):
             ModifiableMixin.__init__(self)
 
@@ -109,8 +112,9 @@ class APIBase:
             setattr(self, k, api(self._client))
 
     def _verify_against_schema(self, value):
-        if self.json_schema is not None:
-            self.json_schema.validate(value)
+        schema = self.validation_schemas.get("GET")
+        if schema is not None:
+            schema.validate(value)
 
     def list(self, params=None):
         result = self._client(method="GET", path=self.base_path, params=params)
@@ -154,19 +158,15 @@ class APIBase:
 class ModifiableMixin:
     _client = None  # type: Client
 
-    modify_json_schema = None  # type: jsonschema.Draft7Validator
-
     def __init__(self):
         pass
 
-    def _process_post_arguments(self, post_args):
-        if self.modify_json_schema is not None:
-            self.modify_json_schema.validate(post_args)
-
-    def _validate_data(self, data):
+    def _process_request_arguments(self, method, data):
         if data is None:
             data = {}
-        self._process_post_arguments(data)
+        schema = self.validation_schemas.get(method)
+        if schema:
+            schema.validate(data)
         return data
 
     def _execute_request(self, method, data, pk):
@@ -177,9 +177,8 @@ class ModifiableMixin:
         )
         return self._client(method=method, path=url, json=data)
 
-    def perform_request(self, method, data=None, pk=False, validate=True):
-        if validate:
-            data = self._validate_data(data)
+    def perform_request(self, method, data=None, pk=False):
+        data = self._process_request_arguments(method, data)
         return self._execute_request(method, data, pk)
 
     def send(self, **kwargs):
@@ -187,9 +186,7 @@ class ModifiableMixin:
         self.create(**kwargs)
 
     def create(self, **kwargs):
-        return self.perform_request(
-            "POST", data=kwargs, validate=kwargs.get("validate", True)
-        )
+        return self.perform_request("POST", data=kwargs)
 
     def update(self, pk, **kwargs):
         return self.perform_request("PUT", pk=pk, data=kwargs)
@@ -198,7 +195,7 @@ class ModifiableMixin:
         return self.perform_request("PATCH", pk=pk, data=kwargs)
 
     def delete(self, pk):
-        return self.perform_request("DELETE", pk=pk, validate=False)
+        return self.perform_request("DELETE", pk=pk)
 
 
 class ImagesAPI(APIBase):
@@ -227,33 +224,38 @@ class ReaderStudyQuestionsAPI(APIBase):
 
 class ReaderStudyMineAnswersAPI(APIBase, ModifiableMixin):
     base_path = "reader-studies/answers/mine/"
-    json_schema = import_json_schema("answer.json")
+    validation_schemas = {"GET": import_json_schema("answer.json")}
 
 
 class ReaderStudyAnswersAPI(APIBase, ModifiableMixin):
     base_path = "reader-studies/answers/"
-    json_schema = import_json_schema("answer.json")
-    modify_json_schema = import_json_schema("post-answer.json")
+
+    validation_schemas = {
+        "GET": import_json_schema("answer.json"),
+        "POST": import_json_schema("post-answer.json"),
+    }
 
     sub_apis = {"mine": ReaderStudyMineAnswersAPI}
 
     mine = None  # type: ReaderStudyMineAnswersAPI
 
-    def _process_post_arguments(self, post_args):
-        if is_uuid(post_args["question"]):
-            post_args["question"] = urljoin(
+    def _process_request_arguments(self, method, data):
+        if is_uuid(data.get("question", "")):
+            data["question"] = urljoin(
                 urljoin(
                     self._client.base_url, ReaderStudyQuestionsAPI.base_path
                 ),
-                post_args["question"] + "/",
+                data["question"] + "/",
             )
 
-        ModifiableMixin._process_post_arguments(self, post_args)
+        return ModifiableMixin._process_request_arguments(self, method, data)
 
 
 class ReaderStudiesAPI(APIBase):
     base_path = "reader-studies/"
-    json_schema = import_json_schema("reader-study.json")
+    validation_schemas = {
+        "GET": import_json_schema("reader-study.json"),
+    }
 
     sub_apis = {
         "answers": ReaderStudyAnswersAPI,
@@ -288,8 +290,11 @@ class AlgorithmJobsAPI(APIBase):
 
 class RetinaLandmarkAnnotationSetsAPI(APIBase, ModifiableMixin):
     base_path = "retina/landmark-annotation/"
-    json_schema = import_json_schema("landmark-annotation.json")
-    modify_json_schema = import_json_schema("post-landmark-annotation.json")
+
+    validation_schemas = {
+        "GET": import_json_schema("landmark-annotation.json"),
+        "POST": import_json_schema("post-landmark-annotation.json"),
+    }
 
     def for_image(self, pk):
         result = self._client(
@@ -302,16 +307,18 @@ class RetinaLandmarkAnnotationSetsAPI(APIBase, ModifiableMixin):
 
 class RetinaPolygonAnnotationSetsAPI(APIBase, ModifiableMixin):
     base_path = "retina/polygon-annotation-set/"
-    json_schema = import_json_schema("polygon-annotation.json")
-    modify_json_schema = import_json_schema("post-polygon-annotation.json")
+    validation_schemas = {
+        "GET": import_json_schema("polygon-annotation.json"),
+        "POST": import_json_schema("post-polygon-annotation.json"),
+    }
 
 
 class RetinaSinglePolygonAnnotationsAPI(APIBase, ModifiableMixin):
     base_path = "retina/single-polygon-annotation/"
-    json_schema = import_json_schema("single-polygon-annotation.json")
-    modify_json_schema = import_json_schema(
-        "post-single-polygon-annotation.json"
-    )
+    validation_schemas = {
+        "GET": import_json_schema("single-polygon-annotation.json"),
+        "POST": import_json_schema("post-single-polygon-annotation.json"),
+    }
 
 
 class ChunkedUploadsAPI(APIBase):
