@@ -321,6 +321,16 @@ class RetinaSinglePolygonAnnotationsAPI(APIBase, ModifiableMixin):
     }
 
 
+class RetinaBooleanClassificationAnnotation(APIBase, ModifiableMixin):
+    base_path = "retina/boolean-classification-annotation"
+    validation_schemas = {
+        "GET": import_json_schema("boolean-classification-annotation.json"),
+        "POST": import_json_schema(
+            "post-boolean-classification-annotation.json"
+        ),
+    }
+
+
 class ChunkedUploadsAPI(APIBase):
     base_path = "chunked-uploads/"
 
@@ -467,6 +477,9 @@ class Client(Session):
             client=self
         )
         self.retina_single_polygon_annotations = RetinaSinglePolygonAnnotationsAPI(
+            client=self
+        )
+        self.retina_boolean_classification_annotation = RetinaBooleanClassificationAnnotation(
             client=self
         )
         self.raw_image_upload_session_files = UploadSessionFilesAPI(
