@@ -112,7 +112,7 @@ def test_create_boolean_classification_annotation(local_grand_challenge):
         "value": True,
     }
     with pytest.raises(HTTPError) as e:
-        c.retina_boolean_classification_annotation.create(**create_data)
+        c.retina_boolean_annotation.create(**create_data)
     response = e.value.response
     assert response.status_code == 400
     response = response.json()

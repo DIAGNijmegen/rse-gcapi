@@ -479,7 +479,7 @@ class Client(Session):
         self.retina_single_polygon_annotations = RetinaSinglePolygonAnnotationsAPI(
             client=self
         )
-        self.retina_boolean_classification_annotation = RetinaBooleanClassificationAnnotation(
+        self.retina_boolean_annotation = RetinaBooleanClassificationAnnotation(
             client=self
         )
         self.raw_image_upload_session_files = UploadSessionFilesAPI(
