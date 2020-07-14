@@ -100,6 +100,29 @@ def test_create_single_polygon_annotations(local_grand_challenge):
     )
 
 
+def test_create_boolean_classification_annotation(local_grand_challenge):
+    c = Client(
+        base_url=local_grand_challenge, verify=False, token=RETINA_TOKEN
+    )
+    nil_uuid = "00000000-0000-4000-9000-000000000000"
+    create_data = {
+        "grader": 0,
+        "image": nil_uuid,
+        "name": "test name",
+        "value": True,
+    }
+    with pytest.raises(HTTPError) as e:
+        c.retina_boolean_classification_annotation.create(**create_data)
+    response = e.value.response
+    assert response.status_code == 400
+    response = response.json()
+    assert response["grader"][0] == 'Invalid pk "0" - object does not exist.'
+    assert (
+        response["image"][0]
+        == f'Invalid pk "{nil_uuid}" - object does not exist.'
+    )
+
+
 def test_raw_image_and_upload_session(local_grand_challenge):
     c = Client(base_url=local_grand_challenge, verify=False, token=ADMIN_TOKEN)
     assert c.raw_image_upload_session_files.page() == []
