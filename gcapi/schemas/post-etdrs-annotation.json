@@ -1,0 +1,42 @@
+{
+    "$schema": "http://json-schema.org/draft-07/schema#",
+    "definitions": {
+        "uuid": {
+            "type": "string",
+            "pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$"
+        },
+        "etdrs-annotation": {
+            "type": "object",
+            "properties": {
+                "id": {
+                    "$ref": "#/definitions/uuid"
+                },
+                "grader": {
+                    "type": "integer",
+                    "minimum": 0
+                },
+                "image": {
+                    "$ref": "#/definitions/uuid"
+                },
+                "created": {
+                    "type": "string",
+                    "format": "date-time"
+                },
+                "fovea": {
+                    "type": "array",
+                    "items": {"type": "number"},
+                    "minItems": 2,
+                    "maxItems": 2
+                },
+                "optic_disk": {
+                    "type": "array",
+                    "items": {"type": "number"},
+                    "minItems": 0,
+                    "maxItems": 2
+                }
+            }
+        }
+     },
+
+    "$ref": "#/definitions/etdrs-annotation"
+}

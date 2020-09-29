@@ -2,6 +2,11 @@
 History
 =======
 
+0.2.9 (2020-09-29)
+------------------
+
+* Add support for ETDRS grid annotation endpoints
+
 0.2.8 (2020-06-05)
 ------------------
 
