@@ -31,7 +31,7 @@
                 "optic_disk": {
                     "type": "array",
                     "items": {"type": "number"},
-                    "minItems": 2,
+                    "minItems": 0,
                     "maxItems": 2
                 }
             }
