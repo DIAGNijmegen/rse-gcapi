@@ -321,6 +321,14 @@ class RetinaSinglePolygonAnnotationsAPI(APIBase, ModifiableMixin):
     }
 
 
+class RetinaETDRSGridAnnotationsAPI(APIBase, ModifiableMixin):
+    base_path = "retina/etdrs-grid-annotation/"
+    validation_schemas = {
+        "GET": import_json_schema("etdrs-annotation.json"),
+        "POST": import_json_schema("post-etdrs-annotation.json"),
+    }
+
+
 class ChunkedUploadsAPI(APIBase):
     base_path = "chunked-uploads/"
 
@@ -467,6 +475,9 @@ class Client(Session):
             client=self
         )
         self.retina_single_polygon_annotations = RetinaSinglePolygonAnnotationsAPI(
+            client=self
+        )
+        self.retina_etdrs_grid_annotations = RetinaETDRSGridAnnotationsAPI(
             client=self
         )
         self.raw_image_upload_session_files = UploadSessionFilesAPI(
