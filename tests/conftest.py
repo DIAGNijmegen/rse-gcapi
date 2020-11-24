@@ -58,7 +58,9 @@ def local_grand_challenge() -> Generator[str, None, None]:
                         ],
                         cwd=tmp_path,
                     )
-                check_call(["docker-compose", "up", "-d", "http"], cwd=tmp_path)
+                check_call(
+                    ["docker-compose", "up", "-d", "http"], cwd=tmp_path
+                )
                 check_call(
                     ["docker-compose-wait", "-w", "-t", "5m"], cwd=tmp_path
                 )
