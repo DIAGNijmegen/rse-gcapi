@@ -60,7 +60,7 @@ def local_grand_challenge() -> Generator[str, None, None]:
                     )
                 check_call(["docker-compose", "up", "-d"], cwd=tmp_path)
                 check_call(
-                    ["docker-compose-wait", "-w", "-t", "2m"], cwd=tmp_path
+                    ["docker-compose-wait", "-w", "-t", "5m"], cwd=tmp_path
                 )
 
                 yield local_api_url
