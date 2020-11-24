@@ -142,6 +142,9 @@ def test_chunked_uploads(local_grand_challenge):
         c.chunked_uploads.upload_file(file_to_upload)
 
 
+@pytest.mark.skip(
+    reason="skip for now as this tests too much"
+)
 @pytest.mark.parametrize(
     "files",
     (["image10x10x101.mha"], ["image10x10x10.mhd", "image10x10x10.zraw"]),
