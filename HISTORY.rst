@@ -2,6 +2,11 @@
 History
 =======
 
+0.2.10 (2020-11-23)
+-------------------
+
+* Add Multiple 2D bounding box question types to reader studies
+
 0.2.9 (2020-09-29)
 ------------------
 

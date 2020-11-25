@@ -83,6 +83,24 @@
             },
             "required": ["name" , "seed_point", "path_points", "sub_type", "groups"]
         },
+        "2D-bounding-box-object": {
+            "type": "object",
+            "properties": {
+                "name": {"type": "string"},
+                "corners": {
+                    "type": "array",
+                    "items": {
+                        "type": "array",
+                        "items": {"type": "number"},
+                        "minItems": 3,
+                        "maxItems": 3
+                    },
+                    "minItems": 4,
+                    "maxItems": 4
+                }
+            },
+            "required": ["corners"]
+        },
         "2DBB": {
             "type": "object",
             "properties": {
@@ -102,6 +120,23 @@
                 "name": {"type": "string"}
             },
             "required": ["type", "version", "corners"]
+        },
+        "M2DB": {
+            "type": "object",
+            "properties": {
+                "type": {"enum": ["Multiple 2D bounding boxes"]},
+                "version": {"$ref": "#/definitions/version"},
+                "name": {"type": "string"},
+                "boxes": {
+                    "type": "array",
+                    "items": {
+                        "allOf": [
+                            {"$ref": "#/definitions/2D-bounding-box-object"}
+                        ]
+                    }
+                }
+            },
+            "required": ["version", "type", "boxes"]
         },
         "DIST": {
             "type": "object",
@@ -222,6 +257,7 @@
                 {"type": "boolean"},
                 {"type": "string"},
                 {"$ref": "#/definitions/2DBB"},
+                {"$ref": "#/definitions/M2DB"},
                 {"$ref": "#/definitions/DIST"},
                 {"$ref": "#/definitions/MDIS"},
                 {"$ref": "#/definitions/POIN"},
