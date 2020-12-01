@@ -3,7 +3,6 @@ import os
 import uuid
 from io import BytesIO
 from json import load
-from pathlib import Path
 from random import randint, random
 from time import sleep, time
 from typing import Dict, List, Type
@@ -39,7 +38,7 @@ Draft7ValidatorWithTupleSupport = jsonschema.validators.extend(
 
 
 def load_input_data(input_file):
-    with open(str(Path(__file__).parent / input_file), "rb") as f:
+    with open(input_file, "rb") as f:
         return f.read()
 
 
@@ -528,46 +527,54 @@ class Client(Session):
         else:
             return response
 
-    def run_external_algorithm(
-        self, algorithm_name: str, files_to_upload: List[str]
-    ) -> Dict:
-        """
-        This function uploads an input image to grand challenge and runs an
-        already uploaded algorithm which the user has access to. If the upload
-        is finished correctly, grand challenge will automatically submit a job
-        which you can access via AlgorithmJobsAPI.
-
-        After the job is finished successfully the result will be available via
-        AlgorithmResultsAPI.
-
-        Parameters
-        ----------
-        algorithm_name:
-            Title of the algorithm which has already been uploaded.
-        files_to_upload:
-            List of files to upload.
-
-        Returns
-        -------
-        upload_session:
-        This can be used to construct a query like
-        /api/v1/cases/images/?origin=upload_session["pk"]
-        to find out which Image did this RawImageUploadSession give rise to.
-        This can be further used to identify the submitted job.
-        """
-        return self.upload_cases(
-            algorithm=algorithm_name, files_to_upload=files_to_upload
-        )
-
     def upload_cases(
         self,
         *,
-        files_to_upload: List[str],
-        reader_study: str = None,
-        archive: str = None,
+        files: List[str],
         algorithm: str = None,
+        archive: str = None,
+        reader_study: str = None,
     ):
+        """
+        Uploads a set of files to an algorithm, archive or reader study.
+
+        A new upload session will be created on grand challenge to import and
+        standardise your files. This function will return this new upload
+        session object, that you can query for the import status. If this
+        import is successful, the new images will then be added to the selected
+        algorithm, archive, or reader study.
+
+        You will need to provide the slugs of the objects to pass the images
+        along to. You can find this in the url of the object that you want
+        to use. For instance, if you want to use the algorithm at
+
+            https://grand-challenge.org/algorithms/corads-ai/
+
+        the slug for this is "corads-ai", so you would call this function with
+
+            upload_cases(files=[...], algorithm="corads-ai")
+
+        Parameters
+        ----------
+        files
+            The list of files on disk that form 1 Image. These can be a set of
+            .mha, .mhd, .raw, .zraw, .dcm, .nii, .nii.gz, .tiff, .png, .jpeg,
+            .jpg, .svs, .vms, .vmu, .ndpi, .scn, .mrxs and/or .bif files.
+        algorithm
+            The slug of the algorithm to use.
+        archive
+            The slug of the archive to use.
+        reader_study
+            The slug of the reader study to use.
+
+        Returns
+        -------
+            The created upload session.
+        """
         upload_session_data = {}
+
+        if len(files) == 0:
+            raise ValueError("You must specify the files to upload")
 
         if reader_study is not None:
             upload_session_data["reader_study"] = reader_study
@@ -576,16 +583,17 @@ class Client(Session):
             upload_session_data["archive"] = archive
 
         if algorithm is not None:
-            upload_session_data[
-                "algorithm_image"
-            ] = self._get_latest_algorithm_image(algorithm_name=algorithm)
+            upload_session_data["algorithm"] = algorithm
 
-        raw_image_upload_session = self.raw_image_upload_sessions.create(
-            **upload_session_data
-        )
+        if len(upload_session_data) != 1:
+            raise ValueError(
+                "Only one of algorithm, archive or reader_study should be set"
+            )
+
+        raw_image_upload_session = self.raw_image_upload_sessions.create()
 
         uploaded_files = {}
-        for file in files_to_upload:
+        for file in files:
             uploaded_chunks = self.chunked_uploads.upload_file(file)
             uploaded_files.update(
                 {c["uuid"]: c["filename"] for c in uploaded_chunks}
@@ -599,29 +607,7 @@ class Client(Session):
             )
 
         self.raw_image_upload_sessions.process_images(
-            pk=raw_image_upload_session["pk"]
+            pk=raw_image_upload_session["pk"], json=upload_session_data
         )
 
         return raw_image_upload_session
-
-    def _get_latest_algorithm_image(self, algorithm_name: str) -> str:
-        """Get the latest algorithm image for the given algorithm name. """
-        algorithms = [
-            a
-            for a in self.algorithms.list()["results"]
-            if a["title"] == algorithm_name
-        ]
-
-        if len(algorithms) != 1:
-            raise ValueError(
-                "{} is not found in available list of algorithms".format(
-                    algorithm_name
-                )
-            )
-
-        if not algorithms[0]["latest_ready_image"]:
-            raise ValueError(f"{algorithm_name} is not ready to be used")
-
-        algorithm_image = algorithms[0]["latest_ready_image"]
-
-        return algorithm_image
