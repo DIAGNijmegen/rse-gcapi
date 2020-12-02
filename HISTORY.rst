@@ -2,7 +2,7 @@
 History
 =======
 
-0.3.x (unreleased)
+0.3.0 (2020-12-02)
 ------------------
 
 * Breaking Changes in ``upload_cases``: 

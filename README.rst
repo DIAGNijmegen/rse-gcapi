@@ -43,7 +43,7 @@ First, you will need to authorise the client using your personal API token.
 
     from gcapi import Client
     
-    c = Client(token="Your personal API Token")
+    c = Client(token="Your Personal API Token")
 
 Then, prepare the list of files for each image you want to upload.
 
