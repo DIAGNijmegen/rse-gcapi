@@ -10,6 +10,7 @@ from gcapi import Client
 RETINA_TOKEN = "f1f98a1733c05b12118785ffd995c250fe4d90da"
 ADMIN_TOKEN = "1b9436200001f2eaf57cd77db075cbb60a49a00a"
 ALGORITHMUSER_TOKEN = "dc3526c2008609b429514b6361a33f8516541464"
+READERSTUDY_TOKEN = "01614a77b1c0b4ecd402be50a8ff96188d5b011d"
 
 
 @pytest.mark.parametrize(
@@ -142,38 +143,18 @@ def test_chunked_uploads(local_grand_challenge):
         c.chunked_uploads.upload_file(file_to_upload)
 
 
-@pytest.mark.skip(reason="skip for now as this tests too much")
 @pytest.mark.parametrize(
     "files",
     (["image10x10x101.mha"], ["image10x10x10.mhd", "image10x10x10.zraw"]),
 )
-def test_run_external_algorithm(local_grand_challenge, files, monkeypatch):
+def test_upload_cases(local_grand_challenge, files):
     c = Client(
-        base_url=local_grand_challenge, verify=False, token=ALGORITHMUSER_TOKEN
+        base_url=local_grand_challenge, verify=False, token=READERSTUDY_TOKEN
     )
 
-    existing_us_count = c.raw_image_upload_sessions.list()["count"]
-    existing_algorithm_jobs = c.algorithm_jobs.list()["count"]
-    existing_images = c.images.list()["count"]
-
-    def return_correct_latest_ready_image(*args, **kwargs):
-        algorithm_detail = c.algorithms.page()[0]
-        algorithm_detail["latest_ready_image"] = algorithm_detail[
-            "algorithm_container_images"
-        ][0]
-        return {
-            "count": 1,
-            "next": "",
-            "previous": "",
-            "results": [algorithm_detail],
-        }
-
-    monkeypatch.setattr(
-        c.algorithms, "list", return_correct_latest_ready_image
-    )
-    us = c.run_external_algorithm(
-        "Test Algorithm",
-        [Path(__file__).parent / "testdata" / f for f in files],
+    us = c.upload_cases(
+        reader_study="reader-study",
+        files=[Path(__file__).parent / "testdata" / f for f in files],
     )
 
     for _ in range(60):
@@ -185,6 +166,11 @@ def test_run_external_algorithm(local_grand_challenge, files, monkeypatch):
     else:
         raise TimeoutError
 
-    assert c.raw_image_upload_sessions.list()["count"] == 1 + existing_us_count
-    assert c.algorithm_jobs.list()["count"] == 1 + existing_algorithm_jobs
-    assert c.images.list()["count"] == 1 + existing_images
+    # Check that only one image was created
+    assert len(us["image_set"]) == 1
+    image = c(url=us["image_set"][0])
+
+    # And that it was added to the reader study
+    assert len(image["reader_study_set"]) == 1
+    reader_study = c(url=image["reader_study_set"][0])
+    assert reader_study["slug"] == "reader-study"

@@ -2,9 +2,13 @@
 History
 =======
 
-0.2.10 (2020-11-23)
--------------------
+0.3.x (unreleased)
+------------------
 
+* Breaking Changes in ``upload_cases``: 
+  * Renamed kwarg ``files_to_upload`` to ``files``
+  * ``algorithm`` kwarg now takes a ``slug`` rather than a ``title``
+  * Removed ``run_external_algorithm``, use ``upload_cases`` instead
 * Add Multiple 2D bounding box question types to reader studies
 
 0.2.9 (2020-09-29)
