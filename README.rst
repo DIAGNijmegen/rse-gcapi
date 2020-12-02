@@ -45,7 +45,7 @@ First, you will need to authorise the client using your personal API token.
     
     c = Client(token="Your personal API Token")
 
-Then, prepare the list of files you want to upload.
+Then, prepare the list of files for each image you want to upload.
 
 .. code:: python
 
