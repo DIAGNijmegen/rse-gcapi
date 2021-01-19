@@ -14,16 +14,11 @@ Grand Challenge API Client
    :target: https://codecov.io/gh/DIAGNijmegen/rse-gcapi
    :alt: Code Coverage Status
 
-.. image:: https://readthedocs.org/projects/gcapi/badge/?version=latest
-   :target: https://gcapi.readthedocs.io/en/latest/?badge=latest
-   :alt: Documentation Status
-
 
 Python client for the grand-challenge.org API
 
 
 * Free software: Apache Software License 2.0
-* Documentation: https://gcapi.readthedocs.io.
 
 
 Features
