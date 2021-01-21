@@ -38,7 +38,7 @@ Or download the `tarball`_:
 
 .. code-block:: console
 
-    $ curl  -OL https://github.com/DIAGNijmegen/gcapi/tarball/master
+    $ curl  -OL https://github.com/DIAGNijmegen/rse-gcapi/tarball/master
 
 Once you have a copy of the source, you can install it with:
 
@@ -47,5 +47,5 @@ Once you have a copy of the source, you can install it with:
     $ python setup.py install
 
 
-.. _Github repo: https://github.com/DIAGNijmegen/gcapi
-.. _tarball: https://github.com/DIAGNijmegen/gcapi/tarball/master
+.. _Github repo: https://github.com/DIAGNijmegen/rse-gcapi
+.. _tarball: https://github.com/DIAGNijmegen/rse-gcapi/tarball/master

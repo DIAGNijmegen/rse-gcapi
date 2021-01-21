@@ -55,7 +55,7 @@ setup(
     package_data={"gcapi": ["schemas/*"]},
     test_suite="tests",
     tests_require=test_requirements,
-    url="https://github.com/DIAGNijmegen/gcapi",
+    url="https://github.com/DIAGNijmegen/rse-gcapi",
     version=about["__version__"],
     zip_safe=False,
 )
