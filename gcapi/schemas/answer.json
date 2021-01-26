@@ -256,6 +256,7 @@
                 {"type": "null"},
                 {"type": "boolean"},
                 {"type": "string"},
+                {"type": "number"},
                 {"$ref": "#/definitions/2DBB"},
                 {"$ref": "#/definitions/M2DB"},
                 {"$ref": "#/definitions/DIST"},
