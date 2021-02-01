@@ -2,6 +2,11 @@
 History
 =======
 
+0.3.3 (2021-02-02)
+------------------
+
+* Adds support for multiple polygon image answers
+
 0.3.2 (2021-02-01)
 ------------------
 
