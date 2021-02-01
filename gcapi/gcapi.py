@@ -376,7 +376,7 @@ class ChunkedUploadsAPI(APIBase):
 
         return result
 
-    def upload_file(self, filename):
+    def upload_file(self, filename, content=None):
         """
         Uploads a file in chunks using rest api.
 
@@ -390,8 +390,8 @@ class ChunkedUploadsAPI(APIBase):
         ConnectionError
             Raised if a chunk cannot be uploaded.
         """
-
-        content = load_input_data(filename)
+        if not content:
+            content = load_input_data(filename)
         upload_id = generate_new_upload_id(content)
         start_byte = 0
         content_io = BytesIO(content)

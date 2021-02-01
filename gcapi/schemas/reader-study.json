@@ -73,6 +73,7 @@
                                 "Point",
                                 "Multiple points",
                                 "Polygon",
+                                "Polygon (saved as mask)",
                                 "Multiple polygons"
                             ]
                         },
