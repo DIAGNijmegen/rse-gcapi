@@ -2,6 +2,12 @@
 History
 =======
 
+0.3.1 (2021-02-01)
+------------------
+
+* Adds support for Image answers
+* Allows setting `content` rather than `filename` in `upload_files`
+
 0.3.0 (2020-12-02)
 ------------------
 
