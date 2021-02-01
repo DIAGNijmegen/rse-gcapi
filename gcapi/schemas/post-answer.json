@@ -245,6 +245,13 @@
             },
             "required": ["type", "version", "polygons"]
         },
+        "MPIM": {
+            "type": "object",
+            "properties": {
+                "upload_session_pk": {"type": "string", "format": "uuid"}
+            },
+            "required": ["upload_session_pk"]
+        },
         "CHOI": {"type": "number"},
         "MCHO": {"type": "array", "items": {"type": "number"}},
         "valid-answers": {
@@ -262,6 +269,7 @@
                 {"$ref": "#/definitions/POLY"},
                 {"$ref": "#/definitions/PIMG"},
                 {"$ref": "#/definitions/MPOL"},
+                {"$ref": "#/definitions/MPIM"},
                 {"$ref": "#/definitions/CHOI"},
                 {"$ref": "#/definitions/MCHO"}
             ]
