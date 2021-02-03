@@ -2,6 +2,11 @@
 History
 =======
 
+0.3.4 (2021-02-03)
+------------------
+
+* Fix number answer type support for readerstudy validation
+
 0.3.3 (2021-02-02)
 ------------------
 
