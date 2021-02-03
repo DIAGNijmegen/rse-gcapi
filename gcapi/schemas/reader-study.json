@@ -50,6 +50,7 @@
                                 "Multi line text",
                                 "Heading",
                                 "Choice",
+                                "Number",
                                 "Multiple choice",
                                 "Multiple choice dropdown"
                             ]
