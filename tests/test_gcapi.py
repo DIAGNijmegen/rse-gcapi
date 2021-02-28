@@ -5,9 +5,12 @@ from jsonschema import ValidationError
 from gcapi import Client, cli
 
 
-def test_no_auth_exception():
+@pytest.mark.parametrize(
+    "kwargs", ({}, {"token": ""}, {"token": "not a token"})
+)
+def test_no_auth_exception(kwargs):
     with pytest.raises(RuntimeError):
-        Client()
+        Client(**kwargs)
 
 
 def test_headers():
@@ -36,6 +39,8 @@ def test_token_precidence(monkeypatch):
         "qwerty",
         "TOKEN qwerty",
         "BEARER qwerty",
+        "Bearer qwerty",
+        "bearer qwerty",
         "whatever qwerty",
         "  TOKEN   qwerty    ",
     ],
