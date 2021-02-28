@@ -1,5 +1,6 @@
 import itertools
 import os
+import re
 import uuid
 from io import BytesIO
 from json import load
@@ -440,17 +441,9 @@ class Client(Session):
     ):
         super().__init__()
 
-        self.headers.update({"Accept": "application/json"})
-
-        if token:
-            self.headers.update({"Authorization": f"TOKEN {token}"})
-        else:
-            token = str(os.getenv("GRAND_CHALLENGE_AUTHORIZATION", ""))
-            if token:
-                # Already contains TOKEN prefix
-                self.headers.update({"Authorization": token})
-            else:
-                raise RuntimeError("Token must be set")
+        self.headers.update(
+            {"Accept": "application/json", **self._auth_header(token=token)}
+        )
 
         self._base_url = base_url
         if not self._base_url.startswith("https://"):
@@ -483,6 +476,22 @@ class Client(Session):
             client=self
         )
         self.raw_image_upload_sessions = UploadSessionsAPI(client=self)
+
+    @staticmethod
+    def _auth_header(token: str = "") -> Dict:
+        if not token:
+            try:
+                token = str(os.environ["GRAND_CHALLENGE_AUTHORIZATION"])
+            except KeyError:
+                raise RuntimeError("Token must be set")
+
+        token = re.sub(" +", " ", token)
+        token_parts = token.strip().split(" ")
+
+        if len(token_parts) not in [1, 2]:
+            raise RuntimeError("Invalid token format")
+
+        return {"Authorization": f"BEARER {token_parts[-1]}"}
 
     @property
     def base_url(self):

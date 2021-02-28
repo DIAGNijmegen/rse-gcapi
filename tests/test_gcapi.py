@@ -1,5 +1,3 @@
-import os
-
 import pytest
 from click.testing import CliRunner
 from jsonschema import ValidationError
@@ -15,15 +13,43 @@ def test_no_auth_exception():
 def test_headers():
     token = "foo"
     c = Client(token=token)
-    assert c.headers["Authorization"] == f"TOKEN {token}"
+    assert c.headers["Authorization"] == f"BEARER {token}"
     assert c.headers["Accept"] == "application/json"
 
 
-def test_token_via_env_var():
-    token = "TOKEN 1b9436200001f2eaf57cd77db075cbb60a49a00a"
-    os.environ["GRAND_CHALLENGE_AUTHORIZATION"] = token
+def test_token_via_env_var(monkeypatch):
+    token = "BEARER 1b9436200001f2eaf57cd77db075cbb60a49a00a"
+    monkeypatch.setenv("GRAND_CHALLENGE_AUTHORIZATION", token)
     c = Client()
     assert c.headers["Authorization"] == token
+
+
+def test_token_precidence(monkeypatch):
+    monkeypatch.setenv("GRAND_CHALLENGE_AUTHORIZATION", "TOKEN fromenv")
+    c = Client(token="fromcli")
+    assert c.headers["Authorization"] == "BEARER fromcli"
+
+
+@pytest.mark.parametrize(
+    "token",
+    [
+        "qwerty",
+        "TOKEN qwerty",
+        "BEARER qwerty",
+        "whatever qwerty",
+        "  TOKEN   qwerty    ",
+    ],
+)
+@pytest.mark.parametrize("environ", (True, False))
+def test_token_rewriting(monkeypatch, token, environ):
+    if environ:
+        monkeypatch.setenv("GRAND_CHALLENGE_AUTHORIZATION", token)
+        kwargs = {}
+    else:
+        kwargs = {"token": token}
+
+    c = Client(**kwargs)
+    assert c.headers["Authorization"] == "BEARER qwerty"
 
 
 def test_http_base_url():
