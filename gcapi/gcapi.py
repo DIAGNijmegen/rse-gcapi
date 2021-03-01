@@ -7,7 +7,7 @@ from json import load
 from random import randint, random
 from time import sleep, time
 from typing import Dict, List, Type
-from urllib.parse import urljoin
+from urllib.parse import urljoin, urlparse
 
 import jsonschema
 from requests import ConnectionError, Session
@@ -498,8 +498,11 @@ class Client(Session):
         return self._base_url
 
     def _validate_url(self, url):
-        if not url.startswith(self._base_url):
-            raise RuntimeError(f"{url} does not start with {self._base_url}")
+        base = urlparse(self._base_url)
+        target = urlparse(url)
+
+        if not target.scheme == "https" or target.netloc != base.netloc:
+            raise RuntimeError(f"Invalid target URL: {url}")
 
     def __call__(
         self,
@@ -520,6 +523,7 @@ class Client(Session):
             extra_headers["Content-Type"] = "application/json"
 
         self._validate_url(url)
+
         response = self.request(
             method=method,
             url=url,
