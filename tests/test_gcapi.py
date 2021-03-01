@@ -70,6 +70,37 @@ def test_custom_base_url():
     assert c._base_url.startswith("https://example.com")
 
 
+@pytest.mark.parametrize(
+    "url",
+    (
+        "https://example.com/api/v1/",
+        "https://example.com/",
+        "https://example.com",
+        "https://example.com/another/",
+        "https://example.com/../../foo/",
+    ),
+)
+def test_same_domain_calls_are_ok(url):
+    c = Client(token="foo", base_url="https://example.com/api/v1/")
+    assert c._validate_url(url=url) is None
+
+@pytest.mark.parametrize(
+    "url",
+    (
+        "https://notexample.com/api/v1/",
+        "http://example.com/api/v1/",
+        "https://exаmple.com/api/v1/",  # а = \u0430
+        "https://sub.example.com/api/v1/",
+        "https://example.com:443/api/v1/",
+        "example.com/api/v1/",
+        "//example.com/api/v1/"
+    ),
+)
+def test_invalid_url_fails(url):
+    c = Client(token="foo", base_url="https://example.com/api/v1/")
+    with pytest.raises(RuntimeError):
+        c._validate_url(url=url)
+
 def test_command_line_interface():
     """Test the CLI."""
     runner = CliRunner()
