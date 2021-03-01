@@ -2,6 +2,12 @@
 History
 =======
 
+0.3.5 (2021-03-01)
+------------------
+
+* Allow same domain calls
+* Normalize API tokens
+
 0.3.4 (2021-02-03)
 ------------------
 
