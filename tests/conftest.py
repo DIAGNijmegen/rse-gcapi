@@ -43,7 +43,6 @@ def local_grand_challenge() -> Generator[str, None, None]:
 
                 for command in [
                     "migrate",
-                    "check_permissions",
                     "init_gc_demo",
                 ]:
                     check_call(
