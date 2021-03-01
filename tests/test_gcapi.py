@@ -84,6 +84,7 @@ def test_same_domain_calls_are_ok(url):
     c = Client(token="foo", base_url="https://example.com/api/v1/")
     assert c._validate_url(url=url) is None
 
+
 @pytest.mark.parametrize(
     "url",
     (
@@ -93,13 +94,14 @@ def test_same_domain_calls_are_ok(url):
         "https://sub.example.com/api/v1/",
         "https://example.com:443/api/v1/",
         "example.com/api/v1/",
-        "//example.com/api/v1/"
+        "//example.com/api/v1/",
     ),
 )
 def test_invalid_url_fails(url):
     c = Client(token="foo", base_url="https://example.com/api/v1/")
     with pytest.raises(RuntimeError):
         c._validate_url(url=url)
+
 
 def test_command_line_interface():
     """Test the CLI."""
