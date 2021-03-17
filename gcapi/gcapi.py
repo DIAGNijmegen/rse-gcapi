@@ -77,7 +77,7 @@ def import_json_schema(filename):
     )
 
     try:
-        with open(filename, "r") as f:
+        with open(filename) as f:
             jsn = load(f)
         return Draft7ValidatorWithTupleSupport(
             jsn, format_checker=jsonschema.draft7_format_checker
@@ -143,8 +143,7 @@ class APIBase:
             )
             if len(current_list) == 0:
                 break
-            for item in current_list:
-                yield item
+            yield from current_list
             offset += req_count
 
     def detail(self, pk):
