@@ -128,7 +128,7 @@ class APIBase:
         params["offset"] = offset
         params["limit"] = limit
         result = self._client(
-            method="GET", path=self.base_path, params=params,
+            method="GET", path=self.base_path, params=params
         )["results"]
         for i in result:
             self._verify_against_schema(i)
@@ -252,9 +252,7 @@ class ReaderStudyAnswersAPI(APIBase, ModifiableMixin):
 
 class ReaderStudiesAPI(APIBase):
     base_path = "reader-studies/"
-    validation_schemas = {
-        "GET": import_json_schema("reader-study.json"),
-    }
+    validation_schemas = {"GET": import_json_schema("reader-study.json")}
 
     sub_apis = {
         "answers": ReaderStudyAnswersAPI,
@@ -280,7 +278,7 @@ class AlgorithmResultsAPI(APIBase):
     base_path = "algorithms/results/"
 
 
-class AlgorithmJobsAPI(APIBase):
+class AlgorithmJobsAPI(APIBase, ModifiableMixin):
     base_path = "algorithms/jobs/"
 
     def by_input_image(self, pk):
@@ -539,6 +537,39 @@ class Client(Session):
         else:
             return response
 
+    def run_external_job(
+        self, *, algorithm_name: str = None, inputs: Dict[str, any]
+    ):
+        algorithm = self._get_algorithm(algorithm_name=algorithm_name)
+        input_interfaces = {ci["title"]: ci for ci in algorithm["inputs"]}
+
+        for ci in input_interfaces:
+            if ci not in inputs and input_interfaces[ci]["default_value"] is None:
+                raise ValueError(f"{ci} is not provided")
+
+        job = {"algorithm_title": algorithm_name, "inputs": []}
+        for input_title, value in inputs.items():
+            ci = input_interfaces.get(input_title, None)
+            if not ci:
+                raise ValueError(
+                    f"{input_title} is not an input interface for this algorithm"
+                )
+
+            i = {"interface_title": input_title}
+            if ci["kind"] in ("Image", "Segmentation", "Heatmap"):
+                if isinstance(value, list):
+                    raw_image_upload_session = self.upload_cases(
+                        files=value, process=False
+                    )
+                    i["upload_pk"] = raw_image_upload_session["pk"]
+                elif isinstance(value, str):
+                    i["image"] = value
+            else:
+                i["value"] = value
+            job["inputs"].append(i)
+
+        return self.algorithm_jobs.create(**job)
+
     def upload_cases(
         self,
         *,
@@ -546,6 +577,7 @@ class Client(Session):
         algorithm: str = None,
         archive: str = None,
         reader_study: str = None,
+        process: bool = True,
     ):
         """
         Uploads a set of files to an algorithm, archive or reader study.
@@ -578,6 +610,10 @@ class Client(Session):
             The slug of the archive to use.
         reader_study
             The slug of the reader study to use.
+        process
+            Should the images be processed (start a job for the algorithm or add to
+            archive or reader study). Set to False when using an algorithm with
+            multiple inputs.
 
         Returns
         -------
@@ -597,7 +633,7 @@ class Client(Session):
         if algorithm is not None:
             upload_session_data["algorithm"] = algorithm
 
-        if len(upload_session_data) != 1:
+        if len(upload_session_data) > 1:
             raise ValueError(
                 "Only one of algorithm, archive or reader_study should be set"
             )
@@ -618,8 +654,24 @@ class Client(Session):
                 filename=filename,
             )
 
-        self.raw_image_upload_sessions.process_images(
-            pk=raw_image_upload_session["pk"], json=upload_session_data
-        )
+        if process:
+            self.raw_image_upload_sessions.process_images(
+                pk=raw_image_upload_session["pk"], json=upload_session_data
+            )
 
         return raw_image_upload_session
+
+    def _get_algorithm(self, algorithm_name: str) -> dict:
+        """Get the algorithm for the given algorithm name. """
+        algorithms = [
+            a
+            for a in list(self.algorithms.list()["results"])
+            if a["title"] == algorithm_name
+        ]
+
+        if len(algorithms) != 1:
+            raise ValueError(
+                f"{algorithm_name} is not found in available list of algorithms"
+            )
+
+        return algorithms[0]
