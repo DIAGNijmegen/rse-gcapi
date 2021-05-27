@@ -547,7 +547,7 @@ class Client(Session):
             if ci not in inputs and input_interfaces[ci]["default_value"] is None:
                 raise ValueError(f"{ci} is not provided")
 
-        job = {"algorithm_title": algorithm_name, "inputs": []}
+        job = {"algorithm_slug": algorithm["slug"], "inputs": []}
         for input_title, value in inputs.items():
             ci = input_interfaces.get(input_title, None)
             if not ci:
@@ -555,13 +555,13 @@ class Client(Session):
                     f"{input_title} is not an input interface for this algorithm"
                 )
 
-            i = {"interface_title": input_title}
+            i = {"interface": ci["slug"]}
             if ci["kind"] in ("Image", "Segmentation", "Heatmap"):
                 if isinstance(value, list):
                     raw_image_upload_session = self.upload_cases(
                         files=value, process=False
                     )
-                    i["upload_pk"] = raw_image_upload_session["pk"]
+                    i["upload_session"] = raw_image_upload_session["api_url"]
                 elif isinstance(value, str):
                     i["image"] = value
             else:

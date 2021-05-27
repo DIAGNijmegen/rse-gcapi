@@ -186,3 +186,21 @@ def test_upload_cases(local_grand_challenge, files):
     assert len(image["reader_study_set"]) == 1
     reader_study = c(url=image["reader_study_set"][0])
     assert reader_study["slug"] == "reader-study"
+
+
+@pytest.mark.parametrize("files", (["image10x10x101.mha"],))
+def test_create_job_with_upload(local_grand_challenge, files):
+    c = Client(
+        base_url=local_grand_challenge, verify=False, token=ALGORITHMUSER_TOKEN
+    )
+
+    job = c.run_external_job(
+        algorithm_name="Test Algorithm",
+        inputs={
+            "Generic Medical Image": [
+                Path(__file__).parent / "testdata" / f for f in files
+            ]
+        },
+    )
+    assert job["status"] == "Queued"
+    assert len(job["inputs"]) == 1
