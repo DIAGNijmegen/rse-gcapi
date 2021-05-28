@@ -6,7 +6,7 @@ from io import BytesIO
 from json import load
 from random import randint, random
 from time import sleep, time
-from typing import Dict, List, Type
+from typing import Any, Dict, List, Type
 from urllib.parse import urljoin, urlparse
 
 import jsonschema
@@ -572,7 +572,7 @@ class Client(Session):
 
         return raw_image_upload_session
 
-    def run_external_job(self, *, algorithm: str, inputs: Dict[str, any]):
+    def run_external_job(self, *, algorithm: str, inputs: Dict[str, Any]):
         """
         Starts an algorithm job with the provided inputs.
 
@@ -618,8 +618,8 @@ class Client(Session):
         -------
         The created job
         """
-        algorithm = self._get_algorithm(algorithm=algorithm)
-        input_interfaces = {ci["title"]: ci for ci in algorithm["inputs"]}
+        alg = self._get_algorithm(algorithm=algorithm)
+        input_interfaces = {ci["title"]: ci for ci in alg["inputs"]}
 
         for ci in input_interfaces:
             if (
@@ -628,7 +628,7 @@ class Client(Session):
             ):
                 raise ValueError(f"{ci} is not provided")
 
-        job = {"algorithm": algorithm["api_url"], "inputs": []}
+        job = {"algorithm": alg["api_url"], "inputs": []}
         for input_title, value in inputs.items():
             ci = input_interfaces.get(input_title, None)
             if not ci:
