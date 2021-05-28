@@ -605,7 +605,7 @@ class Client(Session):
                 algorithm="corads-ai",
                 inputs={
                     "Generic Medical Image":
-                    "https://grand-challenge.org/api/v1/cases/images/b6c62e15-2792-4b09-a6b7-e11a45e56ec7/"
+                    "https://grand-challenge.org/api/v1/cases/images/..../"
                 }
             )
 
