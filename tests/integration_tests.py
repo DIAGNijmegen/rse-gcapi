@@ -195,7 +195,7 @@ def test_create_job_with_upload(local_grand_challenge, files):
     )
 
     job = c.run_external_job(
-        algorithm_name="Test Algorithm",
+        algorithm="test-algorithm",
         inputs={
             "Generic Medical Image": [
                 Path(__file__).parent / "testdata" / f for f in files

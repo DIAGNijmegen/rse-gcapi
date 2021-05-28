@@ -537,17 +537,98 @@ class Client(Session):
         else:
             return response
 
-    def run_external_job(
-        self, *, algorithm_name: str = None, inputs: Dict[str, any]
-    ):
-        algorithm = self._get_algorithm(algorithm_name=algorithm_name)
+    def _get_algorithm(self, algorithm: str) -> dict:
+        """Get the algorithm for the given algorithm name. """
+        algorithms = [
+            a
+            for a in list(
+                self.algorithms.list(params={"slug": algorithm})["results"]
+            )
+        ]
+
+        if len(algorithms) != 1:
+            raise ValueError(
+                f"{algorithm} is not found in available list of algorithms"
+            )
+
+        return algorithms[0]
+
+    def _upload_files(self, files):
+        raw_image_upload_session = self.raw_image_upload_sessions.create()
+
+        uploaded_files = {}
+        for file in files:
+            uploaded_chunks = self.chunked_uploads.upload_file(file)
+            uploaded_files.update(
+                {c["uuid"]: c["filename"] for c in uploaded_chunks}
+            )
+
+        for file_id, filename in uploaded_files.items():
+            self.raw_image_upload_session_files.create(
+                upload_session=raw_image_upload_session["api_url"],
+                staged_file_id=file_id,
+                filename=filename,
+            )
+
+        return raw_image_upload_session
+
+    def run_external_job(self, *, algorithm: str, inputs: Dict[str, any]):
+        """
+        Starts an algorithm job with the provided inputs.
+
+        You will need to provide the slug of the algorithm. You can find this in the
+        url of the algorithm that you want to use. For instance, if you want to use
+        the algorithm at
+
+            https://grand-challenge.org/algorithms/corads-ai/
+
+        the slug for this algorithm is "corads-ai".
+
+        For each input interface defined on the algorithm you need to provide a
+        key-value pair (unless the interface has a default value),
+        the key being the title of the interface, the value being the
+        value for the interface. For image type interfaces, you can
+        provide a list of files, which will be uploaded, or a link to an existing
+        image.
+
+        So to run this algorithm with a new upload you would call this function by:
+
+            upload_cases(
+                algorithm="corads-ai",
+                inputs={
+                    "Generic Medical Image": [...]
+                }
+            )
+
+        or to run with an existing image by:
+            upload_cases(
+                algorithm="corads-ai",
+                inputs={
+                    "Generic Medical Image":
+                    "https://grand-challenge.org/api/v1/cases/images/b6c62e15-2792-4b09-a6b7-e11a45e56ec7/"
+                }
+            )
+
+        Parameters
+        ----------
+        algorithm
+        inputs
+
+        Returns
+        -------
+        The created job
+        """
+        algorithm = self._get_algorithm(algorithm=algorithm)
         input_interfaces = {ci["title"]: ci for ci in algorithm["inputs"]}
 
         for ci in input_interfaces:
-            if ci not in inputs and input_interfaces[ci]["default_value"] is None:
+            if (
+                ci not in inputs
+                and input_interfaces[ci]["default_value"] is None
+            ):
                 raise ValueError(f"{ci} is not provided")
 
-        job = {"algorithm_slug": algorithm["slug"], "inputs": []}
+        job = {"algorithm": algorithm["api_url"], "inputs": []}
         for input_title, value in inputs.items():
             ci = input_interfaces.get(input_title, None)
             if not ci:
@@ -558,9 +639,7 @@ class Client(Session):
             i = {"interface": ci["slug"]}
             if ci["kind"] in ("Image", "Segmentation", "Heatmap"):
                 if isinstance(value, list):
-                    raw_image_upload_session = self.upload_cases(
-                        files=value, process=False
-                    )
+                    raw_image_upload_session = self._upload_files(files=value)
                     i["upload_session"] = raw_image_upload_session["api_url"]
                 elif isinstance(value, str):
                     i["image"] = value
@@ -574,13 +653,11 @@ class Client(Session):
         self,
         *,
         files: List[str],
-        algorithm: str = None,
         archive: str = None,
         reader_study: str = None,
-        process: bool = True,
     ):
         """
-        Uploads a set of files to an algorithm, archive or reader study.
+        Uploads a set of files to an archive or reader study.
 
         A new upload session will be created on grand challenge to import and
         standardise your files. This function will return this new upload
@@ -604,16 +681,10 @@ class Client(Session):
             The list of files on disk that form 1 Image. These can be a set of
             .mha, .mhd, .raw, .zraw, .dcm, .nii, .nii.gz, .tiff, .png, .jpeg,
             .jpg, .svs, .vms, .vmu, .ndpi, .scn, .mrxs and/or .bif files.
-        algorithm
-            The slug of the algorithm to use.
         archive
             The slug of the archive to use.
         reader_study
             The slug of the reader study to use.
-        process
-            Should the images be processed (start a job for the algorithm or add to
-            archive or reader study). Set to False when using an algorithm with
-            multiple inputs.
 
         Returns
         -------
@@ -630,48 +701,13 @@ class Client(Session):
         if archive is not None:
             upload_session_data["archive"] = archive
 
-        if algorithm is not None:
-            upload_session_data["algorithm"] = algorithm
+        if len(upload_session_data) != 1:
+            raise ValueError("One of archive or reader_study should be set")
 
-        if len(upload_session_data) > 1:
-            raise ValueError(
-                "Only one of algorithm, archive or reader_study should be set"
-            )
+        raw_image_upload_session = self._upload_files(files)
 
-        raw_image_upload_session = self.raw_image_upload_sessions.create()
-
-        uploaded_files = {}
-        for file in files:
-            uploaded_chunks = self.chunked_uploads.upload_file(file)
-            uploaded_files.update(
-                {c["uuid"]: c["filename"] for c in uploaded_chunks}
-            )
-
-        for file_id, filename in uploaded_files.items():
-            self.raw_image_upload_session_files.create(
-                upload_session=raw_image_upload_session["api_url"],
-                staged_file_id=file_id,
-                filename=filename,
-            )
-
-        if process:
-            self.raw_image_upload_sessions.process_images(
-                pk=raw_image_upload_session["pk"], json=upload_session_data
-            )
+        self.raw_image_upload_sessions.process_images(
+            pk=raw_image_upload_session["pk"], json=upload_session_data
+        )
 
         return raw_image_upload_session
-
-    def _get_algorithm(self, algorithm_name: str) -> dict:
-        """Get the algorithm for the given algorithm name. """
-        algorithms = [
-            a
-            for a in list(self.algorithms.list()["results"])
-            if a["title"] == algorithm_name
-        ]
-
-        if len(algorithms) != 1:
-            raise ValueError(
-                f"{algorithm_name} is not found in available list of algorithms"
-            )
-
-        return algorithms[0]
