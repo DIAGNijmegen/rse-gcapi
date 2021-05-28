@@ -40,20 +40,19 @@ def local_grand_challenge() -> Generator[str, None, None]:
 
             try:
                 check_call(["docker-compose", "pull"], cwd=tmp_path)
-
-                for command in ["migrate", "init_gc_demo"]:
-                    check_call(
-                        [
-                            "docker-compose",
-                            "run",
-                            "--rm",
-                            "web",
-                            "python",
-                            "manage.py",
-                            command,
-                        ],
-                        cwd=tmp_path,
-                    )
+                check_call(
+                    [
+                        "docker-compose",
+                        "run",
+                        "--rm",
+                        "web",
+                        "python",
+                        "manage.py",
+                        "migrate",
+                    ],
+                    cwd=tmp_path,
+                )
+                check_call(["make", "development_fixtures"], cwd=tmp_path)
                 check_call(
                     [
                         "docker-compose",
