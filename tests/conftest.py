@@ -52,7 +52,20 @@ def local_grand_challenge() -> Generator[str, None, None]:
                     ],
                     cwd=tmp_path,
                 )
-                check_call(["make", "development_fixtures"], cwd=tmp_path)
+                check_call(
+                    [
+                        "docker-compose",
+                        "run",
+                        "--rm",
+                        "web",
+                        "python",
+                        "manage.py",
+                        "runscript",
+                        "development_fixtures",
+                    ],
+                    cwd=tmp_path,
+                )
+
                 check_call(
                     [
                         "docker-compose",
