@@ -35,28 +35,21 @@ def local_grand_challenge() -> Generator[str, None, None]:
             for f in [
                 "docker-compose.yml",
                 "dockerfiles/db/postgres.test.conf",
+                "Makefile",
+                "scripts/development_fixtures.py",
             ]:
                 get_grand_challenge_file(Path(f), Path(tmp_path))
 
             try:
                 check_call(["docker-compose", "pull"], cwd=tmp_path)
 
-                for command in [
-                    "migrate",
-                    "init_gc_demo",
-                ]:
-                    check_call(
-                        [
-                            "docker-compose",
-                            "run",
-                            "--rm",
-                            "web",
-                            "python",
-                            "manage.py",
-                            command,
-                        ],
-                        cwd=tmp_path,
-                    )
+                check_call(
+                    [
+                        "make",
+                        "development_fixtures",
+                    ],
+                    cwd=tmp_path,
+                )
                 check_call(
                     [
                         "docker-compose",
