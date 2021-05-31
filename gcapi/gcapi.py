@@ -637,7 +637,7 @@ class Client(Session):
                 )
 
             i = {"interface": ci["slug"]}
-            if ci["kind"] in ("Image", "Segmentation", "Heatmap"):
+            if ci["super_kind"].lower() == "image":
                 if isinstance(value, list):
                     raw_image_upload_session = self._upload_files(files=value)
                     i["upload_session"] = raw_image_upload_session["api_url"]
