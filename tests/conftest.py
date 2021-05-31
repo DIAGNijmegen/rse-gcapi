@@ -11,7 +11,7 @@ import yaml
 from tests.integration_tests import ADMIN_TOKEN
 
 
-@pytest.fixture(scope="session")
+@pytest.yield_fixture(scope="session")
 def local_grand_challenge() -> Generator[str, None, None]:
     local_api_url = "https://gc.localhost/api/v1/"
 
@@ -19,7 +19,7 @@ def local_grand_challenge() -> Generator[str, None, None]:
         r = requests.get(
             local_api_url,
             verify=False,
-            headers={"Authorization": f"Bearer {ADMIN_TOKEN}"},
+            headers={"Authorization": f"TOKEN {ADMIN_TOKEN}"},
         )
         r.raise_for_status()
         local_gc_running = True
@@ -35,37 +35,17 @@ def local_grand_challenge() -> Generator[str, None, None]:
             for f in [
                 "docker-compose.yml",
                 "dockerfiles/db/postgres.test.conf",
+                "Makefile",
+                "scripts/development_fixtures.py",
             ]:
                 get_grand_challenge_file(Path(f), Path(tmp_path))
 
             try:
                 check_call(["docker-compose", "pull"], cwd=tmp_path)
-                check_call(
-                    [
-                        "docker-compose",
-                        "run",
-                        "--rm",
-                        "web",
-                        "python",
-                        "manage.py",
-                        "migrate",
-                    ],
-                    cwd=tmp_path,
-                )
-                check_call(
-                    [
-                        "docker-compose",
-                        "run",
-                        "--rm",
-                        "web",
-                        "python",
-                        "manage.py",
-                        "runscript",
-                        "development_fixtures",
-                    ],
-                    cwd=tmp_path,
-                )
 
+                check_call(
+                    ["make", "development_fixtures"], cwd=tmp_path,
+                )
                 check_call(
                     [
                         "docker-compose",

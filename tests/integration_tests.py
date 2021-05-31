@@ -13,9 +13,6 @@ ALGORITHMUSER_TOKEN = "dc3526c2008609b429514b6361a33f8516541464"
 READERSTUDY_TOKEN = "01614a77b1c0b4ecd402be50a8ff96188d5b011d"
 
 
-@pytest.mark.xfail(
-    reason="Awaiting https://github.com/comic/grand-challenge.org/pull/1740"
-)
 @pytest.mark.parametrize(
     "annotation",
     [
@@ -32,9 +29,6 @@ def test_list_annotations(local_grand_challenge, annotation):
     assert len(response) == 0
 
 
-@pytest.mark.xfail(
-    reason="Awaiting https://github.com/comic/grand-challenge.org/pull/1740"
-)
 def test_create_landmark_annotation(local_grand_challenge):
     c = Client(
         base_url=local_grand_challenge, verify=False, token=RETINA_TOKEN
@@ -60,9 +54,6 @@ def test_create_landmark_annotation(local_grand_challenge):
         )
 
 
-@pytest.mark.xfail(
-    reason="Awaiting https://github.com/comic/grand-challenge.org/pull/1740"
-)
 def test_create_polygon_annotation_set(local_grand_challenge):
     c = Client(
         base_url=local_grand_challenge, verify=False, token=RETINA_TOKEN
@@ -89,9 +80,6 @@ def test_create_polygon_annotation_set(local_grand_challenge):
     assert response["name"][0] == "This field is required."
 
 
-@pytest.mark.xfail(
-    reason="Awaiting https://github.com/comic/grand-challenge.org/pull/1740"
-)
 def test_create_single_polygon_annotations(local_grand_challenge):
     c = Client(
         base_url=local_grand_challenge, verify=False, token=RETINA_TOKEN
@@ -183,9 +171,9 @@ def test_upload_cases(local_grand_challenge, files):
     image = c(url=us["image_set"][0])
 
     # And that it was added to the reader study
-    assert len(image["reader_study_set"]) == 1
-    reader_study = c(url=image["reader_study_set"][0])
-    assert reader_study["slug"] == "reader-study"
+    rs = next(c.reader_studies.iterate_all(params={"slug": "reader-study"}))
+    rs_images = c.images.iterate_all(params={"reader_study": rs["pk"]})
+    assert image["pk"] in [im["pk"] for im in rs_images]
 
 
 @pytest.mark.parametrize("files", (["image10x10x101.mha"],))
