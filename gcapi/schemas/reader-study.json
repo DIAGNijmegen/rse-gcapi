@@ -114,11 +114,18 @@
                     }
                 },
                 "hanging_list_images": {
-                    "type": "array",
-                    "items": {
-                        "type": "object",
-                        "additionalProperties": { "$ref": "#/definitions/api-link" }
-                    }
+                    "oneOf": [
+                        {
+                            "type": "array",
+                            "items": {
+                                "type": "object",
+                                "additionalProperties": { "$ref": "#/definitions/api-link" }
+                            }
+                        },
+                        {
+                            "type": "null"
+                        }
+                    ]
                 }
             },
             "required": [
