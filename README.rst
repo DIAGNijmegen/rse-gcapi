@@ -28,7 +28,7 @@ This client library is a handy way to interact with the REST API for grand-chall
 convenience methods.
 
 Authorize with your personal token
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 To authorize on the api you will need your API token. You can generate the token yourself by logging in on
 Grand Challenge -> Your Profile -> Manage API Tokens.
 
@@ -42,7 +42,7 @@ Create a token and use it to authorise with the client. Please treat this token 
 
 
 Starting an Algorithm Job
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+~~~~~~~~~~~~~~~~~~~~~~~~~
 
 First, you need the slug of the algorithm you wish to use. You can get the slug from the url of the algorithm.
 For example, if you would like to upload to the algorithm at https://grand-challenge.org/algorithms/corads-ai/ you
@@ -102,7 +102,7 @@ To run an Algorithm with an existing image:
         algorithm="corads-ai",
         inputs={
             "generic-medical-image":
-            "https://grand-challenge.org/api/v1/cases/images/..../"
+            "https://grand-challenge.org/api/v1/cases/images/.../"
         }
     )
 

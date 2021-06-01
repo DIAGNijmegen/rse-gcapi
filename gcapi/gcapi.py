@@ -611,7 +611,7 @@ class Client(Session):
                 algorithm="corads-ai",
                 inputs={
                     "generic-medical-image":
-                    "https://grand-challenge.org/api/v1/cases/images/..../"
+                    "https://grand-challenge.org/api/v1/cases/images/.../"
                 }
             )
 

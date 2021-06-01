@@ -2,6 +2,12 @@
 History
 =======
 
+0.4.0 (2021-06-01)
+------------------
+
+* Added ``run_external_job`` to execute algorithms directly
+* Deprecated the ``algorithm`` argument to ``upload_cases`` which will be removed in 0.5.0, use ``run_external_job`` instead
+
 0.3.5 (2021-03-01)
 ------------------
 
