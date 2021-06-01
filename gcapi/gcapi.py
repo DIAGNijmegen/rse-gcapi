@@ -599,7 +599,7 @@ class Client(Session):
 
         So to run this algorithm with a new upload you would call this function by:
 
-            client.upload_cases(
+            client.run_external_job(
                 algorithm="corads-ai",
                 inputs={
                     "generic-medical-image": [...]
@@ -607,7 +607,7 @@ class Client(Session):
             )
 
         or to run with an existing image by:
-            client.upload_cases(
+            client.run_external_job(
                 algorithm="corads-ai",
                 inputs={
                     "generic-medical-image":

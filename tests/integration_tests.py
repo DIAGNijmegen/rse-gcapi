@@ -208,3 +208,5 @@ def test_create_job_with_upload(local_grand_challenge, files):
     )
     assert job["status"] == "Queued"
     assert len(job["inputs"]) == 1
+    job = c.algorithm_jobs.detail(job["pk"])
+    assert job["status"] == "Queued"
