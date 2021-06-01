@@ -143,10 +143,7 @@ def test_chunked_uploads(local_grand_challenge):
         c.chunked_uploads.upload_file(file_to_upload)
 
 
-@pytest.mark.parametrize(
-    "files",
-    (["image10x10x101.mha"],),
-)
+@pytest.mark.parametrize("files", (["image10x10x101.mha"],))
 def test_upload_cases_to_algorithm_deprecated(local_grand_challenge, files):
     c = Client(
         base_url=local_grand_challenge, verify=False, token=ALGORITHMUSER_TOKEN

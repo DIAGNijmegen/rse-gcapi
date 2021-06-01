@@ -711,11 +711,17 @@ class Client(Session):
             upload_session_data["archive"] = archive
 
         if algorithm is not None:
-            warnings.warn("Starting an algorithm job with upload_cases is deprecated. Use run_external_job instead.", DeprecationWarning)
+            warnings.warn(
+                "Starting an algorithm job with upload_cases is deprecated. Use "
+                "run_external_job instead.",
+                DeprecationWarning,
+            )
             upload_session_data["algorithm"] = algorithm
 
         if len(upload_session_data) != 1:
-            raise ValueError("One of algorithm, archive or reader_study should be set")
+            raise ValueError(
+                "One of algorithm, archive or reader_study should be set"
+            )
 
         raw_image_upload_session = self._upload_files(files)
 
