@@ -145,6 +145,22 @@ def test_chunked_uploads(local_grand_challenge):
 
 @pytest.mark.parametrize(
     "files",
+    (["image10x10x101.mha"],),
+)
+def test_upload_cases_to_algorithm_deprecated(local_grand_challenge, files):
+    c = Client(
+        base_url=local_grand_challenge, verify=False, token=ALGORITHMUSER_TOKEN
+    )
+
+    with pytest.deprecated_call():
+        c.upload_cases(
+            algorithm="test-algorithm",
+            files=[Path(__file__).parent / "testdata" / f for f in files],
+        )
+
+
+@pytest.mark.parametrize(
+    "files",
     (["image10x10x101.mha"], ["image10x10x10.mhd", "image10x10x10.zraw"]),
 )
 def test_upload_cases(local_grand_challenge, files):
@@ -185,7 +201,7 @@ def test_create_job_with_upload(local_grand_challenge, files):
     job = c.run_external_job(
         algorithm="test-algorithm",
         inputs={
-            "Generic Medical Image": [
+            "generic-medical-image": [
                 Path(__file__).parent / "testdata" / f for f in files
             ]
         },

@@ -2,6 +2,7 @@ import itertools
 import os
 import re
 import uuid
+import warnings
 from io import BytesIO
 from json import load
 from random import randint, random
@@ -537,7 +538,7 @@ class Client(Session):
         else:
             return response
 
-    def _get_algorithm(self, algorithm: str) -> dict:
+    def get_algorithm(self, algorithm: str) -> dict:
         """Get the algorithm for the given algorithm name. """
         algorithms = [
             a
@@ -586,25 +587,30 @@ class Client(Session):
 
         For each input interface defined on the algorithm you need to provide a
         key-value pair (unless the interface has a default value),
-        the key being the title of the interface, the value being the
-        value for the interface. For image type interfaces, you can
-        provide a list of files, which will be uploaded, or a link to an existing
-        image.
+        the key being the slug of the interface, the value being the
+        value for the interface. You can get the interfaces of an algorithm by calling
+
+            client.get_algorithm(algorithm="corads-ai")
+
+        and inspecting the ["inputs"] of the result.
+
+        For image type interfaces (super_kind="Image"), you can provide a list of
+        files, which will be uploaded, or a link to an existing image.
 
         So to run this algorithm with a new upload you would call this function by:
 
-            upload_cases(
+            client.upload_cases(
                 algorithm="corads-ai",
                 inputs={
-                    "Generic Medical Image": [...]
+                    "generic-medical-image": [...]
                 }
             )
 
         or to run with an existing image by:
-            upload_cases(
+            client.upload_cases(
                 algorithm="corads-ai",
                 inputs={
-                    "Generic Medical Image":
+                    "generic-medical-image":
                     "https://grand-challenge.org/api/v1/cases/images/..../"
                 }
             )
@@ -618,8 +624,8 @@ class Client(Session):
         -------
         The created job
         """
-        alg = self._get_algorithm(algorithm=algorithm)
-        input_interfaces = {ci["title"]: ci for ci in alg["inputs"]}
+        alg = self.get_algorithm(algorithm=algorithm)
+        input_interfaces = {ci["slug"]: ci for ci in alg["inputs"]}
 
         for ci in input_interfaces:
             if (
@@ -653,11 +659,12 @@ class Client(Session):
         self,
         *,
         files: List[str],
+        algorithm: str = None,
         archive: str = None,
         reader_study: str = None,
     ):
         """
-        Uploads a set of files to an archive or reader study.
+        Uploads a set of files to an algorithm, archive or reader study.
 
         A new upload session will be created on grand challenge to import and
         standardise your files. This function will return this new upload
@@ -681,6 +688,8 @@ class Client(Session):
             The list of files on disk that form 1 Image. These can be a set of
             .mha, .mhd, .raw, .zraw, .dcm, .nii, .nii.gz, .tiff, .png, .jpeg,
             .jpg, .svs, .vms, .vmu, .ndpi, .scn, .mrxs and/or .bif files.
+        algorithm
+            The slug of the algorithm to use.
         archive
             The slug of the archive to use.
         reader_study
@@ -701,8 +710,12 @@ class Client(Session):
         if archive is not None:
             upload_session_data["archive"] = archive
 
+        if algorithm is not None:
+            warnings.warn("Starting an algorithm job with upload_cases is deprecated. Use run_external_job instead.", DeprecationWarning)
+            upload_session_data["algorithm"] = algorithm
+
         if len(upload_session_data) != 1:
-            raise ValueError("One of archive or reader_study should be set")
+            raise ValueError("One of algorithm, archive or reader_study should be set")
 
         raw_image_upload_session = self._upload_files(files)
 
