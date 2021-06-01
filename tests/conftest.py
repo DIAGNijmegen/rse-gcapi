@@ -11,7 +11,7 @@ import yaml
 from tests.integration_tests import ADMIN_TOKEN
 
 
-@pytest.yield_fixture(scope="session")
+@pytest.fixture(scope="session")
 def local_grand_challenge() -> Generator[str, None, None]:
     local_api_url = "https://gc.localhost/api/v1/"
 
@@ -19,7 +19,7 @@ def local_grand_challenge() -> Generator[str, None, None]:
         r = requests.get(
             local_api_url,
             verify=False,
-            headers={"Authorization": f"TOKEN {ADMIN_TOKEN}"},
+            headers={"Authorization": f"Bearer {ADMIN_TOKEN}"},
         )
         r.raise_for_status()
         local_gc_running = True

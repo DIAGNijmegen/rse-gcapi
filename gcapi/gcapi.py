@@ -2,11 +2,12 @@ import itertools
 import os
 import re
 import uuid
+import warnings
 from io import BytesIO
 from json import load
 from random import randint, random
 from time import sleep, time
-from typing import Dict, List, Type
+from typing import Any, Dict, List, Type
 from urllib.parse import urljoin, urlparse
 
 import jsonschema
@@ -128,7 +129,7 @@ class APIBase:
         params["offset"] = offset
         params["limit"] = limit
         result = self._client(
-            method="GET", path=self.base_path, params=params,
+            method="GET", path=self.base_path, params=params
         )["results"]
         for i in result:
             self._verify_against_schema(i)
@@ -252,9 +253,7 @@ class ReaderStudyAnswersAPI(APIBase, ModifiableMixin):
 
 class ReaderStudiesAPI(APIBase):
     base_path = "reader-studies/"
-    validation_schemas = {
-        "GET": import_json_schema("reader-study.json"),
-    }
+    validation_schemas = {"GET": import_json_schema("reader-study.json")}
 
     sub_apis = {
         "answers": ReaderStudyAnswersAPI,
@@ -280,7 +279,7 @@ class AlgorithmResultsAPI(APIBase):
     base_path = "algorithms/results/"
 
 
-class AlgorithmJobsAPI(APIBase):
+class AlgorithmJobsAPI(APIBase, ModifiableMixin):
     base_path = "algorithms/jobs/"
 
     def by_input_image(self, pk):
@@ -539,6 +538,123 @@ class Client(Session):
         else:
             return response
 
+    def get_algorithm(self, algorithm: str) -> dict:
+        """Get the algorithm for the given algorithm name. """
+        algorithms = [
+            a
+            for a in list(
+                self.algorithms.list(params={"slug": algorithm})["results"]
+            )
+        ]
+
+        if len(algorithms) != 1:
+            raise ValueError(
+                f"{algorithm} is not found in available list of algorithms"
+            )
+
+        return algorithms[0]
+
+    def _upload_files(self, files):
+        raw_image_upload_session = self.raw_image_upload_sessions.create()
+
+        uploaded_files = {}
+        for file in files:
+            uploaded_chunks = self.chunked_uploads.upload_file(file)
+            uploaded_files.update(
+                {c["uuid"]: c["filename"] for c in uploaded_chunks}
+            )
+
+        for file_id, filename in uploaded_files.items():
+            self.raw_image_upload_session_files.create(
+                upload_session=raw_image_upload_session["api_url"],
+                staged_file_id=file_id,
+                filename=filename,
+            )
+
+        return raw_image_upload_session
+
+    def run_external_job(self, *, algorithm: str, inputs: Dict[str, Any]):
+        """
+        Starts an algorithm job with the provided inputs.
+
+        You will need to provide the slug of the algorithm. You can find this in the
+        url of the algorithm that you want to use. For instance, if you want to use
+        the algorithm at
+
+            https://grand-challenge.org/algorithms/corads-ai/
+
+        the slug for this algorithm is "corads-ai".
+
+        For each input interface defined on the algorithm you need to provide a
+        key-value pair (unless the interface has a default value),
+        the key being the slug of the interface, the value being the
+        value for the interface. You can get the interfaces of an algorithm by calling
+
+            client.get_algorithm(algorithm="corads-ai")
+
+        and inspecting the ["inputs"] of the result.
+
+        For image type interfaces (super_kind="Image"), you can provide a list of
+        files, which will be uploaded, or a link to an existing image.
+
+        So to run this algorithm with a new upload you would call this function by:
+
+            client.run_external_job(
+                algorithm="corads-ai",
+                inputs={
+                    "generic-medical-image": [...]
+                }
+            )
+
+        or to run with an existing image by:
+            client.run_external_job(
+                algorithm="corads-ai",
+                inputs={
+                    "generic-medical-image":
+                    "https://grand-challenge.org/api/v1/cases/images/..../"
+                }
+            )
+
+        Parameters
+        ----------
+        algorithm
+        inputs
+
+        Returns
+        -------
+        The created job
+        """
+        alg = self.get_algorithm(algorithm=algorithm)
+        input_interfaces = {ci["slug"]: ci for ci in alg["inputs"]}
+
+        for ci in input_interfaces:
+            if (
+                ci not in inputs
+                and input_interfaces[ci]["default_value"] is None
+            ):
+                raise ValueError(f"{ci} is not provided")
+
+        job = {"algorithm": alg["api_url"], "inputs": []}
+        for input_title, value in inputs.items():
+            ci = input_interfaces.get(input_title, None)
+            if not ci:
+                raise ValueError(
+                    f"{input_title} is not an input interface for this algorithm"
+                )
+
+            i = {"interface": ci["slug"]}
+            if ci["super_kind"].lower() == "image":
+                if isinstance(value, list):
+                    raw_image_upload_session = self._upload_files(files=value)
+                    i["upload_session"] = raw_image_upload_session["api_url"]
+                elif isinstance(value, str):
+                    i["image"] = value
+            else:
+                i["value"] = value
+            job["inputs"].append(i)
+
+        return self.algorithm_jobs.create(**job)
+
     def upload_cases(
         self,
         *,
@@ -595,28 +711,19 @@ class Client(Session):
             upload_session_data["archive"] = archive
 
         if algorithm is not None:
+            warnings.warn(
+                "Starting an algorithm job with upload_cases is deprecated. Use "
+                "run_external_job instead.",
+                DeprecationWarning,
+            )
             upload_session_data["algorithm"] = algorithm
 
         if len(upload_session_data) != 1:
             raise ValueError(
-                "Only one of algorithm, archive or reader_study should be set"
+                "One of algorithm, archive or reader_study should be set"
             )
 
-        raw_image_upload_session = self.raw_image_upload_sessions.create()
-
-        uploaded_files = {}
-        for file in files:
-            uploaded_chunks = self.chunked_uploads.upload_file(file)
-            uploaded_files.update(
-                {c["uuid"]: c["filename"] for c in uploaded_chunks}
-            )
-
-        for file_id, filename in uploaded_files.items():
-            self.raw_image_upload_session_files.create(
-                upload_session=raw_image_upload_session["api_url"],
-                staged_file_id=file_id,
-                filename=filename,
-            )
+        raw_image_upload_session = self._upload_files(files)
 
         self.raw_image_upload_sessions.process_images(
             pk=raw_image_upload_session["pk"], json=upload_session_data
