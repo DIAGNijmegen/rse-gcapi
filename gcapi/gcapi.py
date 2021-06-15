@@ -286,6 +286,10 @@ class AlgorithmJobsAPI(APIBase, ModifiableMixin):
         return self.iterate_all(params={"image": pk})
 
 
+class ArchivesAPI(APIBase):
+    base_path = "archives/"
+
+
 class RetinaLandmarkAnnotationSetsAPI(APIBase, ModifiableMixin):
     base_path = "retina/landmark-annotation/"
 
@@ -457,6 +461,7 @@ class Client(Session):
         self.algorithms = AlgorithmsAPI(client=self)
         self.algorithm_results = AlgorithmResultsAPI(client=self)
         self.algorithm_jobs = AlgorithmJobsAPI(client=self)
+        self.archives = ArchivesAPI(client=self)
         self.workstation_configs = WorkstationConfigsAPI(client=self)
         self.retina_landmark_annotations = RetinaLandmarkAnnotationSetsAPI(
             client=self
