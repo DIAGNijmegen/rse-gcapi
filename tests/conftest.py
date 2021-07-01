@@ -41,7 +41,9 @@ def local_grand_challenge() -> Generator[str, None, None]:
                 get_grand_challenge_file(Path(f), Path(tmp_path))
 
             try:
-                check_call(["docker-compose", "pull"], cwd=tmp_path)
+                check_call(
+                    ["docker-compose", "pull", "--no-parallel"], cwd=tmp_path
+                )
 
                 check_call(
                     ["make", "development_fixtures"], cwd=tmp_path,
@@ -97,8 +99,13 @@ def rewrite_docker_compose(content: bytes) -> bytes:
             del spec["services"][s]["volumes"]
 
         # Replace test with production containers
-        if spec["services"][s]["image"] == "grandchallenge/web-test:latest":
-            spec["services"][s]["image"] = "grandchallenge/web:latest"
+        if (
+            spec["services"][s]["image"]
+            == "public.ecr.aws/m3y0m7n5/grand-challenge/web-test:latest"
+        ):
+            spec["services"][s][
+                "image"
+            ] = "public.ecr.aws/m3y0m7n5/grand-challenge/web:latest"
 
     # Use the production web server as the test one is not included
     spec["services"]["web"][
