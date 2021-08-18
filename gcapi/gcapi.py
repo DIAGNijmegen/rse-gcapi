@@ -533,7 +533,14 @@ class Client(SyncClient):
             params={} if params is None else params,
             json=json,
         )
-        response.raise_for_status()
+
+        try:
+            response.raise_for_status()
+        except Exception as e:
+            # TODO Remove
+            warn(e.response.content.decode())
+            raise
+
         if response.headers.get("Content-Type") == "application/json":
             return response.json()
         else:
