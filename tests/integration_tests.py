@@ -3,7 +3,7 @@ from pathlib import Path
 from time import sleep
 
 import pytest
-from requests import HTTPError
+from httpx import HTTPError
 
 from gcapi import Client
 

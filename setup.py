@@ -12,8 +12,8 @@ with open("HISTORY.rst") as history_file:
     history = history_file.read()
 
 requirements = [
+    "httpx~=0.18.2",
     "Click>=6.0",
-    "Requests",
     "jsonschema[format_nongpl]>=3.0",
 ]
 
