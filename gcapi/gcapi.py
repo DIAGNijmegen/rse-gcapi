@@ -2,7 +2,6 @@ import itertools
 import os
 import re
 import uuid
-import warnings
 from io import BytesIO
 from json import load
 from random import randint, random
@@ -664,28 +663,27 @@ class Client(Session):
         self,
         *,
         files: List[str],
-        algorithm: str = None,
         archive: str = None,
         reader_study: str = None,
     ):
         """
-        Uploads a set of files to an algorithm, archive or reader study.
+        Uploads a set of files to an archive or reader study.
 
         A new upload session will be created on grand challenge to import and
         standardise your files. This function will return this new upload
         session object, that you can query for the import status. If this
         import is successful, the new images will then be added to the selected
-        algorithm, archive, or reader study.
+        archive or reader study.
 
         You will need to provide the slugs of the objects to pass the images
         along to. You can find this in the url of the object that you want
-        to use. For instance, if you want to use the algorithm at
+        to use. For instance, if you want to use the archive at
 
-            https://grand-challenge.org/algorithms/corads-ai/
+            https://grand-challenge.org/archives/corads-ai/
 
         the slug for this is "corads-ai", so you would call this function with
 
-            upload_cases(files=[...], algorithm="corads-ai")
+            upload_cases(files=[...], archive="corads-ai")
 
         Parameters
         ----------
@@ -693,8 +691,6 @@ class Client(Session):
             The list of files on disk that form 1 Image. These can be a set of
             .mha, .mhd, .raw, .zraw, .dcm, .nii, .nii.gz, .tiff, .png, .jpeg,
             .jpg, .svs, .vms, .vmu, .ndpi, .scn, .mrxs and/or .bif files.
-        algorithm
-            The slug of the algorithm to use.
         archive
             The slug of the archive to use.
         reader_study
@@ -715,18 +711,8 @@ class Client(Session):
         if archive is not None:
             upload_session_data["archive"] = archive
 
-        if algorithm is not None:
-            warnings.warn(
-                "Starting an algorithm job with upload_cases is deprecated. Use "
-                "run_external_job instead.",
-                DeprecationWarning,
-            )
-            upload_session_data["algorithm"] = algorithm
-
         if len(upload_session_data) != 1:
-            raise ValueError(
-                "One of algorithm, archive or reader_study should be set"
-            )
+            raise ValueError("One of archive or reader_study should be set")
 
         raw_image_upload_session = self._upload_files(files)
 
