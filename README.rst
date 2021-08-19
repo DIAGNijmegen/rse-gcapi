@@ -131,9 +131,8 @@ You can refresh the job object with
 
 and check the job status with ``job["status"]``.
 
-Uploading Files to Archives, Reader Studies or Algorithms
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-Note: the use of this method to run an Algorithm is deprecated, use method ``run_external_job``.
+Uploading Files to Archives or Reader Studies
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 Prepare the list of files for each image you want to upload.
 
@@ -143,7 +142,7 @@ Prepare the list of files for each image you want to upload.
 
     files = [f.resolve() for f in Path("/path/to/files").iterdir()]
 
-Now, you can upload these files to an Archive, Algorithm or Reader Study which are identified by a slug.
+Now, you can upload these files to an Archive or Reader Study which are identified by a slug.
 For instance, if you would like to upload to the archive at https://grand-challenge.org/archives/radboudcovid/ you
 would use ``archive="radboudcovid"``. Note that this is case sensitive.
 
@@ -153,7 +152,7 @@ Now you can start the upload.
 
     session = c.upload_cases(files=files, archive="radboudcovid")
 
-You can change ``archive`` to ``reader_study`` or ``algorithm``.
+You can change ``archive`` to ``reader_study``.
 
 You will get a session that starts the conversion of the files, and then adds the standardised images to the selected
 object once it has succeeded.
