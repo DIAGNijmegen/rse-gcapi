@@ -9,8 +9,8 @@ from gcapi import Client
 
 RETINA_TOKEN = "f1f98a1733c05b12118785ffd995c250fe4d90da"
 ADMIN_TOKEN = "1b9436200001f2eaf57cd77db075cbb60a49a00a"
-ALGORITHMUSER_TOKEN = "dc3526c2008609b429514b6361a33f8516541464"
 READERSTUDY_TOKEN = "01614a77b1c0b4ecd402be50a8ff96188d5b011d"
+DEMO_PARTICIPANT_TOKEN = "00aa710f4dc5621a0cb64b0795fbba02e39d7700"
 
 
 @pytest.mark.parametrize(
@@ -143,19 +143,6 @@ def test_chunked_uploads(local_grand_challenge):
         c.chunked_uploads.upload_file(file_to_upload)
 
 
-@pytest.mark.parametrize("files", (["image10x10x101.mha"],))
-def test_upload_cases_to_algorithm_deprecated(local_grand_challenge, files):
-    c = Client(
-        base_url=local_grand_challenge, verify=False, token=ALGORITHMUSER_TOKEN
-    )
-
-    with pytest.deprecated_call():
-        c.upload_cases(
-            algorithm="test-algorithm",
-            files=[Path(__file__).parent / "testdata" / f for f in files],
-        )
-
-
 @pytest.mark.parametrize(
     "files",
     (["image10x10x101.mha"], ["image10x10x10.mhd", "image10x10x10.zraw"]),
@@ -192,11 +179,13 @@ def test_upload_cases(local_grand_challenge, files):
 @pytest.mark.parametrize("files", (["image10x10x101.mha"],))
 def test_create_job_with_upload(local_grand_challenge, files):
     c = Client(
-        base_url=local_grand_challenge, verify=False, token=ALGORITHMUSER_TOKEN
+        base_url=local_grand_challenge,
+        verify=False,
+        token=DEMO_PARTICIPANT_TOKEN,
     )
 
     job = c.run_external_job(
-        algorithm="test-algorithm",
+        algorithm="test-algorithm-evaluation-1",
         inputs={
             "generic-medical-image": [
                 Path(__file__).parent / "testdata" / f for f in files

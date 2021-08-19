@@ -2,6 +2,11 @@
 History
 =======
 
+0.5.0 (UNRELEASED)
+------------------
+
+* Removed deprecated ``algorithm`` argument to ``upload_cases``
+
 0.4.0 (2021-06-01)
 ------------------
 
