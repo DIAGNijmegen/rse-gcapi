@@ -37,6 +37,10 @@ def local_grand_challenge() -> Generator[str, None, None]:
                 "dockerfiles/db/postgres.test.conf",
                 "Makefile",
                 "scripts/development_fixtures.py",
+                "scripts/algorithm_evaluation_fixtures.py",
+                "scripts/image10x10x10.mha",
+                "app/tests/resources/gc_demo_algorithm/copy_io.py",
+                "app/tests/resources/gc_demo_algorithm/Dockerfile",
             ]:
                 get_grand_challenge_file(Path(f), Path(tmp_path))
 
@@ -47,6 +51,9 @@ def local_grand_challenge() -> Generator[str, None, None]:
 
                 check_call(
                     ["make", "development_fixtures"], cwd=tmp_path,
+                )
+                check_call(
+                    ["make", "algorithm_evaluation_fixtures"], cwd=tmp_path,
                 )
                 check_call(
                     [
