@@ -12,7 +12,7 @@ with open("HISTORY.rst") as history_file:
     history = history_file.read()
 
 requirements = [
-    "httpx~=0.18.2",
+    "httpx~=0.19.0",
     "Click>=6.0",
     "jsonschema[format_nongpl]>=3.0",
 ]
