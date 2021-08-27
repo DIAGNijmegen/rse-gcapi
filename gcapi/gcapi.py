@@ -8,7 +8,6 @@ from random import randint, random
 from time import sleep, time
 from typing import Any, Dict, List, Type
 from urllib.parse import urljoin, urlparse
-from warnings import warn
 
 import jsonschema
 from httpx import Client as SyncClient
