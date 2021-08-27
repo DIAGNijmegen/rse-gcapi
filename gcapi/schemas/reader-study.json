@@ -76,7 +76,8 @@
                                 "Polygon",
                                 "Polygon (saved as mask)",
                                 "Multiple polygons",
-                                "Multiple polygons (saved as mask)"
+                                "Multiple polygons (saved as mask)",
+                                "Mask"
                             ]
                         },
                         "image_port" : {
