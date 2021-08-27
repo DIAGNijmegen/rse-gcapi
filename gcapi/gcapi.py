@@ -357,7 +357,13 @@ class ChunkedUploadsAPI(APIBase):
                 result = self._client(
                     method="POST",
                     path=self.base_path,
-                    files={file_info["filename"]: BytesIO(file_info["chunk"])},
+                    files={
+                        "upload-file": (
+                            file_info["filename"],
+                            BytesIO(file_info["chunk"]),
+                            "application/octet-stream",
+                        )
+                    },
                     data={
                         "filename": file_info["filename"],
                         "X-Upload-ID": file_info["upload_id"],
@@ -534,13 +540,7 @@ class Client(SyncClient):
             params={} if params is None else params,
             json=json,
         )
-
-        try:
-            response.raise_for_status()
-        except Exception as e:
-            # TODO Remove
-            warn(e.response.content.decode())
-            raise
+        response.raise_for_status()
 
         if response.headers.get("Content-Type") == "application/json":
             return response.json()
