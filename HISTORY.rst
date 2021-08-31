@@ -2,10 +2,12 @@
 History
 =======
 
-0.5.0 (UNRELEASED)
-------------------
+0.5.0.a1 (2021-08-31)
+---------------------
 
 * Removed deprecated ``algorithm`` argument to ``upload_cases``
+* Added ``archives`` endpoint
+* Added ``MASK`` answertype
 
 0.4.0 (2021-06-01)
 ------------------
