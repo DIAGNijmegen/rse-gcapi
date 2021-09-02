@@ -254,6 +254,13 @@
         },
         "CHOI": {"type": "number"},
         "MCHO": {"type": "array", "items": {"type": "number"}},
+        "MASK": {
+            "type": "object",
+            "properties": {
+                "upload_session_pk": {"type": "string", "format": "uuid"}
+            },
+            "required": ["upload_session_pk"]
+        },
         "valid-answers": {
             "anyOf": [
                 {"type": "null"},
@@ -271,7 +278,8 @@
                 {"$ref": "#/definitions/MPOL"},
                 {"$ref": "#/definitions/MPIM"},
                 {"$ref": "#/definitions/CHOI"},
-                {"$ref": "#/definitions/MCHO"}
+                {"$ref": "#/definitions/MCHO"},
+                {"$ref": "#/definitions/MASK"}
             ]
         }
     },
