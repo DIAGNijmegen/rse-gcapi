@@ -10,7 +10,8 @@ from typing import Any, Dict, List, Type
 from urllib.parse import urljoin, urlparse
 
 import jsonschema
-from requests import ConnectionError, Session
+from httpx import Client as SyncClient
+from httpx import HTTPError
 
 
 def is_uuid(s):
@@ -345,7 +346,7 @@ class ChunkedUploadsAPI(APIBase):
 
         Raises
         ------
-        ConnectionError
+        HTTPError
             Raised if the chunk cannot be uploaded within 3 attempts.
         """
         num_retries = 0
@@ -355,7 +356,13 @@ class ChunkedUploadsAPI(APIBase):
                 result = self._client(
                     method="POST",
                     path=self.base_path,
-                    files={file_info["filename"]: BytesIO(file_info["chunk"])},
+                    files={
+                        "upload-file": (
+                            file_info["filename"],
+                            BytesIO(file_info["chunk"]),
+                            "application/octet-stream",
+                        )
+                    },
                     data={
                         "filename": file_info["filename"],
                         "X-Upload-ID": file_info["upload_id"],
@@ -369,7 +376,7 @@ class ChunkedUploadsAPI(APIBase):
                     },
                 )
                 break
-            except ConnectionError as _e:
+            except HTTPError as _e:
                 num_retries += 1
                 e = _e
                 sleep((2 ** num_retries) + (randint(0, 1000) / 1000))
@@ -389,7 +396,7 @@ class ChunkedUploadsAPI(APIBase):
 
         Raises
         ------
-        ConnectionError
+        HTTPError
             Raised if a chunk cannot be uploaded.
         """
         if not content:
@@ -419,7 +426,7 @@ class ChunkedUploadsAPI(APIBase):
                         "filename": str(filename),
                     }
                 )
-            except ConnectionError as e:
+            except HTTPError as e:
                 raise e
 
             results.append(result)
@@ -433,14 +440,14 @@ class WorkstationConfigsAPI(APIBase):
     base_path = "workstations/configs/"
 
 
-class Client(Session):
+class Client(SyncClient):
     def __init__(
         self,
         token: str = "",
         base_url: str = "https://grand-challenge.org/api/v1/",
         verify: bool = True,
     ):
-        super().__init__()
+        super().__init__(verify=verify)
 
         self.headers.update(
             {"Accept": "application/json", **self._auth_header(token=token)}
@@ -449,9 +456,6 @@ class Client(Session):
         self._base_url = base_url
         if not self._base_url.startswith("https://"):
             raise RuntimeError("Base URL must be https")
-
-        # Should we verify the servers SSL certificates?
-        self._verify = verify
 
         self.images = ImagesAPI(client=self)
         self.reader_studies = ReaderStudiesAPI(client=self)
@@ -532,11 +536,11 @@ class Client(Session):
             files={} if files is None else files,
             data={} if data is None else data,
             headers={**self.headers, **extra_headers},
-            verify=self._verify,
             params={} if params is None else params,
             json=json,
         )
         response.raise_for_status()
+
         if response.headers.get("Content-Type") == "application/json":
             return response.json()
         else:

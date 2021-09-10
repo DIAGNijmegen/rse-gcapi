@@ -3,7 +3,7 @@ from pathlib import Path
 from time import sleep
 
 import pytest
-from requests import HTTPError
+from httpx import HTTPStatusError
 
 from gcapi import Client
 
@@ -41,7 +41,7 @@ def test_create_landmark_annotation(local_grand_challenge):
             {"image": nil_uuid, "landmarks": [[0, 0], [1, 1], [2, 2]]},
         ],
     }
-    with pytest.raises(HTTPError) as e:
+    with pytest.raises(HTTPStatusError) as e:
         c.retina_landmark_annotations.create(**create_data)
     response = e.value.response
     assert response.status_code == 400
@@ -67,7 +67,7 @@ def test_create_polygon_annotation_set(local_grand_challenge):
             {"z": 1, "value": [[0, 0], [1, 1], [2, 2]]},
         ],
     }
-    with pytest.raises(HTTPError) as e:
+    with pytest.raises(HTTPStatusError) as e:
         c.retina_polygon_annotation_sets.create(**create_data)
     response = e.value.response
     assert response.status_code == 400
@@ -90,7 +90,7 @@ def test_create_single_polygon_annotations(local_grand_challenge):
         "annotation_set": 0,
     }
 
-    with pytest.raises(HTTPError) as e:
+    with pytest.raises(HTTPStatusError) as e:
         c.retina_single_polygon_annotations.create(**create_data)
     response = e.value.response
     assert response.status_code == 400
@@ -139,7 +139,7 @@ def test_chunked_uploads(local_grand_challenge):
     )
 
     c = Client(token="whatever")
-    with pytest.raises(HTTPError):
+    with pytest.raises(HTTPStatusError):
         c.chunked_uploads.upload_file(file_to_upload)
 
 

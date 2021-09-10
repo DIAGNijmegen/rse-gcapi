@@ -4,8 +4,8 @@ from subprocess import check_call
 from tempfile import TemporaryDirectory
 from typing import Generator
 
+import httpx
 import pytest
-import requests
 import yaml
 
 from tests.integration_tests import ADMIN_TOKEN
@@ -16,14 +16,14 @@ def local_grand_challenge() -> Generator[str, None, None]:
     local_api_url = "https://gc.localhost/api/v1/"
 
     try:
-        r = requests.get(
+        r = httpx.get(
             local_api_url,
             verify=False,
             headers={"Authorization": f"Bearer {ADMIN_TOKEN}"},
         )
         r.raise_for_status()
         local_gc_running = True
-    except requests.exceptions.ConnectionError:
+    except httpx.HTTPError:
         local_gc_running = False
 
     if local_gc_running:
@@ -77,7 +77,7 @@ def local_grand_challenge() -> Generator[str, None, None]:
 
 
 def get_grand_challenge_file(repo_path: Path, output_directory: Path) -> None:
-    r = requests.get(
+    r = httpx.get(
         (
             f"https://raw.githubusercontent.com/comic/grand-challenge.org/"
             f"master/{repo_path}"
