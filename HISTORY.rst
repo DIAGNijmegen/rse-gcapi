@@ -2,6 +2,11 @@
 History
 =======
 
+0.5.1.a2 (2021-09-10)
+---------------------
+
+* **Breaking Change** Switched the backend from ``requests`` to ``httpx``
+
 0.5.0.a1 (2021-08-31)
 ---------------------
 
