@@ -11,7 +11,7 @@ from urllib.parse import urljoin, urlparse
 
 import jsonschema
 from httpx import Client as SyncClient
-from httpx import HTTPError
+from httpx import HTTPError, Timeout
 
 
 def is_uuid(s):
@@ -90,7 +90,7 @@ def import_json_schema(filename):
             "Json schema '{file}' cannot be loaded: {error}".format(
                 file=filename, error=e
             )
-        )
+        ) from e
 
 
 class APIBase:
@@ -446,8 +446,9 @@ class Client(SyncClient):
         token: str = "",
         base_url: str = "https://grand-challenge.org/api/v1/",
         verify: bool = True,
+        timeout: float = 60.0,
     ):
-        super().__init__(verify=verify)
+        super().__init__(verify=verify, timeout=Timeout(timeout=timeout))
 
         self.headers.update(
             {"Accept": "application/json", **self._auth_header(token=token)}
@@ -489,7 +490,7 @@ class Client(SyncClient):
             try:
                 token = str(os.environ["GRAND_CHALLENGE_AUTHORIZATION"])
             except KeyError:
-                raise RuntimeError("Token must be set")
+                raise RuntimeError("Token must be set") from None
 
         token = re.sub(" +", " ", token)
         token_parts = token.strip().split(" ")
