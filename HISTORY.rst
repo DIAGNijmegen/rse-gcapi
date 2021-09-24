@@ -2,7 +2,12 @@
 History
 =======
 
-0.5.1.a2 (2021-09-10)
+0.5.0.a3 (2021-09-24)
+---------------------
+
+* Add optional ``timeout`` parameter to client
+
+0.5.0.a2 (2021-09-10)
 ---------------------
 
 * **Breaking Change** Switched the backend from ``requests`` to ``httpx``
