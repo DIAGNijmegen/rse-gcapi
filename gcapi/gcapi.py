@@ -149,9 +149,9 @@ class APIBase:
             yield from current_list
             offset += req_count
 
-    def detail(self, pk=None, **kwargs):
-        if len([x for x in [pk, kwargs] if x]) != 1:
-            raise ValueError("Only one of pk or kwargs must be specified")
+    def detail(self, pk=None, **params):
+        if len([x for x in [pk, params] if x]) != 1:
+            raise ValueError("Only one of pk or params must be specified")
 
         if pk is not None:
             result = self._client(
@@ -159,7 +159,7 @@ class APIBase:
             )
             self._verify_against_schema(result)
         else:
-            results = [v for v in self.page(params=kwargs)]
+            results = [v for v in self.page(params=params)]
             if len(results) == 1:
                 result = results[0]
             elif len(results) == 0:
