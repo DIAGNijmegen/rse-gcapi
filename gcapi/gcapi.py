@@ -13,6 +13,8 @@ import jsonschema
 from httpx import Client as SyncClient
 from httpx import HTTPError, Timeout
 
+from .exceptions import MultipleObjectsReturned, ObjectNotFound
+
 
 def is_uuid(s):
     try:
@@ -147,11 +149,24 @@ class APIBase:
             yield from current_list
             offset += req_count
 
-    def detail(self, pk):
-        result = self._client(
-            method="GET", path=urljoin(self.base_path, pk + "/")
-        )
-        self._verify_against_schema(result)
+    def detail(self, pk=None, **kwargs):
+        if len([x for x in [pk, kwargs] if x]) != 1:
+            raise ValueError("Only one of pk or kwargs must be specified")
+
+        if pk is not None:
+            result = self._client(
+                method="GET", path=urljoin(self.base_path, pk + "/")
+            )
+            self._verify_against_schema(result)
+        else:
+            results = [v for v in self.page(params=kwargs)]
+            if len(results) == 1:
+                result = results[0]
+            elif len(results) == 0:
+                raise ObjectNotFound
+            else:
+                raise MultipleObjectsReturned
+
         return result
 
 
@@ -549,19 +564,7 @@ class Client(SyncClient):
 
     def get_algorithm(self, algorithm: str) -> dict:
         """Get the algorithm for the given algorithm name. """
-        algorithms = [
-            a
-            for a in list(
-                self.algorithms.list(params={"slug": algorithm})["results"]
-            )
-        ]
-
-        if len(algorithms) != 1:
-            raise ValueError(
-                f"{algorithm} is not found in available list of algorithms"
-            )
-
-        return algorithms[0]
+        return self.algorithms.detail(slug=algorithm)
 
     def _upload_files(self, files):
         raw_image_upload_session = self.raw_image_upload_sessions.create()
