@@ -196,3 +196,27 @@ def test_create_job_with_upload(local_grand_challenge, files):
     assert len(job["inputs"]) == 1
     job = c.algorithm_jobs.detail(job["pk"])
     assert job["status"] == "Queued"
+
+
+def test_get_algorithm_by_slug(local_grand_challenge):
+    c = Client(
+        base_url=local_grand_challenge,
+        verify=False,
+        token=DEMO_PARTICIPANT_TOKEN,
+    )
+
+    by_slug = c.algorithms.detail(slug="test-algorithm-evaluation-1")
+    by_pk = c.algorithms.detail(pk=by_slug["pk"])
+
+    assert by_pk == by_slug
+
+
+def test_get_reader_study_by_slug(local_grand_challenge):
+    c = Client(
+        base_url=local_grand_challenge, verify=False, token=READERSTUDY_TOKEN,
+    )
+
+    by_slug = c.reader_studies.detail(slug="reader-study")
+    by_pk = c.reader_studies.detail(pk=by_slug["pk"])
+
+    assert by_pk == by_slug

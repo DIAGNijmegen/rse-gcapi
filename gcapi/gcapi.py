@@ -562,10 +562,6 @@ class Client(SyncClient):
         else:
             return response
 
-    def get_algorithm(self, algorithm: str) -> dict:
-        """Get the algorithm for the given algorithm name. """
-        return self.algorithms.detail(slug=algorithm)
-
     def _upload_files(self, files):
         raw_image_upload_session = self.raw_image_upload_sessions.create()
 
@@ -602,7 +598,7 @@ class Client(SyncClient):
         the key being the slug of the interface, the value being the
         value for the interface. You can get the interfaces of an algorithm by calling
 
-            client.get_algorithm(algorithm="corads-ai")
+            client.algorithms.detail(slug="corads-ai")
 
         and inspecting the ["inputs"] of the result.
 
@@ -636,7 +632,7 @@ class Client(SyncClient):
         -------
         The created job
         """
-        alg = self.get_algorithm(algorithm=algorithm)
+        alg = self.algorithms.detail(slug=algorithm)
         input_interfaces = {ci["slug"]: ci for ci in alg["inputs"]}
 
         for ci in input_interfaces:
