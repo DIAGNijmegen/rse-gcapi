@@ -236,6 +236,11 @@ def test_detail_no_objects(local_grand_challenge, key):
 def test_detail_multiple_objects(local_grand_challenge):
     c = Client(token=ADMIN_TOKEN, base_url=local_grand_challenge, verify=False)
 
+    file_to_upload = os.path.join(
+        os.path.dirname(os.path.realpath(__file__)), "testdata", "rnddata"
+    )
+    c.chunked_uploads.upload_file(file_to_upload)
+    c.chunked_uploads.upload_file(file_to_upload)
+
     with pytest.raises(MultipleObjectsReturned):
-        # The admin user should have uploaded multiple things
         c.chunked_uploads.detail(slug="")
