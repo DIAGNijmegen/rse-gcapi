@@ -6,6 +6,7 @@ import pytest
 from httpx import HTTPStatusError
 
 from gcapi import Client
+from gcapi.exceptions import MultipleObjectsReturned, ObjectNotFound
 
 RETINA_TOKEN = "f1f98a1733c05b12118785ffd995c250fe4d90da"
 ADMIN_TOKEN = "1b9436200001f2eaf57cd77db075cbb60a49a00a"
@@ -220,3 +221,21 @@ def test_get_reader_study_by_slug(local_grand_challenge):
     by_pk = c.reader_studies.detail(pk=by_slug["pk"])
 
     assert by_pk == by_slug
+
+
+@pytest.mark.parametrize("key", ["slug", "pk"])
+def test_detail_no_objects(local_grand_challenge, key):
+    c = Client(
+        base_url=local_grand_challenge, verify=False, token=READERSTUDY_TOKEN,
+    )
+
+    with pytest.raises(ObjectNotFound):
+        c.reader_studies.detail(**{key: "foo"})
+
+
+def test_detail_multiple_objects(local_grand_challenge):
+    c = Client(token=ADMIN_TOKEN, base_url=local_grand_challenge, verify=False)
+
+    with pytest.raises(MultipleObjectsReturned):
+        # The admin user should have uploaded multiple things
+        c.chunked_uploads.detail(slug="")

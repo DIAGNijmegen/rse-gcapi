@@ -11,7 +11,7 @@ from urllib.parse import urljoin, urlparse
 
 import jsonschema
 from httpx import Client as SyncClient
-from httpx import HTTPError, Timeout
+from httpx import HTTPError, HTTPStatusError, Timeout
 
 from .exceptions import MultipleObjectsReturned, ObjectNotFound
 
@@ -154,12 +154,19 @@ class APIBase:
             raise ValueError("Only one of pk or params must be specified")
 
         if pk is not None:
-            result = self._client(
-                method="GET", path=urljoin(self.base_path, pk + "/")
-            )
+            try:
+                result = self._client(
+                    method="GET", path=urljoin(self.base_path, pk + "/")
+                )
+            except HTTPStatusError as e:
+                if e.response.status_code == 404:
+                    raise ObjectNotFound from e
+                else:
+                    raise e
+
             self._verify_against_schema(result)
         else:
-            results = [v for v in self.page(params=params)]
+            results = list(self.page(params=params))
             if len(results) == 1:
                 result = results[0]
             elif len(results) == 0:
