@@ -6,6 +6,7 @@ import pytest
 from httpx import HTTPStatusError
 
 from gcapi import Client
+from gcapi.exceptions import MultipleObjectsReturned, ObjectNotFound
 
 RETINA_TOKEN = "f1f98a1733c05b12118785ffd995c250fe4d90da"
 ADMIN_TOKEN = "1b9436200001f2eaf57cd77db075cbb60a49a00a"
@@ -196,3 +197,50 @@ def test_create_job_with_upload(local_grand_challenge, files):
     assert len(job["inputs"]) == 1
     job = c.algorithm_jobs.detail(job["pk"])
     assert job["status"] == "Queued"
+
+
+def test_get_algorithm_by_slug(local_grand_challenge):
+    c = Client(
+        base_url=local_grand_challenge,
+        verify=False,
+        token=DEMO_PARTICIPANT_TOKEN,
+    )
+
+    by_slug = c.algorithms.detail(slug="test-algorithm-evaluation-1")
+    by_pk = c.algorithms.detail(pk=by_slug["pk"])
+
+    assert by_pk == by_slug
+
+
+def test_get_reader_study_by_slug(local_grand_challenge):
+    c = Client(
+        base_url=local_grand_challenge, verify=False, token=READERSTUDY_TOKEN,
+    )
+
+    by_slug = c.reader_studies.detail(slug="reader-study")
+    by_pk = c.reader_studies.detail(pk=by_slug["pk"])
+
+    assert by_pk == by_slug
+
+
+@pytest.mark.parametrize("key", ["slug", "pk"])
+def test_detail_no_objects(local_grand_challenge, key):
+    c = Client(
+        base_url=local_grand_challenge, verify=False, token=READERSTUDY_TOKEN,
+    )
+
+    with pytest.raises(ObjectNotFound):
+        c.reader_studies.detail(**{key: "foo"})
+
+
+def test_detail_multiple_objects(local_grand_challenge):
+    c = Client(token=ADMIN_TOKEN, base_url=local_grand_challenge, verify=False)
+
+    file_to_upload = os.path.join(
+        os.path.dirname(os.path.realpath(__file__)), "testdata", "rnddata"
+    )
+    c.chunked_uploads.upload_file(file_to_upload)
+    c.chunked_uploads.upload_file(file_to_upload)
+
+    with pytest.raises(MultipleObjectsReturned):
+        c.chunked_uploads.detail(slug="")

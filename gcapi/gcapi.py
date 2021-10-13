@@ -11,7 +11,9 @@ from urllib.parse import urljoin, urlparse
 
 import jsonschema
 from httpx import Client as SyncClient
-from httpx import HTTPError, Timeout
+from httpx import HTTPError, HTTPStatusError, Timeout
+
+from .exceptions import MultipleObjectsReturned, ObjectNotFound
 
 
 def is_uuid(s):
@@ -147,11 +149,31 @@ class APIBase:
             yield from current_list
             offset += req_count
 
-    def detail(self, pk):
-        result = self._client(
-            method="GET", path=urljoin(self.base_path, pk + "/")
-        )
-        self._verify_against_schema(result)
+    def detail(self, pk=None, **params):
+        if all((pk, params)):
+            raise ValueError("Only one of pk or params must be specified")
+
+        if pk is not None:
+            try:
+                result = self._client(
+                    method="GET", path=urljoin(self.base_path, pk + "/")
+                )
+            except HTTPStatusError as e:
+                if e.response.status_code == 404:
+                    raise ObjectNotFound from e
+                else:
+                    raise e
+
+            self._verify_against_schema(result)
+        else:
+            results = list(self.page(params=params))
+            if len(results) == 1:
+                result = results[0]
+            elif len(results) == 0:
+                raise ObjectNotFound
+            else:
+                raise MultipleObjectsReturned
+
         return result
 
 
@@ -547,22 +569,6 @@ class Client(SyncClient):
         else:
             return response
 
-    def get_algorithm(self, algorithm: str) -> dict:
-        """Get the algorithm for the given algorithm name. """
-        algorithms = [
-            a
-            for a in list(
-                self.algorithms.list(params={"slug": algorithm})["results"]
-            )
-        ]
-
-        if len(algorithms) != 1:
-            raise ValueError(
-                f"{algorithm} is not found in available list of algorithms"
-            )
-
-        return algorithms[0]
-
     def _upload_files(self, files):
         raw_image_upload_session = self.raw_image_upload_sessions.create()
 
@@ -599,7 +605,7 @@ class Client(SyncClient):
         the key being the slug of the interface, the value being the
         value for the interface. You can get the interfaces of an algorithm by calling
 
-            client.get_algorithm(algorithm="corads-ai")
+            client.algorithms.detail(slug="corads-ai")
 
         and inspecting the ["inputs"] of the result.
 
@@ -633,7 +639,7 @@ class Client(SyncClient):
         -------
         The created job
         """
-        alg = self.get_algorithm(algorithm=algorithm)
+        alg = self.algorithms.detail(slug=algorithm)
         input_interfaces = {ci["slug"]: ci for ci in alg["inputs"]}
 
         for ci in input_interfaces:

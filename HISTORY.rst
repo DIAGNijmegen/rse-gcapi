@@ -2,19 +2,13 @@
 History
 =======
 
-0.5.0.a3 (2021-09-24)
----------------------
-
-* Add optional ``timeout`` parameter to client
-
-0.5.0.a2 (2021-09-10)
----------------------
+0.5.0 (UNRELEASED)
+------------------
 
 * **Breaking Change** Switched the backend from ``requests`` to ``httpx``
-
-0.5.0.a1 (2021-08-31)
----------------------
-
+* **Breaking Change** Removed ``client.get_algorithm(algorithm=...)``, use ``client.algorithms.detail(slug=...)`` instead
+* Added option for getting objects by filters in detail view
+* Add optional ``timeout`` parameter to client
 * Removed deprecated ``algorithm`` argument to ``upload_cases``
 * Added ``archives`` endpoint
 * Added ``MASK`` answertype

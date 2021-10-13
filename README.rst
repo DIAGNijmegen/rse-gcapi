@@ -58,7 +58,7 @@ You can get the input interfaces for an algorithm as follows:
 
 .. code:: python
 
-    alg = c.get_algorithm(algorithm="corads-ai")
+    alg = c.algorithms.detail(slug="corads-ai")
 
     print(alg["inputs"])
     [{
