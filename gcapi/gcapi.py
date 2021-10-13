@@ -150,7 +150,7 @@ class APIBase:
             offset += req_count
 
     def detail(self, pk=None, **params):
-        if len([x for x in [pk, params] if x]) != 1:
+        if all((pk, params)):
             raise ValueError("Only one of pk or params must be specified")
 
         if pk is not None:
