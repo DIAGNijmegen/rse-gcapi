@@ -82,7 +82,7 @@ def get_grand_challenge_file(repo_path: Path, output_directory: Path) -> None:
             f"https://raw.githubusercontent.com/comic/grand-challenge.org/"
             f"master/{repo_path}"
         ),
-        allow_redirects=True,
+        follow_redirects=True,
     )
 
     if str(repo_path) == "docker-compose.yml":
