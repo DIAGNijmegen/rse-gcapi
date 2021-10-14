@@ -338,6 +338,9 @@ class RetinaETDRSGridAnnotationsAPI(APIBase, ModifiableMixin):
 
 class UploadsAPI(APIBase):
     base_path = "uploads/"
+    chunk_size = 32 * 1024 * 1024
+    n_presigned_urls = 5  # number of pre-signed urls to generate
+    max_retries = 10
 
     def create(self, *, filename):
         return self._client(
@@ -370,102 +373,83 @@ class UploadsAPI(APIBase):
         url = urljoin(self.base_path, f"{pk}/{s3_upload_id}/list-parts/")
         return self._client(path=url)
 
-    def upload_file(self, filename, content=None):
-        """
-        Uploads a file in chunks using rest api.
+    def upload_fileobj(self, *, fileobj, filename):
+        user_upload = self.create(filename=filename).json()
 
-        Parameters
-        ----------
-        filename: str
-            The name of the file to be uploaded.
+        pk = user_upload["pk"]
+        s3_upload_id = user_upload["s3_upload_id"]
 
-        Raises
-        ------
-        HTTPError
-            Raised if a chunk cannot be uploaded.
-        """
-        if content is None:
-            with open(filename, "rb") as f:
-                content = f.read()
+        try:
+            parts = self._put_fileobj(
+                fileobj=fileobj, pk=pk, s3_upload_id=s3_upload_id
+            )
+        except Exception:
+            self.abort_multipart_upload(pk=pk, s3_upload_id=s3_upload_id)
+            raise
 
-        start_byte = 0
-        content_io = BytesIO(content)
-        max_chunk_length = 2 ** 23
-        results = []
+        completed = self.complete_multipart_upload(
+            pk=pk, s3_upload_id=s3_upload_id, parts=parts
+        )
+        return completed.json()
+
+    def _put_fileobj(self, *, fileobj, pk, s3_upload_id):
+        part_number = 1  # s3 uses 1-indexed chunks
+        presigned_urls = {}
+        parts = []
 
         while True:
-            chunk = content_io.read(max_chunk_length)
+            chunk = fileobj.read(self.chunk_size)
 
             if not chunk:
                 break
 
-            end_byte = start_byte + len(chunk)
-
-            try:
-                result = self._upload_file_with_exponential_backoff(
-                    {
-                        "start_byte": start_byte,
-                        "end_byte": end_byte,
-                        "chunk": chunk,
-                        "content": content,
-                        "filename": str(filename),
-                    }
+            if str(part_number) not in presigned_urls:
+                presigned_urls.update(
+                    self._next_presigned_urls(
+                        pk=pk,
+                        s3_upload_id=s3_upload_id,
+                        part_number=part_number,
+                    )
                 )
-            except HTTPError as e:
-                raise e
 
-            results.append(result)
+            response = self._put_chunk(
+                chunk=chunk, url=presigned_urls[str(part_number)]
+            )
 
-            start_byte += len(chunk)
+            parts.append(
+                {"ETag": response.headers["ETag"], "PartNumber": part_number,}
+            )
 
-        return list(itertools.chain(*results))
+        return parts
 
-    def _upload_file_with_exponential_backoff(self, file_info):
-        """
-        Uploads a chunk with an exponential backoff retry strategy. The
-        maximum number of attempts is 3.
+    def _next_presigned_urls(self, *, pk, s3_upload_id, part_number):
+        response = self.generate_presigned_urls(
+            pk=pk,
+            s3_upload_id=s3_upload_id,
+            part_numbers=[
+                *range(part_number, part_number + self.n_presigned_urls)
+            ],
+        )
+        return response.json()["presigned_urls"]
 
-        Parameters
-        ----------
-        file_info: dict
-        Contains information about the chunk, start_byte, end_byte and upload_id.
-
-        Raises
-        ------
-        HTTPError
-            Raised if the chunk cannot be uploaded within 3 attempts.
-        """
+    def _put_chunk(self, *, chunk, url):
         num_retries = 0
         e = Exception
-        while num_retries < 3:
+
+        while num_retries < self.max_retries:
             try:
-                result = self._client(
-                    method="POST",
-                    path=self.base_path,
-                    files={
-                        "upload-file": (
-                            file_info["filename"],
-                            BytesIO(file_info["chunk"]),
-                            "application/octet-stream",
-                        )
-                    },
-                    data={
-                        "filename": file_info["filename"],
-                        "X-Upload-ID": file_info["upload_id"],
-                    },
-                    extra_headers={
-                        "Content-Range": "bytes {}-{}/{}".format(
-                            file_info["start_byte"],
-                            file_info["end_byte"] - 1,
-                            len(file_info["content"]),
-                        )
-                    },
+                result = self._client.request(
+                    method="PUT", url=url, data=chunk,
                 )
                 break
-            except HTTPError as _e:
-                num_retries += 1
-                e = _e
-                sleep((2 ** num_retries) + (randint(0, 1000) / 1000))
+            except HTTPStatusError as _e:
+                status_code = _e.response.status_code
+                if status_code in [409, 423] or status_code >= 500:
+                    num_retries += 1
+                    e = _e
+                    sleep((2 ** num_retries) + (randint(0, 1000) / 1000))
+                else:
+                    raise
         else:
             raise e
 
@@ -584,21 +568,16 @@ class Client(SyncClient):
             return response
 
     def _upload_files(self, files):
-        raw_image_upload_session = self.raw_image_upload_sessions.create()
-
-        uploaded_files = {}
+        uploads = []
         for file in files:
-            uploaded_chunks = self.chunked_uploads.upload_file(file)
-            uploaded_files.update(
-                {c["uuid"]: c["filename"] for c in uploaded_chunks}
-            )
+            with open(file, "rb") as f:
+                uploads.append(
+                    self.uploads.upload_fileobj(fileobj=f, filename=file.name)
+                )
 
-        for file_id, filename in uploaded_files.items():
-            self.raw_image_upload_session_files.create(
-                upload_session=raw_image_upload_session["api_url"],
-                staged_file_id=file_id,
-                filename=filename,
-            )
+        raw_image_upload_session = self.raw_image_upload_sessions.create(
+            uploads=[u["api_url"] for u in uploads]
+        )
 
         return raw_image_upload_session
 
@@ -740,9 +719,5 @@ class Client(SyncClient):
             raise ValueError("One of archive or reader_study should be set")
 
         raw_image_upload_session = self._upload_files(files)
-
-        self.raw_image_upload_sessions.process_images(
-            pk=raw_image_upload_session["pk"], json=upload_session_data
-        )
 
         return raw_image_upload_session
