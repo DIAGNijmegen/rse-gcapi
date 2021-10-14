@@ -80,7 +80,7 @@ def get_grand_challenge_file(repo_path: Path, output_directory: Path) -> None:
     r = httpx.get(
         (
             f"https://raw.githubusercontent.com/comic/grand-challenge.org/"
-            f"master/{repo_path}"
+            f"new_upload_rest_api/{repo_path}" #TODO switch back to master
         ),
         follow_redirects=True,
     )
