@@ -460,6 +460,22 @@ class WorkstationConfigsAPI(APIBase):
     base_path = "workstations/configs/"
 
 
+def _generate_auth_header(token: str = "") -> Dict:
+    if not token:
+        try:
+            token = str(os.environ["GRAND_CHALLENGE_AUTHORIZATION"])
+        except KeyError:
+            raise RuntimeError("Token must be set") from None
+
+    token = re.sub(" +", " ", token)
+    token_parts = token.strip().split(" ")
+
+    if len(token_parts) not in [1, 2]:
+        raise RuntimeError("Invalid token format")
+
+    return {"Authorization": f"BEARER {token_parts[-1]}"}
+
+
 class Client(SyncClient):
     def __init__(
         self,
@@ -470,9 +486,8 @@ class Client(SyncClient):
     ):
         super().__init__(verify=verify, timeout=Timeout(timeout=timeout))
 
-        self.headers.update(
-            {"Accept": "application/json", **self._auth_header(token=token)}
-        )
+        self.headers.update({"Accept": "application/json"})
+        self._auth_header = _generate_auth_header(token=token)
 
         self._base_url = base_url
         if not self._base_url.startswith("https://"):
@@ -503,22 +518,6 @@ class Client(SyncClient):
             client=self
         )
         self.raw_image_upload_sessions = UploadSessionsAPI(client=self)
-
-    @staticmethod
-    def _auth_header(token: str = "") -> Dict:
-        if not token:
-            try:
-                token = str(os.environ["GRAND_CHALLENGE_AUTHORIZATION"])
-            except KeyError:
-                raise RuntimeError("Token must be set") from None
-
-        token = re.sub(" +", " ", token)
-        token_parts = token.strip().split(" ")
-
-        if len(token_parts) not in [1, 2]:
-            raise RuntimeError("Invalid token format")
-
-        return {"Authorization": f"BEARER {token_parts[-1]}"}
 
     @property
     def base_url(self):
@@ -556,7 +555,7 @@ class Client(SyncClient):
             url=url,
             files={} if files is None else files,
             data={} if data is None else data,
-            headers={**self.headers, **extra_headers},
+            headers={**self.headers, **self._auth_header, **extra_headers},
             params={} if params is None else params,
             json=json,
         )

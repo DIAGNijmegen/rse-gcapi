@@ -16,7 +16,7 @@ def test_no_auth_exception(kwargs):
 def test_headers():
     token = "foo"
     c = Client(token=token)
-    assert c.headers["Authorization"] == f"BEARER {token}"
+    assert c._auth_header["Authorization"] == f"BEARER {token}"
     assert c.headers["Accept"] == "application/json"
 
 
@@ -24,13 +24,13 @@ def test_token_via_env_var(monkeypatch):
     token = "BEARER 1b9436200001f2eaf57cd77db075cbb60a49a00a"
     monkeypatch.setenv("GRAND_CHALLENGE_AUTHORIZATION", token)
     c = Client()
-    assert c.headers["Authorization"] == token
+    assert c._auth_header["Authorization"] == token
 
 
 def test_token_precidence(monkeypatch):
     monkeypatch.setenv("GRAND_CHALLENGE_AUTHORIZATION", "TOKEN fromenv")
     c = Client(token="fromcli")
-    assert c.headers["Authorization"] == "BEARER fromcli"
+    assert c._auth_header["Authorization"] == "BEARER fromcli"
 
 
 @pytest.mark.parametrize(
@@ -54,7 +54,7 @@ def test_token_rewriting(monkeypatch, token, environ):
         kwargs = {"token": token}
 
     c = Client(**kwargs)
-    assert c.headers["Authorization"] == "BEARER qwerty"
+    assert c._auth_header["Authorization"] == "BEARER qwerty"
 
 
 def test_http_base_url():
