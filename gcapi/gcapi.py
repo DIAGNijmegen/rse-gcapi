@@ -566,7 +566,7 @@ class Client(SyncClient):
         except HTTPStatusError as e:
             if e.response.headers.get("Content-Type") == "application/json":
                 message = e.response.json()
-                logger.error(f"{method} request to {url} failed: {message=}")
+                logger.error(f"{method} request to {url} failed: {message}")
             raise
 
         if response.headers.get("Content-Type") == "application/json":
