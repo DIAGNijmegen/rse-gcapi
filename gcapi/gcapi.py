@@ -1,8 +1,7 @@
-import itertools
+import logging
 import os
 import re
 import uuid
-from io import BytesIO
 from json import load
 from random import randint
 from time import sleep
@@ -11,9 +10,11 @@ from urllib.parse import urljoin, urlparse
 
 import jsonschema
 from httpx import Client as SyncClient
-from httpx import HTTPError, HTTPStatusError, Timeout
+from httpx import HTTPStatusError, Timeout
 
 from .exceptions import MultipleObjectsReturned, ObjectNotFound
+
+logger = logging.getLogger(__name__)
 
 
 def is_uuid(s):
@@ -374,7 +375,7 @@ class UploadsAPI(APIBase):
         return self._client(path=url)
 
     def upload_fileobj(self, *, fileobj, filename):
-        user_upload = self.create(filename=filename).json()
+        user_upload = self.create(filename=filename)
 
         pk = user_upload["pk"]
         s3_upload_id = user_upload["s3_upload_id"]
@@ -387,10 +388,9 @@ class UploadsAPI(APIBase):
             self.abort_multipart_upload(pk=pk, s3_upload_id=s3_upload_id)
             raise
 
-        completed = self.complete_multipart_upload(
+        return self.complete_multipart_upload(
             pk=pk, s3_upload_id=s3_upload_id, parts=parts
         )
-        return completed.json()
 
     def _put_fileobj(self, *, fileobj, pk, s3_upload_id):
         part_number = 1  # s3 uses 1-indexed chunks
@@ -405,7 +405,7 @@ class UploadsAPI(APIBase):
 
             if str(part_number) not in presigned_urls:
                 presigned_urls.update(
-                    self._next_presigned_urls(
+                    self._get_next_presigned_urls(
                         pk=pk,
                         s3_upload_id=s3_upload_id,
                         part_number=part_number,
@@ -417,12 +417,12 @@ class UploadsAPI(APIBase):
             )
 
             parts.append(
-                {"ETag": response.headers["ETag"], "PartNumber": part_number,}
+                {"ETag": response.headers["ETag"], "PartNumber": part_number}
             )
 
         return parts
 
-    def _next_presigned_urls(self, *, pk, s3_upload_id, part_number):
+    def _get_next_presigned_urls(self, *, pk, s3_upload_id, part_number):
         response = self.generate_presigned_urls(
             pk=pk,
             s3_upload_id=s3_upload_id,
@@ -430,7 +430,7 @@ class UploadsAPI(APIBase):
                 *range(part_number, part_number + self.n_presigned_urls)
             ],
         )
-        return response.json()["presigned_urls"]
+        return response["presigned_urls"]
 
     def _put_chunk(self, *, chunk, url):
         num_retries = 0
@@ -439,7 +439,7 @@ class UploadsAPI(APIBase):
         while num_retries < self.max_retries:
             try:
                 result = self._client.request(
-                    method="PUT", url=url, data=chunk,
+                    method="PUT", url=url, content=chunk
                 )
                 break
             except HTTPStatusError as _e:
@@ -560,14 +560,21 @@ class Client(SyncClient):
             params={} if params is None else params,
             json=json,
         )
-        response.raise_for_status()
+
+        try:
+            response.raise_for_status()
+        except HTTPStatusError as e:
+            if e.response.headers.get("Content-Type") == "application/json":
+                message = e.response.json()
+                logger.error(f"{method} request to {url} failed: {message=}")
+            raise
 
         if response.headers.get("Content-Type") == "application/json":
             return response.json()
         else:
             return response
 
-    def _upload_files(self, files):
+    def _upload_files(self, *, files, **kwargs):
         uploads = []
         for file in files:
             with open(file, "rb") as f:
@@ -576,7 +583,7 @@ class Client(SyncClient):
                 )
 
         raw_image_upload_session = self.raw_image_upload_sessions.create(
-            uploads=[u["api_url"] for u in uploads]
+            uploads=[u["api_url"] for u in uploads], **kwargs,
         )
 
         return raw_image_upload_session
@@ -718,6 +725,8 @@ class Client(SyncClient):
         if len(upload_session_data) != 1:
             raise ValueError("One of archive or reader_study should be set")
 
-        raw_image_upload_session = self._upload_files(files)
+        raw_image_upload_session = self._upload_files(
+            files=files, **upload_session_data
+        )
 
         return raw_image_upload_session

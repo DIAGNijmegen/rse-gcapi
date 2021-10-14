@@ -1,4 +1,4 @@
-import os
+from io import BytesIO
 from pathlib import Path
 from time import sleep
 
@@ -115,33 +115,36 @@ def test_local_response(local_grand_challenge):
 
 
 def test_chunked_uploads(local_grand_challenge):
-    file_to_upload = os.path.join(
-        os.path.dirname(os.path.realpath(__file__)), "testdata", "rnddata"
-    )
+    file_to_upload = Path(__file__).parent / "testdata" / "rnddata"
+
     # admin
     c_admin = Client(
         token=ADMIN_TOKEN, base_url=local_grand_challenge, verify=False
     )
-    existing_chunks_admin = c_admin(path="chunked-uploads/")["count"]
-    c_admin.chunked_uploads.upload_file(file_to_upload)
-    assert (
-        c_admin(path="chunked-uploads/")["count"] == 1 + existing_chunks_admin
-    )
+    existing_chunks_admin = c_admin(path="uploads/")["count"]
+
+    with open(file_to_upload, "rb") as f:
+        c_admin.uploads.upload_fileobj(fileobj=f, filename=file_to_upload.name)
+
+    assert c_admin(path="uploads/")["count"] == 1 + existing_chunks_admin
 
     # retina
     c_retina = Client(
         token=RETINA_TOKEN, base_url=local_grand_challenge, verify=False
     )
-    existing_chunks_retina = c_retina(path="chunked-uploads/")["count"]
-    c_retina.chunked_uploads.upload_file(file_to_upload)
-    assert (
-        c_retina(path="chunked-uploads/")["count"]
-        == 1 + existing_chunks_retina
-    )
+    existing_chunks_retina = c_retina(path="uploads/")["count"]
+
+    with open(file_to_upload, "rb") as f:
+        c_retina.uploads.upload_fileobj(
+            fileobj=f, filename=file_to_upload.name
+        )
+
+    assert c_retina(path="uploads/")["count"] == 1 + existing_chunks_retina
 
     c = Client(token="whatever")
     with pytest.raises(HTTPStatusError):
-        c.chunked_uploads.upload_file(file_to_upload)
+        with open(file_to_upload, "rb") as f:
+            c.uploads.upload_fileobj(fileobj=f, filename=file_to_upload.name)
 
 
 @pytest.mark.parametrize(
@@ -236,11 +239,8 @@ def test_detail_no_objects(local_grand_challenge, key):
 def test_detail_multiple_objects(local_grand_challenge):
     c = Client(token=ADMIN_TOKEN, base_url=local_grand_challenge, verify=False)
 
-    file_to_upload = os.path.join(
-        os.path.dirname(os.path.realpath(__file__)), "testdata", "rnddata"
-    )
-    c.chunked_uploads.upload_file(file_to_upload)
-    c.chunked_uploads.upload_file(file_to_upload)
+    c.uploads.upload_fileobj(fileobj=BytesIO(b"123"), filename="test")
+    c.uploads.upload_fileobj(fileobj=BytesIO(b"456"), filename="test")
 
     with pytest.raises(MultipleObjectsReturned):
-        c.chunked_uploads.detail(slug="")
+        c.uploads.detail(slug="")
