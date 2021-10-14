@@ -41,15 +41,6 @@ Draft7ValidatorWithTupleSupport = jsonschema.validators.extend(
 )
 
 
-def load_input_data(input_file):
-    with open(input_file, "rb") as f:
-        return f.read()
-
-
-def generate_new_upload_id(content):
-    return "{}_{}_{}".format(hash(content), time(), random())
-
-
 def import_json_schema(filename):
     """
     Loads a json schema from the module's subdirectory "schemas".
@@ -203,10 +194,6 @@ class ModifiableMixin:
         data = self._process_request_arguments(method, data)
         return self._execute_request(method, data, pk)
 
-    def send(self, **kwargs):
-        # Created for backwards compatibility
-        self.create(**kwargs)
-
     def create(self, **kwargs):
         return self.perform_request("POST", data=kwargs)
 
@@ -230,10 +217,6 @@ class UploadSessionFilesAPI(APIBase, ModifiableMixin):
 
 class UploadSessionsAPI(APIBase, ModifiableMixin):
     base_path = "cases/upload-sessions/"
-
-    def process_images(self, pk, json=None):
-        url = urljoin(self.base_path, str(pk) + "/process_images/")
-        return self._client(method="PATCH", path=url, json=json)
 
 
 class WorkstationSessionsAPI(APIBase):
@@ -353,8 +336,89 @@ class RetinaETDRSGridAnnotationsAPI(APIBase, ModifiableMixin):
     }
 
 
-class ChunkedUploadsAPI(APIBase):
-    base_path = "chunked-uploads/"
+class UploadsAPI(APIBase):
+    base_path = "uploads/"
+
+    def create(self, *, filename):
+        return self._client(
+            method="POST",
+            path=self.base_path,
+            json={"filename": str(filename)},
+        )
+
+    def generate_presigned_urls(self, *, pk, s3_upload_id, part_numbers):
+        url = urljoin(
+            self.base_path, f"{pk}/{s3_upload_id}/generate-presigned-urls/"
+        )
+        return self._client(
+            method="PATCH", path=url, json={"part_numbers": part_numbers}
+        )
+
+    def abort_multipart_upload(self, *, pk, s3_upload_id):
+        url = urljoin(
+            self.base_path, f"{pk}/{s3_upload_id}/abort-multipart-upload/"
+        )
+        return self._client(method="PATCH", path=url)
+
+    def complete_multipart_upload(self, *, pk, s3_upload_id, parts):
+        url = urljoin(
+            self.base_path, f"{pk}/{s3_upload_id}/complete-multipart-upload/"
+        )
+        return self._client(method="PATCH", path=url, json={"parts": parts})
+
+    def list_parts(self, *, pk, s3_upload_id):
+        url = urljoin(self.base_path, f"{pk}/{s3_upload_id}/list-parts/")
+        return self._client(path=url)
+
+    def upload_file(self, filename, content=None):
+        """
+        Uploads a file in chunks using rest api.
+
+        Parameters
+        ----------
+        filename: str
+            The name of the file to be uploaded.
+
+        Raises
+        ------
+        HTTPError
+            Raised if a chunk cannot be uploaded.
+        """
+        if content is None:
+            with open(filename, "rb") as f:
+                content = f.read()
+
+        start_byte = 0
+        content_io = BytesIO(content)
+        max_chunk_length = 2 ** 23
+        results = []
+
+        while True:
+            chunk = content_io.read(max_chunk_length)
+
+            if not chunk:
+                break
+
+            end_byte = start_byte + len(chunk)
+
+            try:
+                result = self._upload_file_with_exponential_backoff(
+                    {
+                        "start_byte": start_byte,
+                        "end_byte": end_byte,
+                        "chunk": chunk,
+                        "content": content,
+                        "filename": str(filename),
+                    }
+                )
+            except HTTPError as e:
+                raise e
+
+            results.append(result)
+
+            start_byte += len(chunk)
+
+        return list(itertools.chain(*results))
 
     def _upload_file_with_exponential_backoff(self, file_info):
         """
@@ -407,56 +471,6 @@ class ChunkedUploadsAPI(APIBase):
 
         return result
 
-    def upload_file(self, filename, content=None):
-        """
-        Uploads a file in chunks using rest api.
-
-        Parameters
-        ----------
-        filename: str
-            The name of the file to be uploaded.
-
-        Raises
-        ------
-        HTTPError
-            Raised if a chunk cannot be uploaded.
-        """
-        if not content:
-            content = load_input_data(filename)
-        upload_id = generate_new_upload_id(content)
-        start_byte = 0
-        content_io = BytesIO(content)
-        max_chunk_length = 2 ** 23
-        results = []
-
-        while True:
-            chunk = content_io.read(max_chunk_length)
-
-            if not chunk:
-                break
-
-            end_byte = start_byte + len(chunk)
-
-            try:
-                result = self._upload_file_with_exponential_backoff(
-                    {
-                        "start_byte": start_byte,
-                        "end_byte": end_byte,
-                        "chunk": chunk,
-                        "content": content,
-                        "upload_id": upload_id,
-                        "filename": str(filename),
-                    }
-                )
-            except HTTPError as e:
-                raise e
-
-            results.append(result)
-
-            start_byte += len(chunk)
-
-        return list(itertools.chain(*results))
-
 
 class WorkstationConfigsAPI(APIBase):
     base_path = "workstations/configs/"
@@ -483,7 +497,7 @@ class Client(SyncClient):
         self.images = ImagesAPI(client=self)
         self.reader_studies = ReaderStudiesAPI(client=self)
         self.sessions = WorkstationSessionsAPI(client=self)
-        self.chunked_uploads = ChunkedUploadsAPI(client=self)
+        self.uploads = UploadsAPI(client=self)
         self.algorithms = AlgorithmsAPI(client=self)
         self.algorithm_results = AlgorithmResultsAPI(client=self)
         self.algorithm_jobs = AlgorithmJobsAPI(client=self)
