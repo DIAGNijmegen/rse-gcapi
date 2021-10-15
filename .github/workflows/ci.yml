@@ -38,7 +38,7 @@ jobs:
         run: |
           pip install -U pip
           pip install tox codecov
-      - run: sudo echo "127.0.0.1 gc.localhost" | sudo tee -a /etc/hosts
+      - run: sudo echo "127.0.0.1 gc.localhost\n127.0.0.1 minio.localhost" | sudo tee -a /etc/hosts
       - name: Run Tox with system python
         run: tox -e py
       - name: Upload coverage results
