@@ -420,6 +420,8 @@ class UploadsAPI(APIBase):
                 {"ETag": response.headers["ETag"], "PartNumber": part_number}
             )
 
+            part_number += 1
+
         return parts
 
     def _get_next_presigned_urls(self, *, pk, s3_upload_id, part_number):
