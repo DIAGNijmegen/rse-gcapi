@@ -419,6 +419,8 @@ class UploadsAPI(APIBase):
             parts.append(
                 {"ETag": response.headers["ETag"], "PartNumber": part_number}
             )
+            
+            part_number += 1
 
         return parts
 
