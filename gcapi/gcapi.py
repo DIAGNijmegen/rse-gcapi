@@ -1,9 +1,14 @@
+import asyncio
+import atexit
+import inspect
 import logging
 import os
 import uuid
+from builtins import StopAsyncIteration
 from json import load
 from random import randint
 from time import sleep
+from typing import Any, Dict, List, AsyncIterable, AsyncIterator
 from urllib.parse import urljoin
 
 import jsonschema
@@ -146,8 +151,8 @@ class ReaderStudiesAPI(APIBase):
     answers = None  # type: ReaderStudyAnswersAPI
     questions = None  # type: ReaderStudyQuestionsAPI
 
-    def ground_truth(self, pk, case_pk):
-        result = self._client(
+    async def ground_truth(self, pk, case_pk):
+        result = await self._client(
             method="GET",
             path=urljoin(self.base_path, pk + "/ground-truth/" + case_pk),
         )
@@ -186,7 +191,7 @@ class RetinaLandmarkAnnotationSetsAPI(APIBase, ModifiableMixin):
             method="GET", path=self.base_path, params={"image_id": pk}
         )
         for i in result:
-            self._verify_against_schema(i)
+            self.verify_against_schema(i)
         return result
 
 
@@ -220,56 +225,58 @@ class UploadsAPI(APIBase):
     n_presigned_urls = 5  # number of pre-signed urls to generate
     max_retries = 10
 
-    def create(self, *, filename):
-        return self._client(
+    async def create(self, *, filename):
+        return await self._client(
             method="POST",
             path=self.base_path,
             json={"filename": str(filename)},
         )
 
-    def generate_presigned_urls(self, *, pk, s3_upload_id, part_numbers):
+    async def generate_presigned_urls(self, *, pk, s3_upload_id, part_numbers):
         url = urljoin(
             self.base_path, f"{pk}/{s3_upload_id}/generate-presigned-urls/"
         )
-        return self._client(
+        return await self._client(
             method="PATCH", path=url, json={"part_numbers": part_numbers}
         )
 
-    def abort_multipart_upload(self, *, pk, s3_upload_id):
+    async def abort_multipart_upload(self, *, pk, s3_upload_id):
         url = urljoin(
             self.base_path, f"{pk}/{s3_upload_id}/abort-multipart-upload/"
         )
-        return self._client(method="PATCH", path=url)
+        return await self._client(method="PATCH", path=url)
 
-    def complete_multipart_upload(self, *, pk, s3_upload_id, parts):
+    async def complete_multipart_upload(self, *, pk, s3_upload_id, parts):
         url = urljoin(
             self.base_path, f"{pk}/{s3_upload_id}/complete-multipart-upload/"
         )
-        return self._client(method="PATCH", path=url, json={"parts": parts})
+        return await self._client(
+            method="PATCH", path=url, json={"parts": parts}
+        )
 
-    def list_parts(self, *, pk, s3_upload_id):
+    async def list_parts(self, *, pk, s3_upload_id):
         url = urljoin(self.base_path, f"{pk}/{s3_upload_id}/list-parts/")
-        return self._client(path=url)
+        return await self._client(path=url)
 
-    def upload_fileobj(self, *, fileobj, filename):
-        user_upload = self.create(filename=filename)
+    async def upload_fileobj(self, *, fileobj, filename):
+        user_upload = await self.create(filename=filename)
 
         pk = user_upload["pk"]
         s3_upload_id = user_upload["s3_upload_id"]
 
         try:
-            parts = self._put_fileobj(
+            parts = await self._put_fileobj(
                 fileobj=fileobj, pk=pk, s3_upload_id=s3_upload_id
             )
         except Exception:
-            self.abort_multipart_upload(pk=pk, s3_upload_id=s3_upload_id)
+            await self.abort_multipart_upload(pk=pk, s3_upload_id=s3_upload_id)
             raise
 
-        return self.complete_multipart_upload(
+        return await self.complete_multipart_upload(
             pk=pk, s3_upload_id=s3_upload_id, parts=parts
         )
 
-    def _put_fileobj(self, *, fileobj, pk, s3_upload_id):
+    async def _put_fileobj(self, *, fileobj, pk, s3_upload_id):
         part_number = 1  # s3 uses 1-indexed chunks
         presigned_urls = {}
         parts = []
@@ -282,14 +289,14 @@ class UploadsAPI(APIBase):
 
             if str(part_number) not in presigned_urls:
                 presigned_urls.update(
-                    self._get_next_presigned_urls(
+                    await self._get_next_presigned_urls(
                         pk=pk,
                         s3_upload_id=s3_upload_id,
                         part_number=part_number,
                     )
                 )
 
-            response = self._put_chunk(
+            response = await self._put_chunk(
                 chunk=chunk, url=presigned_urls[str(part_number)]
             )
 
@@ -301,8 +308,8 @@ class UploadsAPI(APIBase):
 
         return parts
 
-    def _get_next_presigned_urls(self, *, pk, s3_upload_id, part_number):
-        response = self.generate_presigned_urls(
+    async def _get_next_presigned_urls(self, *, pk, s3_upload_id, part_number):
+        response = await self.generate_presigned_urls(
             pk=pk,
             s3_upload_id=s3_upload_id,
             part_numbers=[
@@ -311,13 +318,13 @@ class UploadsAPI(APIBase):
         )
         return response["presigned_urls"]
 
-    def _put_chunk(self, *, chunk, url):
+    async def _put_chunk(self, *, chunk, url):
         num_retries = 0
         e = Exception
 
         while num_retries < self.max_retries:
             try:
-                result = self._client.request(
+                result = await self._client.request(
                     method="PUT", url=url, content=chunk
                 )
                 break
@@ -339,7 +346,7 @@ class WorkstationConfigsAPI(APIBase):
     base_path = "workstations/configs/"
 
 
-class Client(ClientBase):
+class AsyncClient(ClientBase):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
 
@@ -368,3 +375,252 @@ class Client(ClientBase):
             client=self
         )
         self.raw_image_upload_sessions = UploadSessionsAPI(client=self)
+
+    async def _upload_files(self, *, files, **kwargs):
+        uploads = []
+        for file in files:
+            with open(file, "rb") as f:
+                uploads.append(
+                    await self.uploads.upload_fileobj(
+                        fileobj=f, filename=file.name
+                    )
+                )
+
+        raw_image_upload_session = await self.raw_image_upload_sessions.create(
+            uploads=[u["api_url"] for u in uploads], **kwargs,
+        )
+
+        return raw_image_upload_session
+
+    async def upload_cases(
+        self,
+        *,
+        files: List[str],
+        archive: str = None,
+        reader_study: str = None,
+    ):
+        """
+        Uploads a set of files to an archive or reader study.
+
+        A new upload session will be created on grand challenge to import and
+        standardise your files. This function will return this new upload
+        session object, that you can query for the import status. If this
+        import is successful, the new images will then be added to the selected
+        archive or reader study.
+
+        You will need to provide the slugs of the objects to pass the images
+        along to. You can find this in the url of the object that you want
+        to use. For instance, if you want to use the archive at
+
+            https://grand-challenge.org/archives/corads-ai/
+
+        the slug for this is "corads-ai", so you would call this function with
+
+            upload_cases(files=[...], archive="corads-ai")
+
+        Parameters
+        ----------
+        files
+            The list of files on disk that form 1 Image. These can be a set of
+            .mha, .mhd, .raw, .zraw, .dcm, .nii, .nii.gz, .tiff, .png, .jpeg,
+            .jpg, .svs, .vms, .vmu, .ndpi, .scn, .mrxs and/or .bif files.
+        archive
+            The slug of the archive to use.
+        reader_study
+            The slug of the reader study to use.
+
+        Returns
+        -------
+            The created upload session.
+        """
+        upload_session_data = {}
+
+        if len(files) == 0:
+            raise ValueError("You must specify the files to upload")
+
+        if reader_study is not None:
+            upload_session_data["reader_study"] = reader_study
+
+        if archive is not None:
+            upload_session_data["archive"] = archive
+
+        if len(upload_session_data) != 1:
+            raise ValueError("One of archive or reader_study should be set")
+
+        raw_image_upload_session = await self._upload_files(
+            files=files, **upload_session_data
+        )
+
+        return raw_image_upload_session
+
+    async def run_external_job(
+        self, *, algorithm: str, inputs: Dict[str, Any]
+    ):
+        """
+        Starts an algorithm job with the provided inputs.
+
+        You will need to provide the slug of the algorithm. You can find this in the
+        url of the algorithm that you want to use. For instance, if you want to use
+        the algorithm at
+
+            https://grand-challenge.org/algorithms/corads-ai/
+
+        the slug for this algorithm is "corads-ai".
+
+        For each input interface defined on the algorithm you need to provide a
+        key-value pair (unless the interface has a default value),
+        the key being the slug of the interface, the value being the
+        value for the interface. You can get the interfaces of an algorithm by calling
+
+            client.algorithms.detail(slug="corads-ai")
+
+        and inspecting the ["inputs"] of the result.
+
+        For image type interfaces (super_kind="Image"), you can provide a list of
+        files, which will be uploaded, or a link to an existing image.
+
+        So to run this algorithm with a new upload you would call this function by:
+
+            client.run_external_job(
+                algorithm="corads-ai",
+                inputs={
+                    "generic-medical-image": [...]
+                }
+            )
+
+        or to run with an existing image by:
+            client.run_external_job(
+                algorithm="corads-ai",
+                inputs={
+                    "generic-medical-image":
+                    "https://grand-challenge.org/api/v1/cases/images/.../"
+                }
+            )
+
+        Parameters
+        ----------
+        algorithm
+        inputs
+
+        Returns
+        -------
+        The created job
+        """
+        alg = await self.algorithms.detail(slug=algorithm)
+        input_interfaces = {ci["slug"]: ci for ci in alg["inputs"]}
+
+        for ci in input_interfaces:
+            if (
+                ci not in inputs
+                and input_interfaces[ci]["default_value"] is None
+            ):
+                raise ValueError(f"{ci} is not provided")
+
+        job = {"algorithm": alg["api_url"], "inputs": []}
+        for input_title, value in inputs.items():
+            ci = input_interfaces.get(input_title, None)
+            if not ci:
+                raise ValueError(
+                    f"{input_title} is not an input interface for this algorithm"
+                )
+
+            i = {"interface": ci["slug"]}
+            if ci["super_kind"].lower() == "image":
+                if isinstance(value, list):
+                    raw_image_upload_session = await self._upload_files(
+                        files=value
+                    )
+                    i["upload_session"] = raw_image_upload_session["api_url"]
+                elif isinstance(value, str):
+                    i["image"] = value
+            else:
+                i["value"] = value
+            job["inputs"].append(i)
+
+        return await self.algorithm_jobs.create(**job)
+
+
+def make_sync(coroutinefunction):
+    if inspect.isasyncgenfunction(coroutinefunction):
+
+        def wrap(*args, **kwargs):
+            loop = asyncio.get_event_loop()
+
+            async_iterator: AsyncIterator[Any] = coroutinefunction(
+                *args, **kwargs
+            )
+            try:
+                while True:
+                    yield loop.run_until_complete(async_iterator.__anext__())
+            except StopAsyncIteration:
+                pass
+
+    else:
+
+        def wrap(*args, **kwargs):
+            loop = asyncio.get_event_loop()
+            return loop.run_until_complete(coroutinefunction(*args, **kwargs))
+
+    return wrap
+
+
+class Client:
+    __async_client: AsyncClient
+
+    def __init__(self, *args, **kwargs):
+        self.__async_client = AsyncClient(*args, **kwargs)
+
+        self._auth_header = self.__async_client._auth_header
+        self.headers = self.__async_client.headers
+
+        def wrap_api(base: APIBase):
+            new_attrs = {}
+
+            for name in dir(base):
+                if name.startswith("_"):
+                    continue
+                item = getattr(base, name)
+                if isinstance(item, APIBase):
+                    new_attrs[name] = wrap_api(item)
+                elif inspect.isasyncgenfunction(item):
+                    new_attrs[name] = staticmethod(make_sync(item))
+                elif inspect.iscoroutinefunction(item):
+                    new_attrs[name] = staticmethod(make_sync(item))
+                elif callable(item):
+                    new_attrs[name] = staticmethod(item)
+                else:
+                    new_attrs[name] = item
+
+            return type(f"Synchronized{type(base).__name__}", (), new_attrs)()
+
+        for name in dir(self.__async_client):
+            item = getattr(self.__async_client, name)
+            if not isinstance(item, APIBase):
+                continue
+
+            setattr(self, name, wrap_api(item))
+
+        atexit.register(self.close)
+
+    def close(self):
+        atexit.unregister(self.close)
+        make_sync(self.__async_client.aclose())()
+
+    @property
+    def base_url(self):
+        return self.__async_client.base_url
+
+    def validate_url(self, *args, **kwargs):
+        self.__async_client.validate_url(*args, **kwargs)
+
+    @make_sync
+    async def __call__(self, *args, **kwargs):
+        return await self.__async_client(*args, **kwargs)
+
+    @make_sync
+    async def run_external_job(self, *args, **kwargs):
+        return await self.__async_client.run_external_job(*args, **kwargs)
+
+    @make_sync
+    async def upload_cases(self, *args, **kwargs):
+        return await self.__async_client.upload_cases(*args, **kwargs)
