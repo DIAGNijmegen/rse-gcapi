@@ -1,17 +1,9 @@
-import logging
-import os
-import re
-import uuid
-from json import load
-from random import randint
-from time import sleep
-from typing import Any, Dict, List, Type
-from urllib.parse import urljoin, urlparse
+from typing import Any, Dict, Type
+from urllib.parse import urljoin
 
 import jsonschema
 from gcapi.client import ClientBase
-from httpx import Client as SyncClient
-from httpx import HTTPStatusError, Timeout
+from httpx import HTTPStatusError
 
 from .exceptions import MultipleObjectsReturned, ObjectNotFound
 

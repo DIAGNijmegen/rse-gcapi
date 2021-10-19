@@ -4,7 +4,7 @@ import re
 from typing import Any, Dict, List
 from urllib.parse import urljoin, urlparse
 
-from httpx import Client as SyncClient, AsyncClient
+from httpx import Client as SyncClient
 from httpx import HTTPStatusError, Timeout
 
 logger = logging.getLogger(__name__)

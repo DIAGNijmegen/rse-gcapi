@@ -1,20 +1,15 @@
 import logging
 import os
-import re
 import uuid
 from json import load
 from random import randint
 from time import sleep
-from typing import Any, Dict, List, Type
 from urllib.parse import urljoin, urlparse
 
 import jsonschema
-from httpx import Client as SyncClient
 from httpx import HTTPStatusError, Timeout
 from .apibase import APIBase, ModifiableMixin
 from .client import ClientBase
-
-from .exceptions import MultipleObjectsReturned, ObjectNotFound
 
 logger = logging.getLogger(__name__)
 
