@@ -5,7 +5,7 @@ from time import sleep
 import pytest
 from httpx import HTTPStatusError
 
-from gcapi import Client
+from gcapi import Client, AsyncClient
 from gcapi.exceptions import MultipleObjectsReturned, ObjectNotFound
 
 RETINA_TOKEN = "f1f98a1733c05b12118785ffd995c250fe4d90da"
@@ -249,11 +249,12 @@ def test_detail_multiple_objects(local_grand_challenge):
     with pytest.raises(MultipleObjectsReturned):
         c.uploads.detail(slug="")
 
+@pytest.mark.anyio
+async def test_auth_headers_not_sent():
+    async with AsyncClient(token="foo") as c:
+        response = await c.uploads._put_chunk(
+            chunk=BytesIO(b"123"), url="https://httpbin.org/put"
+        )
+        sent_headers = response.json()["headers"]
+        assert not set(c._auth_header.keys()) & set(sent_headers.keys())
 
-def test_auth_headers_not_sent():
-    c = Client(token="foo")
-    response = c.uploads._put_chunk(
-        chunk=BytesIO(b"123"), url="https://httpbin.org/put"
-    )
-    sent_headers = response.json()["headers"]
-    assert not set(c._auth_header.keys()) & set(sent_headers.keys())

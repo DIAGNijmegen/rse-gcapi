@@ -5,6 +5,7 @@ import logging
 import os
 import threading
 import uuid
+from io import BytesIO
 from json import load
 from random import randint
 from time import sleep
@@ -18,7 +19,7 @@ from typing import (
 from urllib.parse import urljoin
 
 import jsonschema
-from httpx import HTTPStatusError
+from httpx import HTTPStatusError, AsyncByteStream
 
 from .apibase import APIBase, ModifiableMixin
 from .client import ClientBase
@@ -327,6 +328,9 @@ class UploadsAPI(APIBase):
     async def _put_chunk(self, *, chunk, url):
         num_retries = 0
         e = Exception
+
+        if isinstance(chunk, BytesIO):
+            chunk = chunk.read()
 
         while num_retries < self.max_retries:
             try:
