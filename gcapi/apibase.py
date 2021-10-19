@@ -30,6 +30,19 @@ class APIBase(Common):
             setattr(self, k, api(self._client))
 
     def verify_against_schema(self, value):
+        """
+        Verify the given value against the configured jsonschema.
+
+        Parameters
+        ----------
+        value: Any
+            Some parsed json-value to verify.
+
+        Raises
+        ------
+        ValidationError:
+            Raised in case the value verification failed.
+        """
         schema = self.validation_schemas.get("GET")
         if schema is not None:
             schema.validate(value)

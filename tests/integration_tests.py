@@ -14,6 +14,10 @@ READERSTUDY_TOKEN = "01614a77b1c0b4ecd402be50a8ff96188d5b011d"
 DEMO_PARTICIPANT_TOKEN = "00aa710f4dc5621a0cb64b0795fbba02e39d7700"
 
 
+def pytest_sessionfinish(session, exitstatus):
+    Client.force_close_open_async_clients()
+
+
 @pytest.mark.parametrize(
     "annotation",
     [

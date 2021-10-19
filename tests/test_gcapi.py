@@ -5,6 +5,10 @@ from jsonschema import ValidationError
 from gcapi import Client, cli
 
 
+def pytest_sessionfinish(session, exitstatus):
+    Client.force_close_open_async_clients()
+
+
 @pytest.mark.parametrize(
     "kwargs", ({}, {"token": ""}, {"token": "not a token"})
 )

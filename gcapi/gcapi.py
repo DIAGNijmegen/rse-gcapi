@@ -3,12 +3,22 @@ import atexit
 import inspect
 import logging
 import os
+import threading
 import uuid
+import weakref
 from builtins import StopAsyncIteration
 from json import load
 from random import randint
 from time import sleep
-from typing import Any, Dict, List, AsyncIterable, AsyncIterator
+from typing import (
+    Any,
+    Dict,
+    List,
+    AsyncIterable,
+    AsyncIterator,
+    Optional,
+    Callable,
+)
 from urllib.parse import urljoin
 
 import jsonschema
@@ -540,7 +550,7 @@ class AsyncClient(ClientBase):
         return await self.algorithm_jobs.create(**job)
 
 
-def make_sync(coroutinefunction):
+def make_sync(coroutinefunction) -> Callable:
     if inspect.isasyncgenfunction(coroutinefunction):
 
         def wrap(*args, **kwargs):
@@ -565,10 +575,27 @@ def make_sync(coroutinefunction):
 
 
 class Client:
+    UNCLOSED_ASYNC_CLIENTS_LOCK = threading.RLock()
+    UNCLOSED_ASYNC_CLIENTS: List["Client"] = []
+
+    @classmethod
+    def force_close_open_async_clients(cls):
+        """
+        Immediately closes all created async clients created for servicing
+        synchronous clients. Generally, should not be called by a user as
+        it invalidates all open Clients.
+        """
+        with cls.UNCLOSED_ASYNC_CLIENTS_LOCK:
+            for client in tuple(cls.UNCLOSED_ASYNC_CLIENTS):
+                client.close()
+            del cls.UNCLOSED_ASYNC_CLIENTS[:]
+
     __async_client: AsyncClient
 
     def __init__(self, *args, **kwargs):
         self.__async_client = AsyncClient(*args, **kwargs)
+        with self.UNCLOSED_ASYNC_CLIENTS_LOCK:
+            self.UNCLOSED_ASYNC_CLIENTS.append(self)
 
         self._auth_header = self.__async_client._auth_header
         self.headers = self.__async_client.headers
@@ -600,11 +627,11 @@ class Client:
 
             setattr(self, name, wrap_api(item))
 
-        atexit.register(self.close)
-
-    def close(self):
-        atexit.unregister(self.close)
-        make_sync(self.__async_client.aclose())()
+    @make_sync
+    async def close(self):
+        with self.UNCLOSED_ASYNC_CLIENTS_LOCK:
+            await self.__async_client.aclose()
+            self.UNCLOSED_ASYNC_CLIENTS.remove(self)
 
     @property
     def base_url(self):
@@ -624,3 +651,6 @@ class Client:
     @make_sync
     async def upload_cases(self, *args, **kwargs):
         return await self.__async_client.upload_cases(*args, **kwargs)
+
+
+atexit.register(Client.force_close_open_async_clients)
