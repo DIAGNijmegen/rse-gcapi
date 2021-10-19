@@ -1,4 +1,4 @@
-from typing import Dict, Type, Optional
+from typing import Dict, Optional, Type
 from urllib.parse import urljoin
 
 import jsonschema
