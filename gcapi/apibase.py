@@ -1,4 +1,4 @@
-from typing import Dict, Type
+from typing import Dict, Type, Optional
 from urllib.parse import urljoin
 
 import jsonschema
@@ -9,7 +9,7 @@ from .exceptions import MultipleObjectsReturned, ObjectNotFound
 
 
 class APIBase:
-    _client: ClientBase = None
+    _client: Optional[ClientBase] = None
     base_path = ""
     sub_apis: Dict[str, Type["APIBase"]] = {}
 
@@ -91,7 +91,7 @@ class APIBase:
 
 
 class ModifiableMixin:
-    _client: ClientBase = None
+    _client: Optional[ClientBase] = None
 
     def __init__(self):
         pass
