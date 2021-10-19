@@ -4,10 +4,10 @@ import uuid
 from json import load
 from random import randint
 from time import sleep
-from urllib.parse import urljoin, urlparse
+from urllib.parse import urljoin
 
 import jsonschema
-from httpx import HTTPStatusError, Timeout
+from httpx import HTTPStatusError
 from .apibase import APIBase, ModifiableMixin
 from .client import ClientBase
 
