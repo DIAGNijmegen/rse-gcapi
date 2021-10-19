@@ -1,7 +1,7 @@
 import logging
 import os
 import re
-from typing import Any, Dict, List
+from typing import Dict
 from urllib.parse import urljoin, urlparse
 
 from httpx import AsyncClient

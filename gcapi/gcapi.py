@@ -5,19 +5,15 @@ import logging
 import os
 import threading
 import uuid
-import weakref
-from builtins import StopAsyncIteration
 from json import load
 from random import randint
 from time import sleep
 from typing import (
     Any,
+    AsyncIterator,
+    Callable,
     Dict,
     List,
-    AsyncIterable,
-    AsyncIterator,
-    Optional,
-    Callable,
 )
 from urllib.parse import urljoin
 
