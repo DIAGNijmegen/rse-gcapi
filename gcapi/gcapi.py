@@ -341,7 +341,7 @@ class WorkstationConfigsAPI(APIBase):
 
 class Client(ClientBase):
     def __init__(self, *args, **kwargs):
-        super(Client, self).__init__(*args, **kwargs)
+        super().__init__(*args, **kwargs)
 
         self.images = ImagesAPI(client=self)
         self.reader_studies = ReaderStudiesAPI(client=self)
