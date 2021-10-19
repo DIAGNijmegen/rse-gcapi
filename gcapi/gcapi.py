@@ -8,6 +8,7 @@ from urllib.parse import urljoin
 
 import jsonschema
 from httpx import HTTPStatusError
+
 from .apibase import APIBase, ModifiableMixin
 from .client import ClientBase
 

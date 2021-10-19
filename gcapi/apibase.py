@@ -2,10 +2,9 @@ from typing import Dict, Type
 from urllib.parse import urljoin
 
 import jsonschema
-
 from httpx import HTTPStatusError
-from gcapi.client import ClientBase
 
+from gcapi.client import ClientBase
 from .exceptions import MultipleObjectsReturned, ObjectNotFound
 
 
