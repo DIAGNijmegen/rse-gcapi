@@ -6,7 +6,7 @@ from gcapi import Client, cli
 
 
 def pytest_sessionfinish(session, exitstatus):
-    Client.force_close_open_async_clients()
+   Client.force_close_open_async_clients()
 
 
 @pytest.mark.parametrize(

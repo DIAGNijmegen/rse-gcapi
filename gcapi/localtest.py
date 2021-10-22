@@ -1,6 +1,6 @@
 import time
 import asyncio
-from typing import NamedTuple, Tuple, Dict, Callable
+from typing import NamedTuple, Tuple, Dict, Callable, Union, Type
 
 
 class SyncBase:
@@ -47,22 +47,24 @@ CapturedCall.SLOT = object()
 
 
 class CallCapture:
+    ref_self: Union[object, Callable]
+
     def __init__(self, ref_self=CapturedCall.SLOT):
         self.ref_self = ref_self
 
-    def __getattr__(self, item):
+    def __getattr__(self, item) -> "CallCapture":
         return CallCapture(
             CapturedCall(func=getattr, args=(self.ref_self, item), kwargs={})
         )
 
-    def __getitem__(self, item):
+    def __getitem__(self, item) -> "CallCapture":
         return CallCapture(
             CapturedCall(
                 func=lambda a, b: a[b], args=(self.ref_self, item), kwargs={}
             )
         )
 
-    def __call__(self, *args, **kwargs):
+    def __call__(self, *args, **kwargs) -> CapturedCall:
         return CapturedCall(func=self.ref_self, args=args, kwargs=kwargs)
 
 
@@ -120,7 +122,42 @@ class Async(AsyncBase):
             return e.value
 
 
+def y1():
+    yield 2
+    yield 3
+    return "result"
+
+
+def y2():
+    result = yield from y1()
+    return f"wrapped:{result}"
+
+
+class Y:
+    def __iter__(self):
+        result = yield from y2()
+        return result
+
+
+def yy():
+    r = yield from Y()
+    print("r=", r)
+
+
 if __name__ == "__main__":
+    print("=== recursive yield")
+    y2call = y2()
+
+    try:
+        while True:
+            print("yielded ", y2call.send(None))
+    except StopIteration as e:
+        print("Result", e.value)
+
+    print("=== yield from __iter__")
+    for x in yy():
+        print(x)
+
     print("=== Testing async loop")
     el = asyncio.get_event_loop()
     el.run_until_complete(Async().async_call())

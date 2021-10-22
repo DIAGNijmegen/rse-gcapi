@@ -4,14 +4,25 @@ from urllib.parse import urljoin
 import jsonschema
 from httpx import HTTPStatusError
 
-from gcapi.client import ClientBase
 from .exceptions import MultipleObjectsReturned, ObjectNotFound
+from .sync_async_hybrid_support import CallCapture
+
+
+class ClientInterface:
+    @property
+    def base_url(self) -> str:
+        ...
+
+    def validate_url(self, url):
+        ...
 
 
 class Common:
-    _client: Optional[ClientBase] = None
+    _client: Optional[ClientInterface] = None
     base_path = ""
     validation_schemas: Optional[Dict[str, jsonschema.Draft7Validator]] = None
+
+    yield_request = CallCapture()
 
 
 class APIBase(Common):
@@ -47,21 +58,21 @@ class APIBase(Common):
         if schema is not None:
             schema.validate(value)
 
-    async def list(self, params=None):
-        result = await self._client(
+    def list(self, params=None):
+        result = yield self.yield_request(
             method="GET", path=self.base_path, params=params
         )
         for i in result:
             self.verify_against_schema(i)
         return result
 
-    async def page(self, offset=0, limit=100, params=None):
+    def page(self, offset=0, limit=100, params=None):
         if params is None:
             params = {}
         params["offset"] = offset
         params["limit"] = limit
         result = (
-            await self._client(
+            yield self.yield_request(
                 method="GET", path=self.base_path, params=params
             )
         )["results"]
@@ -69,11 +80,12 @@ class APIBase(Common):
             self.verify_against_schema(i)
         return result
 
-    async def iterate_all(self, params=None):
+    def iterate_all(self, params=None):
+        raise NotImplementedError("SPEACIAL WORK REQUIRED!")
         req_count = 100
         offset = 0
         while True:
-            current_list = await self.page(
+            current_list = yield from self.page(
                 offset=offset, limit=req_count, params=params
             )
             if len(current_list) == 0:
@@ -82,13 +94,13 @@ class APIBase(Common):
                 yield item
             offset += req_count
 
-    async def detail(self, pk=None, **params):
+    def detail(self, pk=None, **params):
         if all((pk, params)):
             raise ValueError("Only one of pk or params must be specified")
 
         if pk is not None:
             try:
-                result = await self._client(
+                result = yield self.yield_request(
                     method="GET", path=urljoin(self.base_path, pk + "/")
                 )
             except HTTPStatusError as e:
@@ -99,7 +111,8 @@ class APIBase(Common):
 
             self.verify_against_schema(result)
         else:
-            results = list(await self.page(params=params))
+            results = yield from self.page(params=params)
+            results = list(results)
             if len(results) == 1:
                 result = results[0]
             elif len(results) == 0:
@@ -111,9 +124,6 @@ class APIBase(Common):
 
 
 class ModifiableMixin(Common):
-    def __init__(self):
-        pass
-
     def _process_request_arguments(self, method, data):
         if data is None:
             data = {}
@@ -122,26 +132,26 @@ class ModifiableMixin(Common):
             schema.validate(data)
         return data
 
-    async def _execute_request(self, method, data, pk):
+    def _execute_request(self, method, data, pk):
         url = (
             self.base_path
             if not pk
             else urljoin(self.base_path, str(pk) + "/")
         )
-        return await self._client(method=method, path=url, json=data)
+        return (yield self.yield_request(method=method, path=url, json=data))
 
-    async def perform_request(self, method, data=None, pk=False):
+    def perform_request(self, method, data=None, pk=False):
         data = self._process_request_arguments(method, data)
-        return await self._execute_request(method, data, pk)
+        return (yield from self._execute_request(method, data, pk))
 
-    async def create(self, **kwargs):
-        return await self.perform_request("POST", data=kwargs)
+    def create(self, **kwargs):
+        return (yield from self.perform_request("POST", data=kwargs))
 
-    async def update(self, pk, **kwargs):
-        return await self.perform_request("PUT", pk=pk, data=kwargs)
+    def update(self, pk, **kwargs):
+        return (yield from self.perform_request("PUT", pk=pk, data=kwargs))
 
-    async def partial_update(self, pk, **kwargs):
-        return await self.perform_request("PATCH", pk=pk, data=kwargs)
+    def partial_update(self, pk, **kwargs):
+        return (yield from self.perform_request("PATCH", pk=pk, data=kwargs))
 
-    async def delete(self, pk):
-        return await self.perform_request("DELETE", pk=pk)
+    def delete(self, pk):
+        return (yield from self.perform_request("DELETE", pk=pk))
