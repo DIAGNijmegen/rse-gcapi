@@ -38,17 +38,27 @@ class Client(ClientBase, httpx.Client):
         ClientBase.__init__(self, httpx.Client, *args, **kwargs)
 
         def wrap_api(api: APIBase):
+            attrs = {"__init__": lambda *_, **__: None}
+
             for name in dir(api):
                 if name.startswith("__"):
                     continue
                 item = getattr(api, name)
                 if inspect.isgeneratorfunction(item):
-                    setattr(api, name, self.__wrap_sync(item))
+                    attrs[name] = staticmethod(self.__wrap_sync(item))
+                else:
+                    attrs[name] = item
             for sub_api_name in api.sub_apis:
-                wrap_api(getattr(api, sub_api_name))
+                attrs[sub_api_name] = wrap_api(getattr(api, sub_api_name))
+            return type(
+                f"SyncWrapped{type(api).__name__}", (type(api),), attrs
+            )
 
         for api_name in self._api_meta.__annotations__.keys():
-            wrap_api(getattr(self._api_meta, api_name))
+            wrapped = wrap_api(getattr(self._api_meta, api_name))
+            setattr(
+                self._api_meta, api_name, wrapped,
+            )
 
     def __call__(self, *args, **kwargs):
         return self.__wrap_sync(super(Client, self).__call__)(*args, **kwargs)

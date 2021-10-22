@@ -225,58 +225,68 @@ class UploadsAPI(APIBase):
     n_presigned_urls = 5  # number of pre-signed urls to generate
     max_retries = 10
 
-    async def create(self, *, filename):
-        return await self._client(
-            method="POST",
-            path=self.base_path,
-            json={"filename": str(filename)},
+    def create(self, *, filename):
+        return (
+            yield self.yield_request(
+                method="POST",
+                path=self.base_path,
+                json={"filename": str(filename)},
+            )
         )
 
-    async def generate_presigned_urls(self, *, pk, s3_upload_id, part_numbers):
+    def generate_presigned_urls(self, *, pk, s3_upload_id, part_numbers):
         url = urljoin(
             self.base_path, f"{pk}/{s3_upload_id}/generate-presigned-urls/"
         )
-        return await self._client(
-            method="PATCH", path=url, json={"part_numbers": part_numbers}
+        return (
+            yield self.yield_request(
+                method="PATCH", path=url, json={"part_numbers": part_numbers}
+            )
         )
 
-    async def abort_multipart_upload(self, *, pk, s3_upload_id):
+    def abort_multipart_upload(self, *, pk, s3_upload_id):
         url = urljoin(
             self.base_path, f"{pk}/{s3_upload_id}/abort-multipart-upload/"
         )
-        return await self._client(method="PATCH", path=url)
+        return (yield self.yield_request(method="PATCH", path=url))
 
-    async def complete_multipart_upload(self, *, pk, s3_upload_id, parts):
+    def complete_multipart_upload(self, *, pk, s3_upload_id, parts):
         url = urljoin(
             self.base_path, f"{pk}/{s3_upload_id}/complete-multipart-upload/"
         )
-        return await self._client(
-            method="PATCH", path=url, json={"parts": parts}
+        return (
+            yield self.yield_request(
+                method="PATCH", path=url, json={"parts": parts}
+            )
         )
 
-    async def list_parts(self, *, pk, s3_upload_id):
+    def list_parts(self, *, pk, s3_upload_id):
         url = urljoin(self.base_path, f"{pk}/{s3_upload_id}/list-parts/")
-        return await self._client(path=url)
+        return (yield self.yield_request(path=url))
 
-    async def upload_fileobj(self, *, fileobj, filename):
-        user_upload = await self.create(filename=filename)
+    def upload_fileobj(self, *, fileobj, filename):
+        user_upload = yield from self.create(filename=filename)
 
         pk = user_upload["pk"]
         s3_upload_id = user_upload["s3_upload_id"]
 
         try:
-            parts = await self._put_fileobj(
+            parts = yield from self._put_fileobj(
                 fileobj=fileobj, pk=pk, s3_upload_id=s3_upload_id
             )
         except Exception:
-            await self.abort_multipart_upload(pk=pk, s3_upload_id=s3_upload_id)
+            yield from self.abort_multipart_upload(
+                pk=pk, s3_upload_id=s3_upload_id
+            )
             raise
 
-        return await self.complete_multipart_upload(
-            pk=pk, s3_upload_id=s3_upload_id, parts=parts
+        return (
+            yield from self.complete_multipart_upload(
+                pk=pk, s3_upload_id=s3_upload_id, parts=parts
+            )
         )
 
-    async def _put_fileobj(self, *, fileobj, pk, s3_upload_id):
+    def _put_fileobj(self, *, fileobj, pk, s3_upload_id):
         part_number = 1  # s3 uses 1-indexed chunks
         presigned_urls = {}
         parts = []
@@ -289,14 +299,16 @@ class UploadsAPI(APIBase):
 
             if str(part_number) not in presigned_urls:
                 presigned_urls.update(
-                    await self._get_next_presigned_urls(
-                        pk=pk,
-                        s3_upload_id=s3_upload_id,
-                        part_number=part_number,
+                    (
+                        yield from self._get_next_presigned_urls(
+                            pk=pk,
+                            s3_upload_id=s3_upload_id,
+                            part_number=part_number,
+                        )
                     )
                 )
 
-            response = await self._put_chunk(
+            response = yield from self._put_chunk(
                 chunk=chunk, url=presigned_urls[str(part_number)]
             )
 
@@ -308,8 +320,8 @@ class UploadsAPI(APIBase):
 
         return parts
 
-    async def _get_next_presigned_urls(self, *, pk, s3_upload_id, part_number):
-        response = await self.generate_presigned_urls(
+    def _get_next_presigned_urls(self, *, pk, s3_upload_id, part_number):
+        response = yield from self.generate_presigned_urls(
             pk=pk,
             s3_upload_id=s3_upload_id,
             part_numbers=[
@@ -318,7 +330,7 @@ class UploadsAPI(APIBase):
         )
         return response["presigned_urls"]
 
-    async def _put_chunk(self, *, chunk, url):
+    def _put_chunk(self, *, chunk, url):
         num_retries = 0
         e = Exception
 
@@ -327,7 +339,7 @@ class UploadsAPI(APIBase):
 
         while num_retries < self.max_retries:
             try:
-                result = await self._client.request(
+                result = yield self.yield_request.request(
                     method="PUT", url=url, content=chunk
                 )
                 break
