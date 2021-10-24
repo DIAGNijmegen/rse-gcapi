@@ -1,7 +1,7 @@
 import inspect
 import logging
 from functools import wraps
-from typing import Any, Dict
+from typing import Any, Dict, List
 
 import httpx
 
@@ -63,6 +63,16 @@ class Client(httpx.Client, ClientBase):
 
     def __call__(self, *args, **kwargs):
         return self.__wrap_sync(super(Client, self).__call__)(*args, **kwargs)
+
+    def upload_cases(self, *args, **kwargs):
+        return self.__wrap_sync(super(Client, self).upload_cases)(
+            *args, **kwargs
+        )
+
+    def run_external_job(self, *args, **kwargs):
+        return self.__wrap_sync(super(Client, self).run_external_job)(
+            *args, **kwargs
+        )
 
 
 class AsyncClient:
