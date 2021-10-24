@@ -1,4 +1,4 @@
-from typing import Any, NamedTuple, Tuple, Dict, Callable, Union
+from typing import Callable, Dict, NamedTuple, Tuple, Union
 
 
 class _CapturedCall(NamedTuple):
@@ -51,7 +51,8 @@ class CallCapture:
         return CapturedCall(func=self.ref_self, args=args, kwargs=kwargs)
 
 
-# Thanks to https://stackoverflow.com/questions/34073370/best-way-to-receive-the-return-value-from-a-python-generator
+# Thanks to https://stackoverflow.com/questions/34073370/best-way-to-receive-
+# the-return-value-from-a-python-generator
 """class CaptureResults:
     def __init__(self, gen):
         self.gen = gen

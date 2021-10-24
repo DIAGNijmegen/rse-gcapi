@@ -1,20 +1,20 @@
 import logging
-import re
-from typing import Any, Dict, List, TYPE_CHECKING, Generator
-from urllib.parse import urljoin, urlparse
 import os
+import re
 import uuid
 from io import BytesIO
 from json import load
 from random import randint
 from time import sleep
+from typing import Any, Dict, Generator, TYPE_CHECKING
+from urllib.parse import urljoin
 
 import httpx
-from httpx import Timeout, URL
 import jsonschema
 from httpx import HTTPStatusError
+from httpx import Timeout, URL
 
-from gcapi.apibase import APIBase, ModifiableMixin, ClientInterface
+from gcapi.apibase import APIBase, ClientInterface, ModifiableMixin
 from gcapi.sync_async_hybrid_support import CapturedCall
 
 logger = logging.getLogger(__name__)
@@ -280,7 +280,7 @@ class UploadsAPI(APIBase):
             )
             raise
 
-        return (
+        return (  # noqa: B901
             yield from self.complete_multipart_upload(
                 pk=pk, s3_upload_id=s3_upload_id, parts=parts
             )

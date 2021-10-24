@@ -1,7 +1,7 @@
 import inspect
 import logging
 from functools import wraps
-from typing import Dict, Any
+from typing import Any, Dict
 
 import httpx
 
