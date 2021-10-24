@@ -418,7 +418,7 @@ class ClientBase(ApiDefinitions, ClientInterface):
         self.headers.update({"Accept": "application/json"})
         self._auth_header = _generate_auth_header(token=token)
 
-        self.base_url = base_url
+        self.base_url = URL(base_url)
         if self.base_url.scheme.lower() != "https":
             raise RuntimeError("Base URL must be https")
 

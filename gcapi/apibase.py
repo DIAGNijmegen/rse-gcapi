@@ -1,11 +1,12 @@
-from typing import Dict, Optional, Type, Generator, Any
+from typing import Any, Dict, Generator, Optional, Type
 from urllib.parse import urljoin
 
 import jsonschema
 from httpx import HTTPStatusError, URL
+from httpx._types import URLTypes
 
 from .exceptions import MultipleObjectsReturned, ObjectNotFound
-from .sync_async_hybrid_support import CallCapture
+from .sync_async_hybrid_support import CallCapture, CapturedCall
 
 
 class ClientInterface:
@@ -14,14 +15,24 @@ class ClientInterface:
         ...
 
     @base_url.setter
-    def base_url(self, v):
+    def base_url(self, v: URLTypes):
         ...
 
     def validate_url(self, url):
         ...
 
-    def __call__(self, *args, **kwargs) -> Generator[Any, Any, Any]:
-        ...
+    def __call__(
+        self,
+        method="GET",
+        url="",
+        path="",
+        params=None,
+        json=None,
+        extra_headers=None,
+        files=None,
+        data=None,
+    ) -> Generator[CapturedCall, Any, Any]:
+        pass
 
 
 class Common:
