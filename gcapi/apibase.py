@@ -1,8 +1,8 @@
-from typing import Dict, Optional, Type
+from typing import Dict, Optional, Type, Generator, Any
 from urllib.parse import urljoin
 
 import jsonschema
-from httpx import HTTPStatusError
+from httpx import HTTPStatusError, URL
 
 from .exceptions import MultipleObjectsReturned, ObjectNotFound
 from .sync_async_hybrid_support import CallCapture
@@ -10,10 +10,17 @@ from .sync_async_hybrid_support import CallCapture
 
 class ClientInterface:
     @property
-    def base_url(self) -> str:
+    def base_url(self) -> URL:
+        ...
+
+    @base_url.setter
+    def base_url(self, v):
         ...
 
     def validate_url(self, url):
+        ...
+
+    def __call__(self, *args, **kwargs) -> Generator[Any, Any, Any]:
         ...
 
 

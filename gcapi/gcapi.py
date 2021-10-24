@@ -1,6 +1,7 @@
 import inspect
 import logging
 from functools import wraps
+from typing import Dict, Any
 
 import httpx
 
@@ -10,7 +11,7 @@ from .client import ClientBase
 logger = logging.getLogger(__name__)
 
 
-class Client(ClientBase, httpx.Client):
+class Client(httpx.Client, ClientBase):
     def __wrap_sync(self, f):
         @wraps(f)
         def wrap(*args, **kwargs):
@@ -38,7 +39,7 @@ class Client(ClientBase, httpx.Client):
         ClientBase.__init__(self, httpx.Client, *args, **kwargs)
 
         def wrap_api(api: APIBase):
-            attrs = {"__init__": lambda *_, **__: None}
+            attrs: Dict[str, Any] = {"__init__": lambda *_, **__: None}
 
             for name in dir(api):
                 if name.startswith("__"):

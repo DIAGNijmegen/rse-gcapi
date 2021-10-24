@@ -6,7 +6,7 @@ from gcapi import Client, cli
 
 
 def pytest_sessionfinish(session, exitstatus):
-   Client.force_close_open_async_clients()
+    Client.force_close_open_async_clients()
 
 
 @pytest.mark.parametrize(
@@ -68,10 +68,10 @@ def test_http_base_url():
 
 def test_custom_base_url():
     c = Client(token="foo")
-    assert c.base_url.startswith("https://grand-challenge.org")
+    assert str(c.base_url).startswith("https://grand-challenge.org")
 
     c = Client(token="foo", base_url="https://example.com")
-    assert c.base_url.startswith("https://example.com")
+    assert str(c.base_url).startswith("https://example.com")
 
 
 @pytest.mark.parametrize(
@@ -96,7 +96,8 @@ def test_same_domain_calls_are_ok(url):
         "http://example.com/api/v1/",
         "https://exаmple.com/api/v1/",  # а = \u0430
         "https://sub.example.com/api/v1/",
-        "https://example.com:443/api/v1/",
+        # This is working now because "URL" normalizes this. Expected!
+        # "https://example.com:443/api/v1/",
         "example.com/api/v1/",
         "//example.com/api/v1/",
     ),

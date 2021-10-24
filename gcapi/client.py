@@ -10,7 +10,7 @@ from random import randint
 from time import sleep
 
 import httpx
-from httpx import Timeout
+from httpx import Timeout, URL
 import jsonschema
 from httpx import HTTPStatusError
 
@@ -129,11 +129,10 @@ class ReaderStudyAnswersAPI(APIBase, ModifiableMixin):
 
     def _process_request_arguments(self, method, data):
         if is_uuid(data.get("question", "")):
-            data["question"] = urljoin(
-                urljoin(
-                    self._client.base_url, ReaderStudyQuestionsAPI.base_path
-                ),
-                data["question"] + "/",
+            data["question"] = str(
+                self._client.base_url.join(
+                    ReaderStudyQuestionsAPI.base_path
+                ).join(data["question"] + "/")
             )
 
         return ModifiableMixin._process_request_arguments(self, method, data)
@@ -151,12 +150,13 @@ class ReaderStudiesAPI(APIBase):
     answers = None  # type: ReaderStudyAnswersAPI
     questions = None  # type: ReaderStudyQuestionsAPI
 
-    async def ground_truth(self, pk, case_pk):
-        result = await self._client(
-            method="GET",
-            path=urljoin(self.base_path, pk + "/ground-truth/" + case_pk),
+    def ground_truth(self, pk, case_pk):
+        return (
+            yield self.yield_request(
+                method="GET",
+                path=self.base_path.join(pk + "/ground-truth/" + case_pk,),
+            )
         )
-        return result
 
 
 class AlgorithmsAPI(APIBase):
@@ -187,7 +187,7 @@ class RetinaLandmarkAnnotationSetsAPI(APIBase, ModifiableMixin):
     }
 
     def for_image(self, pk):
-        result = self._client(
+        result = yield self.yield_request(
             method="GET", path=self.base_path, params={"image_id": pk}
         )
         for i in result:
@@ -418,8 +418,8 @@ class ClientBase(ApiDefinitions, ClientInterface):
         self.headers.update({"Accept": "application/json"})
         self._auth_header = _generate_auth_header(token=token)
 
-        self._base_url = base_url
-        if not self._base_url.startswith("https://"):
+        self.base_url = base_url
+        if self.base_url.scheme.lower() != "https":
             raise RuntimeError("Base URL must be https")
 
         self._api_meta = ApiDefinitions()
@@ -435,15 +435,10 @@ class ClientBase(ApiDefinitions, ClientInterface):
                 f"'ClientBase' has no function or API '{item}'"
             )
 
-    @property
-    def base_url(self):
-        return self._base_url
-
     def validate_url(self, url):
-        base = urlparse(self._base_url)
-        target = urlparse(url)
+        url = URL(url)
 
-        if not target.scheme == "https" or target.netloc != base.netloc:
+        if not url.scheme == "https" or url.netloc != self.base_url.netloc:
             raise RuntimeError(f"Invalid target URL: {url}")
 
     def __call__(
@@ -458,7 +453,7 @@ class ClientBase(ApiDefinitions, ClientInterface):
         data=None,
     ) -> Generator[CapturedCall, Any, Any]:
         if not url:
-            url = urljoin(self._base_url, path)
+            url = self.base_url.join(path)
         if extra_headers is None:
             extra_headers = {}
         if json is not None:
@@ -471,7 +466,7 @@ class ClientBase(ApiDefinitions, ClientInterface):
             args=(),
             kwargs={
                 "method": method,
-                "url": url,
+                "url": str(url),
                 "files": {} if files is None else files,
                 "data": {} if data is None else data,
                 "headers": {

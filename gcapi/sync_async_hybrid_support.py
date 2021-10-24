@@ -1,10 +1,18 @@
-from typing import NamedTuple, Tuple, Dict, Callable, Union
+from typing import Any, NamedTuple, Tuple, Dict, Callable, Union
 
 
-class CapturedCall(NamedTuple):
+class _CapturedCall(NamedTuple):
     func: Union[object, Callable]
     args: Tuple
     kwargs: Dict
+
+
+# Paul K.: Trick to get the SLOT-constant through the mypy verification, which
+# does not like extra members being added to the a NamedTuple. dataclasses
+# would be the correct answer, but are not availabe in python 3.6 which we need
+# for MeVisLab
+class CapturedCall(_CapturedCall):
+    SLOT = object()
 
     def execute(self, root):
         def sub(x):
@@ -19,9 +27,6 @@ class CapturedCall(NamedTuple):
         args = [sub(x) for x in self.args]
         kwargs = {k: sub(v) for k, v in self.kwargs.items()}
         return func(*args, **kwargs)
-
-
-CapturedCall.SLOT = object()
 
 
 class CallCapture:
