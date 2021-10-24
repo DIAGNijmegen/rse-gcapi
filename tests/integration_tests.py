@@ -249,12 +249,11 @@ def test_detail_multiple_objects(local_grand_challenge):
     with pytest.raises(MultipleObjectsReturned):
         c.uploads.detail(slug="")
 
-@pytest.mark.anyio
-async def test_auth_headers_not_sent():
-    async with AsyncClient(token="foo") as c:
-        response = await c.uploads._put_chunk(
-            chunk=BytesIO(b"123"), url="https://httpbin.org/put"
-        )
-        sent_headers = response.json()["headers"]
-        assert not set(c._auth_header.keys()) & set(sent_headers.keys())
 
+def test_auth_headers_not_sent(local_grand_challenge):
+    c = Client(token=ADMIN_TOKEN, base_url=local_grand_challenge, verify=False)
+    response = c.uploads._put_chunk(
+        chunk=BytesIO(b"123"), url="https://httpbin.org/put"
+    )
+    sent_headers = response.json()["headers"]
+    assert not set(c._auth_header.keys()) & set(sent_headers.keys())

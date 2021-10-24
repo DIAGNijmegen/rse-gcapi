@@ -6,7 +6,11 @@ from httpx import HTTPStatusError, URL
 from httpx._types import URLTypes
 
 from .exceptions import MultipleObjectsReturned, ObjectNotFound
-from .sync_async_hybrid_support import CallCapture, CapturedCall
+from .sync_async_hybrid_support import (
+    CallCapture,
+    CapturedCall,
+    mark_generator,
+)
 
 
 class ClientInterface:
@@ -98,8 +102,8 @@ class APIBase(Common):
             self.verify_against_schema(i)
         return result
 
+    @mark_generator
     def iterate_all(self, params=None):
-        raise NotImplementedError("SPEACIAL WORK REQUIRED!")
         req_count = 100
         offset = 0
         while True:

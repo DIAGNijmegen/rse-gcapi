@@ -51,6 +51,18 @@ class CallCapture:
         return CapturedCall(func=self.ref_self, args=args, kwargs=kwargs)
 
 
+GENERATOR_MARKER = "__gcapi_generator"
+
+
+def mark_generator(f):
+    setattr(f, GENERATOR_MARKER, True)
+    return f
+
+
+def is_generator(f):
+    return getattr(f, GENERATOR_MARKER, False)
+
+
 # Thanks to https://stackoverflow.com/questions/34073370/best-way-to-receive-
 # the-return-value-from-a-python-generator
 """class CaptureResults:
