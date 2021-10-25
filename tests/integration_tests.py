@@ -5,7 +5,7 @@ from time import sleep
 import pytest
 from httpx import HTTPStatusError
 
-from gcapi import Client, AsyncClient
+from gcapi import Client
 from gcapi.exceptions import MultipleObjectsReturned, ObjectNotFound
 
 RETINA_TOKEN = "f1f98a1733c05b12118785ffd995c250fe4d90da"
