@@ -62,13 +62,3 @@ def mark_generator(f):
 def is_generator(f):
     return getattr(f, GENERATOR_MARKER, False)
 
-
-# Thanks to https://stackoverflow.com/questions/34073370/best-way-to-receive-
-# the-return-value-from-a-python-generator
-"""class CaptureResults:
-    def __init__(self, gen):
-        self.gen = gen
-
-    def __iter__(self):
-        self.result = yield from self.gen
-"""
