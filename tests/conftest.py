@@ -13,7 +13,7 @@ from tests.integration_tests import ADMIN_TOKEN
 
 @pytest.fixture
 def anyio_backend():
-    return 'asyncio'
+    return "asyncio"
 
 
 @pytest.fixture(scope="session")

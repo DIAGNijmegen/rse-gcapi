@@ -246,7 +246,7 @@ async def test_get_reader_study_by_slug(local_grand_challenge):
         base_url=local_grand_challenge, verify=False, token=READERSTUDY_TOKEN,
     ) as c:
         by_slug = await c.reader_studies.detail(slug="reader-study")
-        by_pk = await c.reader_studies.detail(pk=by_slug["pk"])
+        by_pk =  await c.reader_studies.detail(pk=by_slug["pk"])
 
         assert by_pk == by_slug
 
