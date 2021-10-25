@@ -6,7 +6,7 @@ from io import BytesIO
 from json import load
 from random import randint
 from time import sleep
-from typing import Any, Dict, Generator, TYPE_CHECKING, List
+from typing import Any, Dict, Generator, List, TYPE_CHECKING
 from urllib.parse import urljoin
 
 import httpx
@@ -509,11 +509,11 @@ class ClientBase(ApiDefinitions, ClientInterface):
                     )
                 )
 
-        raw_image_upload_session = yield from self.__org_api_meta.raw_image_upload_sessions.create(
-            uploads=[u["api_url"] for u in uploads], **kwargs,
+        return (
+            yield from self.__org_api_meta.raw_image_upload_sessions.create(
+                uploads=[u["api_url"] for u in uploads], **kwargs,
+            )
         )
-
-        return raw_image_upload_session
 
     def upload_cases(
         self,
