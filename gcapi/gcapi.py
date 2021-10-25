@@ -14,54 +14,46 @@ logger = logging.getLogger(__name__)
 
 class Client(httpx.Client, ClientBase):
     def __wrap_sync(self, f):
+        @wraps(f)
+        def wrapped_generator(*args, **kwargs):
+            calls = f(*args, **kwargs)
+            try:
+                call_result = None
+                call_exc = None
+                while True:
+                    if call_exc:
+                        yld_result = calls.throw(call_exc)
+                    else:
+                        yld_result = calls.send(call_result)
+                    try:
+                        if isinstance(yld_result, CapturedCall):
+                            call_result = yld_result.execute(self)
+                        else:
+                            call_result = yield yld_result
+                    except Exception as e:  # Yes, capture them all!
+                        call_exc = e
+                    else:
+                        call_exc = None
+            except StopIteration as stop_iteration:
+                return stop_iteration.value
+
         if is_generator(f):
-
-            @wraps(f)
-            def wrap(*args, **kwargs):
-                calls = f(*args, **kwargs)
-                try:
-                    call_result = None
-                    call_exc = None
-                    while True:
-                        if call_exc:
-                            yld_result = calls.throw(call_exc)
-                        else:
-                            yld_result = calls.send(call_result)
-                        try:
-                            if isinstance(yld_result, CapturedCall):
-                                call_result = yld_result.execute(self)
-                            else:
-                                call_result = yield yld_result
-                        except Exception as e:  # Yes, capture them all!
-                            call_exc = e
-                        else:
-                            call_exc = None
-                except StopIteration as stop_iteration:
-                    return stop_iteration.value
-
+            return wrapped_generator
         else:
 
             @wraps(f)
             def wrap(*args, **kwargs):
-                calls = f(*args, **kwargs)
+                gen = wrapped_generator(*args, **kwargs)
                 try:
-                    call_result = None
-                    call_exc = None
                     while True:
-                        if call_exc:
-                            yld_result = calls.throw(call_exc)
-                        else:
-                            yld_result = calls.send(call_result)
-                        try:
-                            call_result = yld_result.execute(self)
-                        except Exception as e:  # Yes, capture them all!
-                            call_exc = e
-                        else:
-                            call_exc = None
-                except StopIteration as stop_iteration:
-                    return stop_iteration.value
+                        gen.send(None)
+                        raise ValueError(
+                            "wrapped function unexpectedly yielded"
+                        )
+                except StopIteration as e:
+                    return e.value
 
-        return wrap
+            return wrap
 
     def __init__(self, *args, **kwargs):
         ClientBase.__init__(self, httpx.Client, *args, **kwargs)
