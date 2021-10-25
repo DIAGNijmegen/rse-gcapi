@@ -25,7 +25,9 @@ class AsyncResult(NamedTuple):
 
 
 class WrapApiInterfaces(ClientBase):
-    def _wrap_generator(self, f) -> Union[Generator, AsyncGenerator]:
+    def _wrap_generator(
+        self, f
+    ) -> Callable[..., Union[Generator, AsyncGenerator]]:
         raise NotImplementedError()
 
     def _wrap_function(self, f) -> Callable:
