@@ -82,15 +82,15 @@ class Client(httpx.Client, ClientBase):
             )
 
     def __call__(self, *args, **kwargs):
-        return self.__wrap_sync(super(Client, self).__call__)(*args, **kwargs)
+        return self.__wrap_sync(super().__call__)(*args, **kwargs)
 
     def upload_cases(self, *args, **kwargs):
-        return self.__wrap_sync(super(Client, self).upload_cases)(
+        return self.__wrap_sync(super().upload_cases)(
             *args, **kwargs
         )
 
     def run_external_job(self, *args, **kwargs):
-        return self.__wrap_sync(super(Client, self).run_external_job)(
+        return self.__wrap_sync(super().run_external_job)(
             *args, **kwargs
         )
 
@@ -168,16 +168,16 @@ class AsyncClient(httpx.AsyncClient, ClientBase):
             )
 
     async def __call__(self, *args, **kwargs):
-        return await self.__wrap_sync(super(AsyncClient, self).__call__)(
+        return await self.__wrap_sync(super().__call__)(
             *args, **kwargs
         )
 
     async def upload_cases(self, *args, **kwargs):
-        return await self.__wrap_sync(super(AsyncClient, self).upload_cases)(
+        return await self.__wrap_sync(super().upload_cases)(
             *args, **kwargs
         )
 
     async def run_external_job(self, *args, **kwargs):
         return await self.__wrap_sync(
-            super(AsyncClient, self).run_external_job
+            super().run_external_job
         )(*args, **kwargs)

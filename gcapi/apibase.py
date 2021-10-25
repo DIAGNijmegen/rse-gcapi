@@ -112,8 +112,7 @@ class APIBase(Common):
             )
             if len(current_list) == 0:
                 break
-            for item in current_list:
-                yield item
+            yield from current_list
             offset += req_count
 
     def detail(self, pk=None, **params):
