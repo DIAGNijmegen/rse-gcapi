@@ -27,6 +27,7 @@ class AsyncResult(NamedTuple):
     results and _yield_ them instead. The parent can pick up these marked
     values and return them as result instead.
     """
+
     value: Any
 
 
