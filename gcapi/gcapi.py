@@ -21,6 +21,12 @@ logger = logging.getLogger(__name__)
 
 
 class AsyncResult(NamedTuple):
+    """
+    Async generator functions _cannot_ return a result like synchronous
+    generators can. Therefore, we use this wrapper class to wrap returned
+    results and _yield_ them instead. The parent can pick up these marked
+    values and return them as result instead.
+    """
     value: Any
 
 
