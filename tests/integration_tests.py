@@ -246,7 +246,7 @@ def test_detail_multiple_objects(local_grand_challenge):
         c.uploads.detail(slug="")
 
 
-def test_auth_headers_not_sent(local_grand_challenge):
+def test_auth_headers_not_sent():
     c = Client(token="foo")
     response = c.uploads._put_chunk(
         chunk=BytesIO(b"123"), url="https://httpbin.org/put"
