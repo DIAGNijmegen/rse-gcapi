@@ -279,9 +279,7 @@ async def test_detail_multiple_objects(local_grand_challenge):
 
 @pytest.mark.anyio
 async def test_auth_headers_not_sent(local_grand_challenge):
-    async with AsyncClient(
-        token=ADMIN_TOKEN, base_url=local_grand_challenge, verify=False
-    ) as c:
+    async with AsyncClient(token="foo") as c:
         response = await c.uploads._put_chunk(
             chunk=BytesIO(b"123"), url="https://httpbin.org/put"
         )
