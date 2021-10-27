@@ -1,10 +1,10 @@
-import pytest
-
 import asyncio
+
+import pytest
 
 from gcapi import AsyncClient, Client
 from gcapi.gcapi import WrapApiInterfaces
-from gcapi.sync_async_hybrid_support import mark_generator, CallCapture
+from gcapi.sync_async_hybrid_support import CallCapture, mark_generator
 
 
 class AbstractBase:
