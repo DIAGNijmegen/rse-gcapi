@@ -15,7 +15,7 @@ from httpx import HTTPStatusError
 from httpx import Timeout, URL
 
 from gcapi.apibase import APIBase, ClientInterface, ModifiableMixin
-from gcapi.sync_async_hybrid_support import CapturedCall
+from gcapi.sync_async_hybrid_support import CapturedCall, mark_generator
 
 logger = logging.getLogger(__name__)
 
@@ -80,7 +80,7 @@ def import_json_schema(filename):
         return Draft7ValidatorWithTupleSupport(
             jsn, format_checker=jsonschema.draft7_format_checker
         )
-    except ValueError as e:
+    except (OSError, ValueError) as e:
         # I want missing/failing json imports to be an import error because that
         # is what they should indicate: a "broken" library
         raise ImportError(
@@ -94,11 +94,11 @@ class ImagesAPI(APIBase):
     base_path = "cases/images/"
 
 
-class UploadSessionFilesAPI(APIBase, ModifiableMixin):
+class UploadSessionFilesAPI(ModifiableMixin, APIBase):
     base_path = "cases/upload-sessions/files/"
 
 
-class UploadSessionsAPI(APIBase, ModifiableMixin):
+class UploadSessionsAPI(ModifiableMixin, APIBase):
     base_path = "cases/upload-sessions/"
 
 
@@ -110,12 +110,12 @@ class ReaderStudyQuestionsAPI(APIBase):
     base_path = "reader-studies/questions/"
 
 
-class ReaderStudyMineAnswersAPI(APIBase, ModifiableMixin):
+class ReaderStudyMineAnswersAPI(ModifiableMixin, APIBase):
     base_path = "reader-studies/answers/mine/"
     validation_schemas = {"GET": import_json_schema("answer.json")}
 
 
-class ReaderStudyAnswersAPI(APIBase, ModifiableMixin):
+class ReaderStudyAnswersAPI(ModifiableMixin, APIBase):
     base_path = "reader-studies/answers/"
 
     validation_schemas = {
@@ -167,18 +167,19 @@ class AlgorithmResultsAPI(APIBase):
     base_path = "algorithms/results/"
 
 
-class AlgorithmJobsAPI(APIBase, ModifiableMixin):
+class AlgorithmJobsAPI(ModifiableMixin, APIBase):
     base_path = "algorithms/jobs/"
 
+    @mark_generator
     def by_input_image(self, pk):
-        return self.iterate_all(params={"image": pk})
+        yield from self.iterate_all(params={"image": pk})
 
 
 class ArchivesAPI(APIBase):
     base_path = "archives/"
 
 
-class RetinaLandmarkAnnotationSetsAPI(APIBase, ModifiableMixin):
+class RetinaLandmarkAnnotationSetsAPI(ModifiableMixin, APIBase):
     base_path = "retina/landmark-annotation/"
 
     validation_schemas = {
@@ -195,7 +196,7 @@ class RetinaLandmarkAnnotationSetsAPI(APIBase, ModifiableMixin):
         return result
 
 
-class RetinaPolygonAnnotationSetsAPI(APIBase, ModifiableMixin):
+class RetinaPolygonAnnotationSetsAPI(ModifiableMixin, APIBase):
     base_path = "retina/polygon-annotation-set/"
     validation_schemas = {
         "GET": import_json_schema("polygon-annotation.json"),
@@ -203,7 +204,7 @@ class RetinaPolygonAnnotationSetsAPI(APIBase, ModifiableMixin):
     }
 
 
-class RetinaSinglePolygonAnnotationsAPI(APIBase, ModifiableMixin):
+class RetinaSinglePolygonAnnotationsAPI(ModifiableMixin, APIBase):
     base_path = "retina/single-polygon-annotation/"
     validation_schemas = {
         "GET": import_json_schema("single-polygon-annotation.json"),
@@ -211,7 +212,7 @@ class RetinaSinglePolygonAnnotationsAPI(APIBase, ModifiableMixin):
     }
 
 
-class RetinaETDRSGridAnnotationsAPI(APIBase, ModifiableMixin):
+class RetinaETDRSGridAnnotationsAPI(ModifiableMixin, APIBase):
     base_path = "retina/etdrs-grid-annotation/"
     validation_schemas = {
         "GET": import_json_schema("etdrs-annotation.json"),
