@@ -498,7 +498,7 @@ class ClientBase(ApiDefinitions, ClientInterface):
         else:
             return response
 
-    def __upload_files(self, *, files, **kwargs):
+    def _upload_files(self, *, files, **kwargs):
         uploads = []
         for file in files:
             with open(file, "rb") as f:
@@ -564,7 +564,7 @@ class ClientBase(ApiDefinitions, ClientInterface):
         if len(upload_session_data) != 1:
             raise ValueError("One of archive or reader_study should be set")
 
-        raw_image_upload_session = yield from self.__upload_files(
+        raw_image_upload_session = yield from self._upload_files(
             files=files, **upload_session_data
         )
 
@@ -630,7 +630,7 @@ class ClientBase(ApiDefinitions, ClientInterface):
             i = {"interface": ci["slug"]}
             if ci["super_kind"].lower() == "image":
                 if isinstance(value, list):
-                    raw_image_upload_session = yield from self.__upload_files(
+                    raw_image_upload_session = yield from self._upload_files(
                         files=value
                     )
                     i["upload_session"] = raw_image_upload_session["api_url"]
