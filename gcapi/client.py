@@ -568,7 +568,9 @@ class ClientBase(ApiDefinitions, ClientInterface):
             upload_session_data["answer"] = answer
 
         if len(upload_session_data) != 1:
-            raise ValueError("One of archive, reader_study or answer should be set")
+            raise ValueError(
+                "One of archive, reader_study or answer should be set"
+            )
 
         raw_image_upload_session = yield from self._upload_files(
             files=files, **upload_session_data
