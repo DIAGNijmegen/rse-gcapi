@@ -548,7 +548,7 @@ class ClientBase(ApiDefinitions, ClientInterface):
         reader_study
             The slug of the reader study to use.
         answer
-            The pk on the reader study answer to use.
+            The pk of the reader study answer to use.
         Returns
         -------
             The created upload session.
