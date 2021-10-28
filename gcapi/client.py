@@ -567,9 +567,9 @@ class ClientBase(ApiDefinitions, ClientInterface):
         if answer is not None:
             upload_session_data["answer"] = answer
 
-        if len(upload_session_data) != 1:
+        if len(upload_session_data) > 1:
             raise ValueError(
-                "One of archive, reader_study or answer should be set"
+                "Only one of archive, answer or reader_study can be set"
             )
 
         raw_image_upload_session = yield from self._upload_files(
