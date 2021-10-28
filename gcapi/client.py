@@ -522,6 +522,7 @@ class ClientBase(ApiDefinitions, ClientInterface):
         files: List[str],
         archive: str = None,
         reader_study: str = None,
+        answer: str = None,
     ):
         """
         Uploads a set of files to an archive or reader study.
@@ -546,6 +547,8 @@ class ClientBase(ApiDefinitions, ClientInterface):
             The slug of the archive to use.
         reader_study
             The slug of the reader study to use.
+        answer
+            The pk of the reader study answer to use.
         Returns
         -------
             The created upload session.
@@ -561,8 +564,13 @@ class ClientBase(ApiDefinitions, ClientInterface):
         if archive is not None:
             upload_session_data["archive"] = archive
 
-        if len(upload_session_data) != 1:
-            raise ValueError("One of archive or reader_study should be set")
+        if answer is not None:
+            upload_session_data["answer"] = answer
+
+        if len(upload_session_data) > 1:
+            raise ValueError(
+                "Only one of archive, answer or reader_study can be set"
+            )
 
         raw_image_upload_session = yield from self._upload_files(
             files=files, **upload_session_data
