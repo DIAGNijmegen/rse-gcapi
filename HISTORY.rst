@@ -7,9 +7,11 @@ History
 
 * **Breaking Change** Switched the backend from ``requests`` to ``httpx``
 * **Breaking Change** Removed ``client.get_algorithm(algorithm=...)``, use ``client.algorithms.detail(slug=...)`` instead
+* Added ``AsyncClient`` for asynchronous interation with the Grand Challenge API
 * Added option for getting objects by filters in detail view
-* Add optional ``timeout`` parameter to client
+* Added optional ``timeout`` parameter to client
 * Removed deprecated ``algorithm`` argument to ``upload_cases``
+* Added optional ``answer`` argument to ``upload_cases``
 * Added ``archives`` endpoint
 * Added ``MASK`` answertype
 
