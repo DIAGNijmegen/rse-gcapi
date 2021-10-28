@@ -11,6 +11,11 @@ import yaml
 from tests.integration_tests import ADMIN_TOKEN
 
 
+@pytest.fixture
+def anyio_backend():
+    return "asyncio"
+
+
 @pytest.fixture(scope="session")
 def local_grand_challenge() -> Generator[str, None, None]:
     local_api_url = "https://gc.localhost/api/v1/"

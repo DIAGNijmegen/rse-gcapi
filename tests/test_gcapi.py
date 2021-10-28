@@ -64,10 +64,10 @@ def test_http_base_url():
 
 def test_custom_base_url():
     c = Client(token="foo")
-    assert c._base_url.startswith("https://grand-challenge.org")
+    assert str(c.base_url).startswith("https://grand-challenge.org")
 
     c = Client(token="foo", base_url="https://example.com")
-    assert c._base_url.startswith("https://example.com")
+    assert str(c.base_url).startswith("https://example.com")
 
 
 @pytest.mark.parametrize(
@@ -82,7 +82,7 @@ def test_custom_base_url():
 )
 def test_same_domain_calls_are_ok(url):
     c = Client(token="foo", base_url="https://example.com/api/v1/")
-    assert c._validate_url(url=url) is None
+    assert c.validate_url(url=url) is None
 
 
 @pytest.mark.parametrize(
@@ -92,7 +92,8 @@ def test_same_domain_calls_are_ok(url):
         "http://example.com/api/v1/",
         "https://exаmple.com/api/v1/",  # а = \u0430
         "https://sub.example.com/api/v1/",
-        "https://example.com:443/api/v1/",
+        # This is working now because "URL" normalizes this. Expected!
+        # "https://example.com:443/api/v1/",
         "example.com/api/v1/",
         "//example.com/api/v1/",
     ),
@@ -100,7 +101,7 @@ def test_same_domain_calls_are_ok(url):
 def test_invalid_url_fails(url):
     c = Client(token="foo", base_url="https://example.com/api/v1/")
     with pytest.raises(RuntimeError):
-        c._validate_url(url=url)
+        c.validate_url(url=url)
 
 
 def test_command_line_interface():
@@ -156,13 +157,13 @@ def test_datetime_string_format_validation(datetime_string, valid):
     c = Client(verify=False, token="foo")
     if valid:
         assert (
-            c.retina_landmark_annotations._verify_against_schema(
+            c.retina_landmark_annotations.verify_against_schema(
                 landmark_annotation
             )
             is None
         )
     else:
         with pytest.raises(ValidationError):
-            c.retina_landmark_annotations._verify_against_schema(
+            c.retina_landmark_annotations.verify_against_schema(
                 landmark_annotation
             )

@@ -1,19 +1,54 @@
-from typing import Dict, Optional, Type
+from typing import Any, Dict, Generator, Optional, Type
 from urllib.parse import urljoin
 
 import jsonschema
-from httpx import HTTPStatusError
+from httpx import HTTPStatusError, URL
+from httpx._types import URLTypes
 
-from gcapi.client import ClientBase
 from .exceptions import MultipleObjectsReturned, ObjectNotFound
+from .sync_async_hybrid_support import (
+    CallCapture,
+    CapturedCall,
+    mark_generator,
+)
 
 
-class APIBase:
-    _client: Optional[ClientBase] = None
+class ClientInterface:
+    @property
+    def base_url(self) -> URL:
+        ...
+
+    @base_url.setter
+    def base_url(self, v: URLTypes):
+        ...
+
+    def validate_url(self, url):
+        ...
+
+    def __call__(
+        self,
+        method="GET",
+        url="",
+        path="",
+        params=None,
+        json=None,
+        extra_headers=None,
+        files=None,
+        data=None,
+    ) -> Generator[CapturedCall, Any, Any]:
+        pass
+
+
+class Common:
+    _client: Optional[ClientInterface] = None
     base_path = ""
-    sub_apis: Dict[str, Type["APIBase"]] = {}
+    validation_schemas: Optional[Dict[str, jsonschema.Draft7Validator]] = None
 
-    validation_schemas = None  # type: Dict[str, jsonschema.Draft7Validator]
+    yield_request = CallCapture()
+
+
+class APIBase(Common):
+    sub_apis: Dict[str, Type["APIBase"]] = {}
 
     def __init__(self, client):
         if self.validation_schemas is None:
@@ -27,15 +62,30 @@ class APIBase:
         for k, api in list(self.sub_apis.items()):
             setattr(self, k, api(self._client))
 
-    def _verify_against_schema(self, value):
+    def verify_against_schema(self, value):
+        """
+        Verify the given value against the configured jsonschema.
+
+        Parameters
+        ----------
+        value: Any
+            Some parsed json-value to verify.
+
+        Raises
+        ------
+        ValidationError:
+            Raised in case the value verification failed.
+        """
         schema = self.validation_schemas.get("GET")
         if schema is not None:
             schema.validate(value)
 
     def list(self, params=None):
-        result = self._client(method="GET", path=self.base_path, params=params)
+        result = yield self.yield_request(
+            method="GET", path=self.base_path, params=params
+        )
         for i in result:
-            self._verify_against_schema(i)
+            self.verify_against_schema(i)
         return result
 
     def page(self, offset=0, limit=100, params=None):
@@ -43,18 +93,21 @@ class APIBase:
             params = {}
         params["offset"] = offset
         params["limit"] = limit
-        result = self._client(
-            method="GET", path=self.base_path, params=params
+        result = (
+            yield self.yield_request(
+                method="GET", path=self.base_path, params=params
+            )
         )["results"]
         for i in result:
-            self._verify_against_schema(i)
+            self.verify_against_schema(i)
         return result
 
+    @mark_generator
     def iterate_all(self, params=None):
         req_count = 100
         offset = 0
         while True:
-            current_list = self.page(
+            current_list = yield from self.page(
                 offset=offset, limit=req_count, params=params
             )
             if len(current_list) == 0:
@@ -68,7 +121,7 @@ class APIBase:
 
         if pk is not None:
             try:
-                result = self._client(
+                result = yield self.yield_request(
                     method="GET", path=urljoin(self.base_path, pk + "/")
                 )
             except HTTPStatusError as e:
@@ -77,9 +130,10 @@ class APIBase:
                 else:
                     raise e
 
-            self._verify_against_schema(result)
+            self.verify_against_schema(result)
         else:
-            results = list(self.page(params=params))
+            results = yield from self.page(params=params)
+            results = list(results)
             if len(results) == 1:
                 result = results[0]
             elif len(results) == 0:
@@ -90,12 +144,7 @@ class APIBase:
         return result
 
 
-class ModifiableMixin:
-    _client: Optional[ClientBase] = None
-
-    def __init__(self):
-        pass
-
+class ModifiableMixin(Common):
     def _process_request_arguments(self, method, data):
         if data is None:
             data = {}
@@ -110,20 +159,20 @@ class ModifiableMixin:
             if not pk
             else urljoin(self.base_path, str(pk) + "/")
         )
-        return self._client(method=method, path=url, json=data)
+        return (yield self.yield_request(method=method, path=url, json=data))
 
     def perform_request(self, method, data=None, pk=False):
         data = self._process_request_arguments(method, data)
-        return self._execute_request(method, data, pk)
+        return (yield from self._execute_request(method, data, pk))
 
     def create(self, **kwargs):
-        return self.perform_request("POST", data=kwargs)
+        return (yield from self.perform_request("POST", data=kwargs))
 
     def update(self, pk, **kwargs):
-        return self.perform_request("PUT", pk=pk, data=kwargs)
+        return (yield from self.perform_request("PUT", pk=pk, data=kwargs))
 
     def partial_update(self, pk, **kwargs):
-        return self.perform_request("PATCH", pk=pk, data=kwargs)
+        return (yield from self.perform_request("PATCH", pk=pk, data=kwargs))
 
     def delete(self, pk):
-        return self.perform_request("DELETE", pk=pk)
+        return (yield from self.perform_request("DELETE", pk=pk))
