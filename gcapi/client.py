@@ -455,6 +455,7 @@ class ClientBase(ApiDefinitions, ClientInterface):
         extra_headers=None,
         files=None,
         data=None,
+        follow_redirects=False,
     ) -> Generator[CapturedCall, Any, Any]:
         if url:
             url = URL(url)
@@ -482,6 +483,7 @@ class ClientBase(ApiDefinitions, ClientInterface):
                 },
                 "params": {} if params is None else params,
                 "json": json,
+                "follow_redirects": follow_redirects,
             },
         )
 
