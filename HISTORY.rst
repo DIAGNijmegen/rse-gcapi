@@ -2,7 +2,7 @@
 History
 =======
 
-0.5.0 (UNRELEASED)
+0.5.0 (2021-11-01)
 ------------------
 
 * **Breaking Change** Switched the backend from ``requests`` to ``httpx``
@@ -14,6 +14,7 @@ History
 * Added optional ``answer`` argument to ``upload_cases``
 * Added ``archives`` endpoint
 * Added ``MASK`` answertype
+* Added optional `follow_redirects` argument to `Client.__call__`
 
 0.4.0 (2021-06-01)
 ------------------
