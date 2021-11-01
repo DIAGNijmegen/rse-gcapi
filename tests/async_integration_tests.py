@@ -204,6 +204,12 @@ async def test_upload_cases(local_grand_challenge, files):
         rs_images = c.images.iterate_all(params={"reader_study": rs["pk"]})
         assert image["pk"] in [im["pk"] async for im in rs_images]
 
+        # And that we can download it
+        response = await c(
+            url=image["files"][0]["file"], follow_redirects=True
+        )
+        assert response.status_code == 200
+
 
 @pytest.mark.parametrize("files", (["image10x10x101.mha"],))
 @pytest.mark.anyio
