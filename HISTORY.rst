@@ -7,6 +7,7 @@ History
 
 * **Breaking Change** Switched the backend from ``requests`` to ``httpx``
 * **Breaking Change** Removed ``client.get_algorithm(algorithm=...)``, use ``client.algorithms.detail(slug=...)`` instead
+* **Breaking Change** `follow_redirects` now is disabled by default which can lead to "301 Moved *" responses in old code. Use `follow_redirects=True` to fix.
 * Added ``AsyncClient`` for asynchronous interation with the Grand Challenge API
 * Added option for getting objects by filters in detail view
 * Added optional ``timeout`` parameter to client
