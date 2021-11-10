@@ -97,8 +97,8 @@ class ImagesAPI(APIBase):
     def download(
         self,
         *,
-        filename: Union[str, Path],
-        image_type: str = None,
+        filename: Union[str, Path],  # extension is added automatically
+        image_type: str = None,  # restrict download to a particular image type
         pk=None,
         url=None,
         files=None,

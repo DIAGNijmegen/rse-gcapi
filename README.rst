@@ -164,6 +164,25 @@ You can refresh the session object with
 
 and check the session status with ``session["status"]``.
 
+Downloading Files
+-----------------
+
+An image can consist of one or multiple files, such as a single mha file or a dzi and tiff file. You can download all files
+associated with an image.
+
+.. code:: python
+
+    from pathlib import Path
+
+    downloaded_files = c.images.download(pk="...", filename=Path("path/to/output"))
+
+You can also use other parameters to identify the image, such as the API URL, and you can also supply the "files" list directly.
+
+... code:: python
+
+    image = c.images.detail(pk="...")
+    c.images.download(files=image["files"], filename=Path("path/to/output"))
+
 Credits
 -------
 
