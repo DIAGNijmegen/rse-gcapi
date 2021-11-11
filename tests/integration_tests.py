@@ -185,6 +185,39 @@ def test_upload_cases(local_grand_challenge, files):
 
 
 @pytest.mark.parametrize("files", (["image10x10x101.mha"],))
+def test_download_cases(local_grand_challenge, files, tmpdir):
+    c = Client(
+        base_url=local_grand_challenge, verify=False, token=READERSTUDY_TOKEN
+    )
+
+    us = c.upload_cases(
+        reader_study="reader-study",
+        files=[Path(__file__).parent / "testdata" / f for f in files],
+    )
+
+    for _ in range(60):
+        us = c.raw_image_upload_sessions.detail(us["pk"])
+        if us["status"] == "Succeeded":
+            break
+        else:
+            sleep(0.5)
+    else:
+        raise TimeoutError
+
+    # Check that we can download the uploaded image
+    tmpdir = Path(tmpdir)
+    downloaded_files = c.images.download(
+        filename=tmpdir / "image", url=us["image_set"][0]
+    )
+    assert len(downloaded_files) == 1
+
+    # Check that the downloaded file is a mha file
+    with downloaded_files[0].open("rb") as fp:
+        line = fp.readline().decode("ascii").strip()
+    assert line == "ObjectType = Image"
+
+
+@pytest.mark.parametrize("files", (["image10x10x101.mha"],))
 def test_create_job_with_upload(local_grand_challenge, files):
     c = Client(
         base_url=local_grand_challenge,
