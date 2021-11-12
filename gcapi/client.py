@@ -94,10 +94,6 @@ class ImagesAPI(APIBase):
     base_path = "cases/images/"
 
 
-class UploadSessionFilesAPI(ModifiableMixin, APIBase):
-    base_path = "cases/upload-sessions/files/"
-
-
 class UploadSessionsAPI(ModifiableMixin, APIBase):
     base_path = "cases/upload-sessions/"
 
@@ -392,7 +388,6 @@ class ApiDefinitions:
     retina_polygon_annotation_sets: RetinaPolygonAnnotationSetsAPI
     retina_single_polygon_annotations: RetinaSinglePolygonAnnotationsAPI
     retina_etdrs_grid_annotations: RetinaETDRSGridAnnotationsAPI
-    raw_image_upload_session_files: UploadSessionFilesAPI
     raw_image_upload_sessions: UploadSessionsAPI
 
 
