@@ -104,7 +104,6 @@ def test_create_single_polygon_annotations(local_grand_challenge):
 
 def test_raw_image_and_upload_session(local_grand_challenge):
     c = Client(base_url=local_grand_challenge, verify=False, token=ADMIN_TOKEN)
-    assert c.raw_image_upload_session_files.page() == []
     assert c.raw_image_upload_sessions.page() == []
 
 

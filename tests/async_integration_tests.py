@@ -115,7 +115,6 @@ async def test_raw_image_and_upload_session(local_grand_challenge):
     async with AsyncClient(
         base_url=local_grand_challenge, verify=False, token=RETINA_TOKEN
     ) as c:
-        assert await c.raw_image_upload_session_files.page() == []
         assert await c.raw_image_upload_sessions.page() == []
 
 
