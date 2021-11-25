@@ -4,9 +4,10 @@ import re
 import uuid
 from io import BytesIO
 from json import load
+from pathlib import Path
 from random import randint
 from time import sleep
-from typing import Any, Dict, Generator, List, TYPE_CHECKING
+from typing import Any, Dict, Generator, List, TYPE_CHECKING, Union
 from urllib.parse import urljoin
 
 import httpx
@@ -92,6 +93,60 @@ def import_json_schema(filename):
 
 class ImagesAPI(APIBase):
     base_path = "cases/images/"
+
+    def download(
+        self,
+        *,
+        filename: Union[str, Path],  # extension is added automatically
+        image_type: str = None,  # restrict download to a particular image type
+        pk=None,
+        url=None,
+        files=None,
+        **params,
+    ):
+        if len([p for p in (pk, url, files, params) if p]) != 1:
+            raise ValueError(
+                "Exactly one of pk, url, files or params must be specified"
+            )
+
+        # Retrieve details of the image if needed
+        if files is None:
+            if pk is not None:
+                image = yield from self.detail(pk=pk)
+            elif url is not None:
+                image = yield self.yield_request(method="GET", url=url)
+                self.verify_against_schema(image)
+            else:
+                image = yield from self.detail(**params)
+
+            files = image["files"]
+
+        # Make sure file destination exists
+        p = Path(filename).absolute()
+        directory = p.parent
+        directory.mkdir(parents=True, exist_ok=True)
+        basename = p.name
+
+        # Download the files
+        downloaded_files = []
+        for file in files:
+            if image_type and file["image_type"] != image_type:
+                continue
+
+            data = (
+                yield self.yield_request(
+                    method="GET", url=file["file"], follow_redirects=True
+                )
+            ).content
+
+            suffix = file["file"].split(".")[-1]
+            local_file = directory / f"{basename}.{suffix}"
+            with local_file.open("wb") as fp:
+                fp.write(data)
+
+            downloaded_files.append(local_file)
+
+        return downloaded_files
 
 
 class UploadSessionsAPI(ModifiableMixin, APIBase):

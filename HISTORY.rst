@@ -2,6 +2,8 @@
 History
 =======
 
+* Added ``client.images.download``
+
 0.5.0 (2021-11-01)
 ------------------
 
