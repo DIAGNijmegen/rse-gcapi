@@ -2,7 +2,11 @@
 History
 =======
 
+0.5.1 (2021-12-02)
+------------------
+
 * Added ``client.images.download``
+* Removed deprecated ``client.raw_image_upload_session_files``
 
 0.5.0 (2021-11-01)
 ------------------
