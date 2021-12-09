@@ -205,7 +205,7 @@ class ReaderStudiesAPI(APIBase):
         return (
             yield self.yield_request(
                 method="GET",
-                path=self.base_path.join(pk + "/ground-truth/" + case_pk,),
+                path=urljoin(self.base_path, pk + "/ground-truth/" + case_pk),
             )
         )
 
