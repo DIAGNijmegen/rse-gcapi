@@ -169,8 +169,9 @@ def test_datetime_string_format_validation(datetime_string, valid):
                 landmark_annotation
             )
 
+
 def test_ground_truth_url():
     c = Client(token="foo", base_url="https://example.com/api/v1/")
     with pytest.raises(HTTPStatusError) as exc_info:
-        c.reader_studies.ground_truth("fake",  "image_pk")
+        c.reader_studies.ground_truth("fake", "image_pk")
     assert exc_info.value.request.url.path.endswith("image_pk/")
