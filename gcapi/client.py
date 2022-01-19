@@ -577,6 +577,7 @@ class ClientBase(ApiDefinitions, ClientInterface):
         archive: str = None,
         reader_study: str = None,
         answer: str = None,
+        interface: str = None,
     ):
         """
         Uploads a set of files to an archive or reader study.
@@ -625,6 +626,9 @@ class ClientBase(ApiDefinitions, ClientInterface):
             raise ValueError(
                 "One of archive, answer or reader_study can be set"
             )
+
+        if interface:
+            upload_session_data["interface"] = interface
 
         raw_image_upload_session = yield from self._upload_files(
             files=files, **upload_session_data

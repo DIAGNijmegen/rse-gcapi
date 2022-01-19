@@ -12,6 +12,7 @@ RETINA_TOKEN = "f1f98a1733c05b12118785ffd995c250fe4d90da"
 ADMIN_TOKEN = "1b9436200001f2eaf57cd77db075cbb60a49a00a"
 READERSTUDY_TOKEN = "01614a77b1c0b4ecd402be50a8ff96188d5b011d"
 DEMO_PARTICIPANT_TOKEN = "00aa710f4dc5621a0cb64b0795fbba02e39d7700"
+ARCHIVE_TOKEN = "0d284528953157759d26c469297afcf6fd367f71"
 
 
 @pytest.mark.parametrize(
@@ -154,7 +155,7 @@ def test_upload_cases(local_grand_challenge, files):
     c = Client(
         base_url=local_grand_challenge, verify=False, token=READERSTUDY_TOKEN
     )
-
+    breakpoint()
     us = c.upload_cases(
         reader_study="reader-study",
         files=[Path(__file__).parent / "testdata" / f for f in files],
@@ -177,6 +178,62 @@ def test_upload_cases(local_grand_challenge, files):
     rs = next(c.reader_studies.iterate_all(params={"slug": "reader-study"}))
     rs_images = c.images.iterate_all(params={"reader_study": rs["pk"]})
     assert image["pk"] in [im["pk"] for im in rs_images]
+
+    # And that we can download it
+    response = c(url=image["files"][0]["file"], follow_redirects=True)
+    assert response.status_code == 200
+
+
+@pytest.mark.parametrize(
+    "files, interface",
+    (
+        (["image10x10x101.mha"], "generic-overlay"),
+        (["image10x10x101.mha"], None),
+        (["image10x10x10.mhd", "image10x10x10.zraw"], "generic-overlay"),
+        (["image10x10x10.mhd", "image10x10x10.zraw"], None),
+    ),
+)
+def test_upload_cases_to_archive(local_grand_challenge, files, interface):
+    c = Client(
+        base_url=local_grand_challenge, verify=False, token=ARCHIVE_TOKEN
+    )
+
+    us = c.upload_cases(
+        archive="archive",
+        interface=interface,
+        files=[Path(__file__).parent / "testdata" / f for f in files],
+    )
+
+    for _ in range(60):
+        us = c.raw_image_upload_sessions.detail(us["pk"])
+        if us["status"] == "Succeeded":
+            break
+        else:
+            sleep(0.5)
+    else:
+        raise TimeoutError
+
+    # Check that only one image was created
+    assert len(us["image_set"]) == 1
+    image = c(url=us["image_set"][0])
+
+    # And that it was added to the archive
+    archive = next(c.archives.iterate_all(params={"slug": "archive"}))
+    archive_images = c.images.iterate_all(params={"archive": archive["id"]})
+    assert image["pk"] in [im["pk"] for im in archive_images]
+    # with the correct interface
+    image_pk_to_interface_slug_dict = {
+        value["image"]["pk"]: value["interface"]["slug"]
+        for item in archive["items"]
+        for value in item["values"]
+    }
+    if interface:
+        assert image_pk_to_interface_slug_dict[image["pk"]] == interface
+    else:
+        assert (
+            image_pk_to_interface_slug_dict[image["pk"]]
+            == "generic-medical-image"
+        )
 
     # And that we can download it
     response = c(url=image["files"][0]["file"], follow_redirects=True)
