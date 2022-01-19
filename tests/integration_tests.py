@@ -155,7 +155,7 @@ def test_upload_cases(local_grand_challenge, files):
     c = Client(
         base_url=local_grand_challenge, verify=False, token=READERSTUDY_TOKEN
     )
-    breakpoint()
+
     us = c.upload_cases(
         reader_study="reader-study",
         files=[Path(__file__).parent / "testdata" / f for f in files],
