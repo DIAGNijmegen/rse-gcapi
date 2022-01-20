@@ -185,7 +185,84 @@ directly if you have already obtained the image details.
     c.images.download(files=image["files"], filename=Path("path/to/output"))
 
 Note that the filename needs to be specified without file extension. The extension is automatically added because multiple files with
-different file extensions can be assosicated with an image (dzi/tif and mhd/zraw for example).
+different file extensions can be associated with an image (dzi/tif and mhd/zraw for example).
+
+
+Retrieve Reader Study Information
+---------------------------------
+
+First, you need the slug of the reader study you wish to use. You can get the slug from the url of the reader study.
+For example, if you would like to retrieve the information on the reader study at https://grand-challenge.org/reader-studies/reader-study-demo-202/ you
+would use ``slug="reader-study-demo-202"``. Note that slugs are case sensitive.
+
+.. code:: python
+
+    rs = next(c.reader_studies.iterate_all(params={"slug": slug}))
+
+You can retrieve only your answers or all answers for that reader study (if you are editor for that reader study) with the following code:
+
+.. code:: python
+
+    my_answers = list(c.reader_studies.answers.mine.iterate_all(params={"question__reader_study": rs["pk"]}))
+
+    answers = list(c.reader_studies.answers.iterate_all(params={"question__reader_study": rs["pk"]}))
+
+
+If you would like the answers to include readable text for (multiple) choice questions, you can do so
+by combining information from the reader study questions.
+
+.. code:: python
+
+    # get the relevant questions in a dictionary with the api_url of the question as the key, and the options for the
+    # question as the value. The options contain the readable title.
+    choice_questions = {q["api_url"]:q for q in rs["questions"] if q["answer_type"] in ("Choice", "Multiple choice")}
+
+    # local function that will add the readable answer to the answer dictionary for (multiple) choice questions
+    def add_answer_title(answer):
+        if answer["question"] not in choice_questions:
+            return answer
+        options = choice_questions[answer["question"]]["options"]
+        if isinstance(answer["answer"], list):
+            # multiple choice
+            answer["readable_answer"] = list(o["title"] for o in options if o["id"] in answer["answer"])
+        else:
+            # choice
+            answer["readable_answer"] = list(o["title"] for o in options if o["id"] == answer["answer"])[0]
+        return answer
+
+    # you can create a list for just the (multiple) choice type questions
+    choice_answers_readable = list(add_answer_title(a) for a in answers if a["question"] in choice_questions)
+
+    # or add the readable title to all answers
+    answers_readable = list(get_readable(a) for a in answers)
+
+
+If the answers are images, you can download these as follows (see Downloading files):
+
+.. code:: python
+
+    from pathlib import Path
+
+    image_answers = list(a for a in answers if a["answer_image"] is not None)
+    for i in image_answers:
+        downloaded_files = c.images.download(url=i["answer_image"], filename=Path("path/to/output"))
+
+
+If you would like to get the answers per case, you can use the following code snippet. A case is defined by the images for that case, you get
+get those from the hanging list. Below example uses a simple index as key.
+
+.. code:: python
+
+    import collections
+
+    answers_per_case = {}
+    for index, case in enumerate(rs["hanging_list_images"]):
+        image_list = list(v for v in case.values())
+        answers_per_case[index] = list(
+            a
+            for a in c_answers
+            if collections.Counter(a["images"]) == collections.Counter(image_list)
+        )
 
 Credits
 -------
