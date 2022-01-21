@@ -25,8 +25,9 @@ Features
 --------
 
 This client library is a handy way to interact with the REST API for grand-challenge.org from python, and provides some
-convenience methods. Documentation and examples can be found on [Grand Challenge](https://grand-challenge.org/documentation/grand-challenge-api/).
+convenience methods. Documentation and examples can be found on Grand Challenge.
 
+.. _Grand Challenge: https://grand-challenge.org/documentation/grand-challenge-api/
 
 Credits
 -------
