@@ -232,6 +232,10 @@ class ArchivesAPI(APIBase):
     base_path = "archives/"
 
 
+class ArchiveItemsAPI(APIBase):
+    base_path = "archives/items/"
+
+
 class RetinaLandmarkAnnotationSetsAPI(ModifiableMixin, APIBase):
     base_path = "retina/landmark-annotation/"
 
@@ -446,6 +450,7 @@ class ApiDefinitions:
     retina_single_polygon_annotations: RetinaSinglePolygonAnnotationsAPI
     retina_etdrs_grid_annotations: RetinaETDRSGridAnnotationsAPI
     raw_image_upload_sessions: UploadSessionsAPI
+    archive_items: ArchiveItemsAPI
 
 
 class ClientBase(ApiDefinitions, ClientInterface):
@@ -592,6 +597,11 @@ class ClientBase(ApiDefinitions, ClientInterface):
             https://grand-challenge.org/archives/corads-ai/
         the slug for this is "corads-ai", so you would call this function with
             upload_cases(files=[...], archive="corads-ai")
+        For archive uploads, you can additionally specify the interface slug
+        for the to be created archive items. You can find a list of interfaces here:
+        https://grand-challenge.org/algorithms/interfaces/
+        The interface slug corresponds to the lowercase hyphenated title of the
+        interface, e.g. generic-medical-image for Generic Medical Image.
         Parameters
         ----------
         files
@@ -604,6 +614,8 @@ class ClientBase(ApiDefinitions, ClientInterface):
             The slug of the reader study to use.
         answer
             The pk of the reader study answer to use.
+        interface
+            The slug of the interface to use. Can only be defined for archive uploads.
         Returns
         -------
             The created upload session.
@@ -629,6 +641,11 @@ class ClientBase(ApiDefinitions, ClientInterface):
 
         if interface:
             upload_session_data["interface"] = interface
+
+        if interface and (answer or reader_study):
+            raise ValueError(
+                "An interface can only be defined for archive uploads."
+            )
 
         raw_image_upload_session = yield from self._upload_files(
             files=files, **upload_session_data

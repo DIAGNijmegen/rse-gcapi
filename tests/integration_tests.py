@@ -151,10 +151,17 @@ def test_chunked_uploads(local_grand_challenge):
     "files",
     (["image10x10x101.mha"], ["image10x10x10.mhd", "image10x10x10.zraw"]),
 )
-def test_upload_cases(local_grand_challenge, files):
+def test_upload_cases_to_reader_study(local_grand_challenge, files):
     c = Client(
         base_url=local_grand_challenge, verify=False, token=READERSTUDY_TOKEN
     )
+    # check that defining an interface does not work for reader study upload
+    with pytest.raises(ValueError):
+        _ = c.upload_cases(
+            reader_study="reader-study",
+            interface="generic-medical-image",
+            files=[Path(__file__).parent / "testdata" / f for f in files],
+        )
 
     us = c.upload_cases(
         reader_study="reader-study",
@@ -221,10 +228,13 @@ def test_upload_cases_to_archive(local_grand_challenge, files, interface):
     archive = next(c.archives.iterate_all(params={"slug": "archive"}))
     archive_images = c.images.iterate_all(params={"archive": archive["id"]})
     assert image["pk"] in [im["pk"] for im in archive_images]
+    archive_items = c.archive_items.iterate_all(
+        params={"archive": archive["id"]}
+    )
     # with the correct interface
     image_pk_to_interface_slug_dict = {
         value["image"]["pk"]: value["interface"]["slug"]
-        for item in archive["items"]
+        for item in archive_items
         for value in item["values"]
     }
     if interface:
