@@ -575,7 +575,7 @@ class ClientBase(ApiDefinitions, ClientInterface):
             )
         )
 
-    def upload_cases(  # noqa: C901
+    def upload_cases(
         self,
         *,
         files: List[str],
@@ -586,8 +586,7 @@ class ClientBase(ApiDefinitions, ClientInterface):
         interface: str = None,
     ):
         """
-        Uploads a set of files to an archive or reader study, or a single
-        file to an archive item.
+        Uploads a set of files to an archive, archive item or reader study.
         A new upload session will be created on grand challenge to import and
         standardise your file(s). This function will return this new upload
         session object, that you can query for the import status. If this
@@ -660,15 +659,10 @@ class ClientBase(ApiDefinitions, ClientInterface):
                 "uploads."
             )
 
-        if archive_item:
-            if len(files) > 1:
-                raise ValueError(
-                    "You can only upload one file to an archive item at a time."
-                )
-            if not interface:
-                raise ValueError(
-                    "You need to define an interface for archive item uploads."
-                )
+        if archive_item and not interface:
+            raise ValueError(
+                "You need to define an interface for archive item uploads."
+            )
 
         raw_image_upload_session = yield from self._upload_files(
             files=files, **upload_session_data

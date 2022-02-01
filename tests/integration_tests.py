@@ -270,20 +270,6 @@ def test_upload_cases_to_archive_item(local_grand_challenge):
         )
     assert "You need to define an interface for archive item uploads" in str(e)
 
-    # try to upload multiple files
-    with pytest.raises(ValueError) as e:
-        _ = c.upload_cases(
-            archive_item=item["id"],
-            interface="generic-overlay",
-            files=[
-                Path(__file__).parent / "testdata" / f
-                for f in ["image10x10x101.mha", "image10x10x10.mhd"]
-            ],
-        )
-    assert "You can only upload one file to an archive item at a time" in str(
-        e
-    )
-
     # upload with existing interface defined
     us = c.upload_cases(
         archive_item=item["id"],
