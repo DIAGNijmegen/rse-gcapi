@@ -156,12 +156,16 @@ def test_upload_cases_to_reader_study(local_grand_challenge, files):
         base_url=local_grand_challenge, verify=False, token=READERSTUDY_TOKEN
     )
     # check that defining an interface does not work for reader study upload
-    with pytest.raises(ValueError):
+    with pytest.raises(ValueError) as e:
         _ = c.upload_cases(
             reader_study="reader-study",
             interface="generic-medical-image",
             files=[Path(__file__).parent / "testdata" / f for f in files],
         )
+    assert (
+        "An interface can only be defined for archive and archive item uploads"
+        in str(e)
+    )
 
     us = c.upload_cases(
         reader_study="reader-study",
@@ -248,6 +252,95 @@ def test_upload_cases_to_archive(local_grand_challenge, files, interface):
     # And that we can download it
     response = c(url=image["files"][0]["file"], follow_redirects=True)
     assert response.status_code == 200
+
+
+def test_upload_cases_to_archive_item(local_grand_challenge):
+    c = Client(
+        base_url=local_grand_challenge, verify=False, token=ARCHIVE_TOKEN
+    )
+    # retrieve existing archive item pk
+    archive = next(c.archives.iterate_all(params={"slug": "archive"}))
+    item = next(c.archive_items.iterate_all(params={"archive": archive["id"]}))
+
+    # try upload without providing interface
+    with pytest.raises(ValueError) as e:
+        _ = c.upload_cases(
+            archive_item=item["id"],
+            files=[Path(__file__).parent / "testdata" / "image10x10x101.mha"],
+        )
+    assert "You need to define an interface for archive item uploads" in str(e)
+
+    # try to upload multiple files
+    with pytest.raises(ValueError) as e:
+        _ = c.upload_cases(
+            archive_item=item["id"],
+            interface="generic-overlay",
+            files=[
+                Path(__file__).parent / "testdata" / f
+                for f in ["image10x10x101.mha", "image10x10x10.mhd"]
+            ],
+        )
+    assert "You can only upload one file to an archive item at a time" in str(
+        e
+    )
+
+    # upload with existing interface defined
+    us = c.upload_cases(
+        archive_item=item["id"],
+        interface="generic-medical-image",
+        files=[Path(__file__).parent / "testdata" / "image10x10x101.mha"],
+    )
+
+    for _ in range(60):
+        us = c.raw_image_upload_sessions.detail(us["pk"])
+        if us["status"] == "Succeeded":
+            break
+        else:
+            sleep(0.5)
+    else:
+        raise TimeoutError
+
+    # Check that only one image was created
+    assert len(us["image_set"]) == 1
+    image = c(url=us["image_set"][0])
+
+    # And that it was added to the archive item
+    item = c.archive_items.detail(pk=item["id"])
+    assert image["pk"] in [civ["image"]["pk"] for civ in item["values"]]
+    # with the correct interface
+    im_to_interface = {
+        civ["image"]["pk"]: civ["interface"]["slug"] for civ in item["values"]
+    }
+    assert im_to_interface[image["pk"]] == "generic-medical-image"
+
+    # try upload with new interface and one file
+    us = c.upload_cases(
+        archive_item=item["id"],
+        interface="generic-overlay",
+        files=[Path(__file__).parent / "testdata" / "image10x10x101.mha"],
+    )
+
+    for _ in range(60):
+        us = c.raw_image_upload_sessions.detail(us["pk"])
+        if us["status"] == "Succeeded":
+            break
+        else:
+            sleep(0.5)
+    else:
+        raise TimeoutError
+
+    # Check that only one image was created
+    assert len(us["image_set"]) == 1
+    image = c(url=us["image_set"][0])
+
+    # And that it was added to the archive item
+    item = c.archive_items.detail(pk=item["id"])
+    assert image["pk"] in [civ["image"]["pk"] for civ in item["values"]]
+    # with the correct interface
+    im_to_interface = {
+        civ["image"]["pk"]: civ["interface"]["slug"] for civ in item["values"]
+    }
+    assert im_to_interface[image["pk"]] == "generic-overlay"
 
 
 @pytest.mark.parametrize("files", (["image10x10x101.mha"],))
