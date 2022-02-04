@@ -256,7 +256,14 @@ async def test_upload_cases_to_archive(
 
         # Check that only one image was created
         assert len(us["image_set"]) == 1
-        image = await c(url=us["image_set"][0])
+        for _ in range(60):
+            try:
+                image = await c(url=us["image_set"][0])
+                break
+            except HTTPStatusError:
+                sleep(0.5)
+        else:
+            raise TimeoutError
 
         # And that it was added to the archive
         archive = await (
@@ -292,7 +299,9 @@ async def test_upload_cases_to_archive(
 
 
 @pytest.mark.anyio
-async def test_upload_cases_to_archive_item(local_grand_challenge):
+async def test_upload_cases_to_archive_item_without_interface(
+    local_grand_challenge,
+):
     async with AsyncClient(
         base_url=local_grand_challenge, verify=False, token=ARCHIVE_TOKEN
     ) as c:
@@ -304,7 +313,6 @@ async def test_upload_cases_to_archive_item(local_grand_challenge):
             c.archive_items.iterate_all(params={"archive": archive["id"]})
         ).__anext__()
 
-        # try upload without providing interface
         with pytest.raises(ValueError) as e:
             _ = await c.upload_cases(
                 archive_item=item["id"],
@@ -317,7 +325,22 @@ async def test_upload_cases_to_archive_item(local_grand_challenge):
             in str(e)
         )
 
-        # upload with existing interface defined
+
+@pytest.mark.anyio
+async def test_upload_cases_to_archive_item_with_existing_interface(
+    local_grand_challenge,
+):
+    async with AsyncClient(
+        base_url=local_grand_challenge, verify=False, token=ARCHIVE_TOKEN
+    ) as c:
+        # retrieve existing archive item pk
+        archive = await (
+            c.archives.iterate_all(params={"slug": "archive"})
+        ).__anext__()
+        item = await (
+            c.archive_items.iterate_all(params={"archive": archive["id"]})
+        ).__anext__()
+
         us = await c.upload_cases(
             archive_item=item["id"],
             interface="generic-medical-image",
@@ -335,7 +358,14 @@ async def test_upload_cases_to_archive_item(local_grand_challenge):
 
         # Check that only one image was created
         assert len(us["image_set"]) == 1
-        image = await c(url=us["image_set"][0])
+        for _ in range(60):
+            try:
+                image = await c(url=us["image_set"][0])
+                break
+            except HTTPStatusError:
+                sleep(0.5)
+        else:
+            raise TimeoutError
 
         # And that it was added to the archive item
         item = await c.archive_items.detail(pk=item["id"])
@@ -347,7 +377,21 @@ async def test_upload_cases_to_archive_item(local_grand_challenge):
         }
         assert im_to_interface[image["pk"]] == "generic-medical-image"
 
-        # try upload with new interface and one file
+
+@pytest.mark.anyio
+async def test_upload_cases_to_archive_item_with_new_interface(
+    local_grand_challenge,
+):
+    async with AsyncClient(
+        base_url=local_grand_challenge, verify=False, token=ARCHIVE_TOKEN
+    ) as c:
+        archive = await (
+            c.archives.iterate_all(params={"slug": "archive"})
+        ).__anext__()
+        item = await (
+            c.archive_items.iterate_all(params={"archive": archive["id"]})
+        ).__anext__()
+
         us = await c.upload_cases(
             archive_item=item["id"],
             interface="generic-overlay",
@@ -365,7 +409,14 @@ async def test_upload_cases_to_archive_item(local_grand_challenge):
 
         # Check that only one image was created
         assert len(us["image_set"]) == 1
-        image = await c(url=us["image_set"][0])
+        for _ in range(60):
+            try:
+                image = await c(url=us["image_set"][0])
+                break
+            except HTTPStatusError:
+                sleep(0.5)
+        else:
+            raise TimeoutError
 
         # And that it was added to the archive item
         item = await c.archive_items.detail(pk=item["id"])

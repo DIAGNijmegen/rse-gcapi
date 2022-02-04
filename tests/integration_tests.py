@@ -226,7 +226,14 @@ def test_upload_cases_to_archive(local_grand_challenge, files, interface):
 
     # Check that only one image was created
     assert len(us["image_set"]) == 1
-    image = c(url=us["image_set"][0])
+    for _ in range(60):
+        try:
+            image = c(url=us["image_set"][0])
+            break
+        except HTTPStatusError:
+            sleep(0.5)
+    else:
+        raise TimeoutError
 
     # And that it was added to the archive
     archive = next(c.archives.iterate_all(params={"slug": "archive"}))
@@ -254,7 +261,7 @@ def test_upload_cases_to_archive(local_grand_challenge, files, interface):
     assert response.status_code == 200
 
 
-def test_upload_cases_to_archive_item(local_grand_challenge):
+def test_upload_cases_to_archive_item_without_interface(local_grand_challenge):
     c = Client(
         base_url=local_grand_challenge, verify=False, token=ARCHIVE_TOKEN
     )
@@ -270,7 +277,17 @@ def test_upload_cases_to_archive_item(local_grand_challenge):
         )
     assert "You need to define an interface for archive item uploads" in str(e)
 
-    # upload with existing interface defined
+
+def test_upload_cases_to_archive_item_with_existing_interface(
+    local_grand_challenge,
+):
+    c = Client(
+        base_url=local_grand_challenge, verify=False, token=ARCHIVE_TOKEN
+    )
+    # retrieve existing archive item pk
+    archive = next(c.archives.iterate_all(params={"slug": "archive"}))
+    item = next(c.archive_items.iterate_all(params={"archive": archive["id"]}))
+
     us = c.upload_cases(
         archive_item=item["id"],
         interface="generic-medical-image",
@@ -288,7 +305,14 @@ def test_upload_cases_to_archive_item(local_grand_challenge):
 
     # Check that only one image was created
     assert len(us["image_set"]) == 1
-    image = c(url=us["image_set"][0])
+    for _ in range(60):
+        try:
+            image = c(url=us["image_set"][0])
+            break
+        except HTTPStatusError:
+            sleep(0.5)
+    else:
+        raise TimeoutError
 
     # And that it was added to the archive item
     item = c.archive_items.detail(pk=item["id"])
@@ -299,7 +323,17 @@ def test_upload_cases_to_archive_item(local_grand_challenge):
     }
     assert im_to_interface[image["pk"]] == "generic-medical-image"
 
-    # try upload with new interface and one file
+
+def test_upload_cases_to_archive_item_with_new_interface(
+    local_grand_challenge,
+):
+    c = Client(
+        base_url=local_grand_challenge, verify=False, token=ARCHIVE_TOKEN
+    )
+    # retrieve existing archive item pk
+    archive = next(c.archives.iterate_all(params={"slug": "archive"}))
+    item = next(c.archive_items.iterate_all(params={"archive": archive["id"]}))
+
     us = c.upload_cases(
         archive_item=item["id"],
         interface="generic-overlay",
@@ -317,7 +351,14 @@ def test_upload_cases_to_archive_item(local_grand_challenge):
 
     # Check that only one image was created
     assert len(us["image_set"]) == 1
-    image = c(url=us["image_set"][0])
+    for _ in range(60):
+        try:
+            image = c(url=us["image_set"][0])
+            break
+        except HTTPStatusError:
+            sleep(0.5)
+    else:
+        raise TimeoutError
 
     # And that it was added to the archive item
     item = c.archive_items.detail(pk=item["id"])
