@@ -12,6 +12,7 @@ RETINA_TOKEN = "f1f98a1733c05b12118785ffd995c250fe4d90da"
 ADMIN_TOKEN = "1b9436200001f2eaf57cd77db075cbb60a49a00a"
 READERSTUDY_TOKEN = "01614a77b1c0b4ecd402be50a8ff96188d5b011d"
 DEMO_PARTICIPANT_TOKEN = "00aa710f4dc5621a0cb64b0795fbba02e39d7700"
+ARCHIVE_TOKEN = "0d284528953157759d26c469297afcf6fd367f71"
 
 
 @pytest.mark.parametrize(
@@ -174,10 +175,21 @@ async def test_chunked_uploads(local_grand_challenge):
     (["image10x10x101.mha"], ["image10x10x10.mhd", "image10x10x10.zraw"]),
 )
 @pytest.mark.anyio
-async def test_upload_cases(local_grand_challenge, files):
+async def test_upload_cases_to_reader_study(local_grand_challenge, files):
     async with AsyncClient(
         base_url=local_grand_challenge, verify=False, token=READERSTUDY_TOKEN
     ) as c:
+        with pytest.raises(ValueError) as e:
+            _ = await c.upload_cases(
+                reader_study="reader-study",
+                interface="generic-medical-image",
+                files=[Path(__file__).parent / "testdata" / f for f in files],
+            )
+        assert (
+            "An interface can only be defined for archive and archive item uploads"
+            in str(e)
+        )
+
         us = await c.upload_cases(
             reader_study="reader-study",
             files=[Path(__file__).parent / "testdata" / f for f in files],
@@ -208,6 +220,213 @@ async def test_upload_cases(local_grand_challenge, files):
             url=image["files"][0]["file"], follow_redirects=True
         )
         assert response.status_code == 200
+
+
+@pytest.mark.parametrize(
+    "files, interface",
+    (
+        (["image10x10x101.mha"], "generic-overlay"),
+        (["image10x10x101.mha"], None),
+        (["image10x10x10.mhd", "image10x10x10.zraw"], "generic-overlay"),
+        (["image10x10x10.mhd", "image10x10x10.zraw"], None),
+    ),
+)
+@pytest.mark.anyio
+async def test_upload_cases_to_archive(
+    local_grand_challenge, files, interface
+):
+    async with AsyncClient(
+        base_url=local_grand_challenge, verify=False, token=ARCHIVE_TOKEN
+    ) as c:
+
+        us = await c.upload_cases(
+            archive="archive",
+            interface=interface,
+            files=[Path(__file__).parent / "testdata" / f for f in files],
+        )
+
+        for _ in range(60):
+            us = await c.raw_image_upload_sessions.detail(us["pk"])
+            if us["status"] == "Succeeded":
+                break
+            else:
+                sleep(0.5)
+        else:
+            raise TimeoutError
+
+        # Check that only one image was created
+        assert len(us["image_set"]) == 1
+        for _ in range(60):
+            try:
+                image = await c(url=us["image_set"][0])
+                break
+            except HTTPStatusError:
+                sleep(0.5)
+        else:
+            raise TimeoutError
+
+        # And that it was added to the archive
+        archive = await (
+            c.archives.iterate_all(params={"slug": "archive"})
+        ).__anext__()
+        archive_images = c.images.iterate_all(
+            params={"archive": archive["id"]}
+        )
+        assert image["pk"] in [im["pk"] async for im in archive_images]
+        archive_items = c.archive_items.iterate_all(
+            params={"archive": archive["id"]}
+        )
+        # with the correct interface
+        image_pk_to_interface_slug = {
+            val["image"]["pk"]: val["interface"]["slug"]
+            async for item in archive_items
+            for val in item["values"]
+        }
+
+        if interface:
+            assert image_pk_to_interface_slug[image["pk"]] == interface
+        else:
+            assert (
+                image_pk_to_interface_slug[image["pk"]]
+                == "generic-medical-image"
+            )
+
+        # And that we can download it
+        response = await c(
+            url=image["files"][0]["file"], follow_redirects=True
+        )
+        assert response.status_code == 200
+
+
+@pytest.mark.anyio
+async def test_upload_cases_to_archive_item_without_interface(
+    local_grand_challenge,
+):
+    async with AsyncClient(
+        base_url=local_grand_challenge, verify=False, token=ARCHIVE_TOKEN
+    ) as c:
+        # retrieve existing archive item pk
+        archive = await (
+            c.archives.iterate_all(params={"slug": "archive"})
+        ).__anext__()
+        item = await (
+            c.archive_items.iterate_all(params={"archive": archive["id"]})
+        ).__anext__()
+
+        with pytest.raises(ValueError) as e:
+            _ = await c.upload_cases(
+                archive_item=item["id"],
+                files=[
+                    Path(__file__).parent / "testdata" / "image10x10x101.mha"
+                ],
+            )
+        assert (
+            "You need to define an interface for archive item uploads"
+            in str(e)
+        )
+
+
+@pytest.mark.anyio
+async def test_upload_cases_to_archive_item_with_existing_interface(
+    local_grand_challenge,
+):
+    async with AsyncClient(
+        base_url=local_grand_challenge, verify=False, token=ARCHIVE_TOKEN
+    ) as c:
+        # retrieve existing archive item pk
+        archive = await (
+            c.archives.iterate_all(params={"slug": "archive"})
+        ).__anext__()
+        item = await (
+            c.archive_items.iterate_all(params={"archive": archive["id"]})
+        ).__anext__()
+
+        us = await c.upload_cases(
+            archive_item=item["id"],
+            interface="generic-medical-image",
+            files=[Path(__file__).parent / "testdata" / "image10x10x101.mha"],
+        )
+
+        for _ in range(60):
+            us = await c.raw_image_upload_sessions.detail(us["pk"])
+            if us["status"] == "Succeeded":
+                break
+            else:
+                sleep(0.5)
+        else:
+            raise TimeoutError
+
+        # Check that only one image was created
+        assert len(us["image_set"]) == 1
+        for _ in range(60):
+            try:
+                image = await c(url=us["image_set"][0])
+                break
+            except HTTPStatusError:
+                sleep(0.5)
+        else:
+            raise TimeoutError
+
+        # And that it was added to the archive item
+        item = await c.archive_items.detail(pk=item["id"])
+        assert image["pk"] in [civ["image"]["pk"] for civ in item["values"]]
+        # with the correct interface
+        im_to_interface = {
+            civ["image"]["pk"]: civ["interface"]["slug"]
+            for civ in item["values"]
+        }
+        assert im_to_interface[image["pk"]] == "generic-medical-image"
+
+
+@pytest.mark.anyio
+async def test_upload_cases_to_archive_item_with_new_interface(
+    local_grand_challenge,
+):
+    async with AsyncClient(
+        base_url=local_grand_challenge, verify=False, token=ARCHIVE_TOKEN
+    ) as c:
+        archive = await (
+            c.archives.iterate_all(params={"slug": "archive"})
+        ).__anext__()
+        item = await (
+            c.archive_items.iterate_all(params={"archive": archive["id"]})
+        ).__anext__()
+
+        us = await c.upload_cases(
+            archive_item=item["id"],
+            interface="generic-overlay",
+            files=[Path(__file__).parent / "testdata" / "image10x10x101.mha"],
+        )
+
+        for _ in range(60):
+            us = await c.raw_image_upload_sessions.detail(us["pk"])
+            if us["status"] == "Succeeded":
+                break
+            else:
+                sleep(0.5)
+        else:
+            raise TimeoutError
+
+        # Check that only one image was created
+        assert len(us["image_set"]) == 1
+        for _ in range(60):
+            try:
+                image = await c(url=us["image_set"][0])
+                break
+            except HTTPStatusError:
+                sleep(0.5)
+        else:
+            raise TimeoutError
+
+        # And that it was added to the archive item
+        item = await c.archive_items.detail(pk=item["id"])
+        assert image["pk"] in [civ["image"]["pk"] for civ in item["values"]]
+        # with the correct interface
+        im_to_interface = {
+            civ["image"]["pk"]: civ["interface"]["slug"]
+            for civ in item["values"]
+        }
+        assert im_to_interface[image["pk"]] == "generic-overlay"
 
 
 @pytest.mark.parametrize("files", (["image10x10x101.mha"],))

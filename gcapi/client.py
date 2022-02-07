@@ -232,6 +232,10 @@ class ArchivesAPI(APIBase):
     base_path = "archives/"
 
 
+class ArchiveItemsAPI(APIBase):
+    base_path = "archives/items/"
+
+
 class RetinaLandmarkAnnotationSetsAPI(ModifiableMixin, APIBase):
     base_path = "retina/landmark-annotation/"
 
@@ -446,6 +450,7 @@ class ApiDefinitions:
     retina_single_polygon_annotations: RetinaSinglePolygonAnnotationsAPI
     retina_etdrs_grid_annotations: RetinaETDRSGridAnnotationsAPI
     raw_image_upload_sessions: UploadSessionsAPI
+    archive_items: ArchiveItemsAPI
 
 
 class ClientBase(ApiDefinitions, ClientInterface):
@@ -577,20 +582,31 @@ class ClientBase(ApiDefinitions, ClientInterface):
         archive: str = None,
         reader_study: str = None,
         answer: str = None,
+        archive_item: str = None,
+        interface: str = None,
     ):
         """
-        Uploads a set of files to an archive or reader study.
+        Uploads a set of files to an archive, archive item or reader study.
         A new upload session will be created on grand challenge to import and
-        standardise your files. This function will return this new upload
+        standardise your file(s). This function will return this new upload
         session object, that you can query for the import status. If this
-        import is successful, the new images will then be added to the selected
-        archive or reader study.
-        You will need to provide the slugs of the objects to pass the images
-        along to. You can find this in the url of the object that you want
+        import is successful, the new image(s) will then be added to the selected
+        archive, archive item or reader study.
+        You will need to provide the slugs of the archive or reader study or the
+        pk of the archive item to pass the images along to.
+        You can find the slug in the url of the object that you want
         to use. For instance, if you want to use the archive at
             https://grand-challenge.org/archives/corads-ai/
         the slug for this is "corads-ai", so you would call this function with
             upload_cases(files=[...], archive="corads-ai")
+        For archive uploads, you can additionally specify the interface slug
+        for the to be created archive items. For archive item uploads, the
+        interface is mandatory. If you define an already existing interface,
+        the old file associated with that interface will be replaced by the new file.
+        You can find a list of interfaces here:
+        https://grand-challenge.org/algorithms/interfaces/
+        The interface slug corresponds to the lowercase hyphenated title of the
+        interface, e.g. generic-medical-image for Generic Medical Image.
         Parameters
         ----------
         files
@@ -599,10 +615,15 @@ class ClientBase(ApiDefinitions, ClientInterface):
             .jpg, .svs, .vms, .vmu, .ndpi, .scn, .mrxs and/or .bif files.
         archive
             The slug of the archive to use.
+        archive_item
+            The pk of the archive item to use.
         reader_study
             The slug of the reader study to use.
         answer
             The pk of the reader study answer to use.
+        interface
+            The slug of the interface to use. Can only be defined for archive
+            and archive item uploads.
         Returns
         -------
             The created upload session.
@@ -621,9 +642,26 @@ class ClientBase(ApiDefinitions, ClientInterface):
         if answer is not None:
             upload_session_data["answer"] = answer
 
+        if archive_item is not None:
+            upload_session_data["archive_item"] = archive_item
+
         if len(upload_session_data) != 1:
             raise ValueError(
-                "One of archive, answer or reader_study can be set"
+                "One of archive, archive_item, answer or reader_study can be set"
+            )
+
+        if interface:
+            upload_session_data["interface"] = interface
+
+        if interface and not (archive or archive_item):
+            raise ValueError(
+                "An interface can only be defined for archive and archive item "
+                "uploads."
+            )
+
+        if archive_item and not interface:
+            raise ValueError(
+                "You need to define an interface for archive item uploads."
             )
 
         raw_image_upload_session = yield from self._upload_files(
