@@ -542,3 +542,215 @@ async def test_auth_headers_not_sent():
         )
         sent_headers = response.json()["headers"]
         assert not set(c._auth_header.keys()) & set(sent_headers.keys())
+
+
+@pytest.mark.anyio
+async def test_add_and_update_file_to_archive_item(local_grand_challenge):
+    async with AsyncClient(
+        base_url=local_grand_challenge, verify=False, token=ARCHIVE_TOKEN,
+    ) as c:
+        # retrieve existing archive item pk
+        archive = await (
+            c.archives.iterate_all(params={"slug": "archive"})
+        ).__anext__()
+        item = await (
+            c.archive_items.iterate_all(params={"archive": archive["id"]})
+        ).__anext__()
+        old_civ_count = len(item["values"])
+
+        _ = await c.update_archive_item(
+            archive_item_pk=item["id"],
+            values={
+                "predictions-csv-file": [
+                    Path(__file__).parent / "testdata" / "test.csv"
+                ],
+            },
+        )
+
+        for _ in range(60):
+            item_updated = await c.archive_items.detail(item["id"])
+            if len(item_updated["values"]) == old_civ_count + 1:
+                # csv interface value has been added to item
+                break
+            else:
+                sleep(0.5)
+        else:
+            raise TimeoutError
+
+        csv_civ = item_updated["values"][-1]
+        assert csv_civ["interface"]["slug"] == "predictions-csv-file"
+        assert "test.csv" in csv_civ["file"]
+
+        updated_civ_count = len(item_updated["values"])
+        # a new pdf upload will overwrite the old pdf interface value
+        _ = await c.update_archive_item(
+            archive_item_pk=item["id"],
+            values={
+                "predictions-csv-file": [
+                    Path(__file__).parent / "testdata" / "test.csv"
+                ],
+            },
+        )
+
+        for _ in range(60):
+            item_updated_again = await c.archive_items.detail(item["id"])
+            if csv_civ not in item_updated_again["values"]:
+                # csv interface value has been added to item and the
+                # previously added pdf civ is no longer attached to this archive item
+                break
+            else:
+                sleep(0.5)
+        else:
+            raise TimeoutError
+
+        assert len(item_updated_again["values"]) == updated_civ_count
+        new_csv_civ = item_updated_again["values"][-1]
+        assert new_csv_civ["interface"]["slug"] == "predictions-csv-file"
+
+
+@pytest.mark.anyio
+async def test_add_and_update_value_to_archive_item(local_grand_challenge):
+    async with AsyncClient(
+        base_url=local_grand_challenge, verify=False, token=ARCHIVE_TOKEN,
+    ) as c:
+
+        # retrieve existing archive item pk
+        archive = await (
+            c.archives.iterate_all(params={"slug": "archive"})
+        ).__anext__()
+        item = await (
+            c.archive_items.iterate_all(params={"archive": archive["id"]})
+        ).__anext__()
+        old_n_values = len(item["values"])
+
+        _ = await c.update_archive_item(
+            archive_item_pk=item["id"],
+            values={"results-json-file": {"foo": 0.5}},
+        )
+
+        for _ in range(60):
+            item_updated = await c.archive_items.detail(item["id"])
+            if len(item_updated["values"]) == old_n_values + 1:
+                # results json interface value has been added to the item
+                break
+            else:
+                sleep(0.5)
+        else:
+            raise TimeoutError
+
+        json_civ = item_updated["values"][-1]
+        assert json_civ["interface"]["slug"] == "results-json-file"
+        assert json_civ["value"] == {"foo": 0.5}
+        updated_civ_count = len(item_updated["values"])
+
+        _ = await c.update_archive_item(
+            archive_item_pk=item["id"],
+            values={"results-json-file": {"foo": 0.8}},
+        )
+
+        for _ in range(60):
+            item_updated_again = await c.archive_items.detail(item["id"])
+            if json_civ not in item_updated_again["values"]:
+                # results json interface value has been added to the item and
+                # the previously added json civ is no longer attached
+                # to this archive item
+                break
+            else:
+                sleep(0.5)
+        else:
+            raise TimeoutError
+
+        assert len(item_updated_again["values"]) == updated_civ_count
+        new_json_civ = item_updated_again["values"][-1]
+        assert new_json_civ["interface"]["slug"] == "results-json-file"
+        assert new_json_civ["value"] == {"foo": 0.8}
+
+
+@pytest.mark.anyio
+async def test_update_interface_kind_of_archive_item_image_civ(
+    local_grand_challenge,
+):
+    async with AsyncClient(
+        base_url=local_grand_challenge, verify=False, token=ARCHIVE_TOKEN,
+    ) as c:
+
+        # retrieve existing archive item pk
+        archive = await (
+            c.archives.iterate_all(params={"slug": "archive"})
+        ).__anext__()
+        item = await (
+            c.archive_items.iterate_all(params={"archive": archive["id"]})
+        ).__anext__()
+        old_n_values = len(item["values"])
+        assert (
+            item["values"][0]["interface"]["slug"] == "generic-medical-image"
+        )
+        im_pk = item["values"][0]["image"]["pk"]
+        image = await c.images.detail(pk=im_pk)
+
+        # change interface slug from generic-medical-image to generic-overlay
+        _ = await c.update_archive_item(
+            archive_item_pk=item["id"],
+            values={"generic-overlay": image["api_url"]},
+        )
+
+        for _ in range(60):
+            item_updated = await c.archive_items.detail(item["id"])
+            if (
+                item_updated["values"][0]["interface"]["slug"]
+                == "generic-overlay"
+            ):
+                # interface type has been replaced
+                break
+            else:
+                sleep(0.5)
+        else:
+            raise TimeoutError
+
+        # still the same amount of civs
+        assert len(item_updated["values"]) == old_n_values
+
+
+@pytest.mark.anyio
+async def test_update_archive_item_with_non_existing_interface(
+    local_grand_challenge,
+):
+    async with AsyncClient(
+        base_url=local_grand_challenge, verify=False, token=ARCHIVE_TOKEN,
+    ) as c:
+
+        # retrieve existing archive item pk
+        archive = await (
+            c.archives.iterate_all(params={"slug": "archive"})
+        ).__anext__()
+        item = await (
+            c.archive_items.iterate_all(params={"archive": archive["id"]})
+        ).__anext__()
+        with pytest.raises(ValueError) as e:
+            _ = await c.update_archive_item(
+                archive_item_pk=item["id"], values={"new-interface": 5},
+            )
+        assert "new-interface is not an existing interface" in str(e)
+
+
+@pytest.mark.anyio
+async def test_update_archive_item_without_value(local_grand_challenge):
+    async with AsyncClient(
+        base_url=local_grand_challenge, verify=False, token=ARCHIVE_TOKEN,
+    ) as c:
+
+        # retrieve existing archive item pk
+        archive = await (
+            c.archives.iterate_all(params={"slug": "archive"})
+        ).__anext__()
+        item = await (
+            c.archive_items.iterate_all(params={"archive": archive["id"]})
+        ).__anext__()
+        with pytest.raises(ValueError) as e:
+            _ = await c.update_archive_item(
+                archive_item_pk=item["id"],
+                values={"generic-medical-image": None},
+            )
+        assert "You need to provide a value for Generic Medical Image" in str(
+            e
+        )

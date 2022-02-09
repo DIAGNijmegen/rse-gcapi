@@ -16,6 +16,7 @@ from httpx import HTTPStatusError
 from httpx import Timeout, URL
 
 from gcapi.apibase import APIBase, ClientInterface, ModifiableMixin
+from gcapi.exceptions import ObjectNotFound
 from gcapi.sync_async_hybrid_support import CapturedCall, mark_generator
 
 logger = logging.getLogger(__name__)
@@ -232,8 +233,12 @@ class ArchivesAPI(APIBase):
     base_path = "archives/"
 
 
-class ArchiveItemsAPI(APIBase):
+class ArchiveItemsAPI(ModifiableMixin, APIBase):
     base_path = "archives/items/"
+
+
+class ComponentInterfacesAPI(APIBase):
+    base_path = "interfaces/"
 
 
 class RetinaLandmarkAnnotationSetsAPI(ModifiableMixin, APIBase):
@@ -451,6 +456,7 @@ class ApiDefinitions:
     retina_etdrs_grid_annotations: RetinaETDRSGridAnnotationsAPI
     raw_image_upload_sessions: UploadSessionsAPI
     archive_items: ArchiveItemsAPI
+    interfaces: ComponentInterfacesAPI
 
 
 class ClientBase(ApiDefinitions, ClientInterface):
@@ -741,3 +747,100 @@ class ClientBase(ApiDefinitions, ClientInterface):
             job["inputs"].append(i)
 
         return (yield from self.__org_api_meta.algorithm_jobs.create(**job))
+
+    def update_archive_item(
+        self, *, archive_item_pk: str, values: Dict[str, Any]
+    ):
+        """
+        This function updates an existing archive item with the provided values
+        and returns the updated archive item.
+        You can use this function, for example, to add metadata to an archive item.
+        First, retrieve the archive items from your archive:
+        archive = next(client.archives.iterate_all(params={"slug": "..."}))
+        items = next(
+            client.archive_items.iterate_all(params={"archive": archive["id"]})
+        )
+        You can, for example, add a PDF report and a lung volume
+        value to the first archive item like this:
+        client.update_archive_item(
+            archive_item_pk=items[0]['id'],
+            values={
+                "report": [...],
+                "lung-volume": 1.9,
+            },
+        )
+        If you provide a value or file for an existing interface of the archive
+        item, the old value will be overwritten by the new one, hence allowing you
+        to update existing archive item values.
+        For images that are already associated with an archive item, you can
+        also change the interface type (e.g. from generic medical image to
+        generic overlay) by providing the link to the existing image together
+        with the new interface slug you would like to use:
+        client.update_archive_item(
+            archive_item_pk=items[0]['id'],
+            values={
+                "generic-overlay":
+                "https://grand-challenge.org/api/v1/cases/images/.../",
+            }
+        )
+
+        Parameters
+        ----------
+        archive_item_pk
+        values
+
+        Returns
+        -------
+        The updated archive item
+        """
+        item = yield from self.__org_api_meta.archive_items.detail(
+            pk=archive_item_pk
+        )
+        data: Dict[str, list] = {"values": []}
+
+        for civ_title, value in values.items():
+            try:
+                ci = yield from self.__org_api_meta.interfaces.detail(
+                    slug=civ_title
+                )
+            except ObjectNotFound as e:
+                raise ValueError(
+                    f"{civ_title} is not an existing interface. "
+                    f"Please provide one from this list: "
+                    f"https://grand-challenge.org/algorithms/interfaces/"
+                ) from e
+            i = {"interface": ci["slug"]}
+
+            if not value:
+                raise ValueError(
+                    f"You need to provide a value for {ci['title']}"
+                )
+
+            if ci["super_kind"].lower() == "image":
+                if isinstance(value, list):
+                    raw_image_upload_session = yield from self._upload_files(
+                        files=value
+                    )
+                    i["upload_session"] = raw_image_upload_session["api_url"]
+                elif isinstance(value, str):
+                    i["image"] = value
+            elif ci["super_kind"].lower() == "file":
+                if len(value) != 1:
+                    raise ValueError(
+                        f"You can only upload one single file "
+                        f"to a {ci.title} interface."
+                    )
+                with open(value[0], "rb") as f:
+                    upload = yield from self.__org_api_meta.uploads.upload_fileobj(
+                        fileobj=f, filename=value[0].name
+                    )
+                i["user_upload"] = upload["api_url"]
+            else:
+                i["value"] = value
+            data["values"].append(i)
+
+        return (
+            yield from self.__org_api_meta.archive_items.partial_update(
+                pk=item["id"], **data
+            )
+        )
