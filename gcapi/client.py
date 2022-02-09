@@ -796,7 +796,7 @@ class ClientBase(ApiDefinitions, ClientInterface):
         item = yield from self.__org_api_meta.archive_items.detail(
             pk=archive_item_pk
         )
-        data: Dict[str, list] = {"values": []}
+        civs: Dict[str, list] = {"values": []}
 
         for civ_title, value in values.items():
             try:
@@ -837,10 +837,10 @@ class ClientBase(ApiDefinitions, ClientInterface):
                 i["user_upload"] = upload["api_url"]
             else:
                 i["value"] = value
-            data["values"].append(i)
+            civs["values"].append(i)
 
         return (
             yield from self.__org_api_meta.archive_items.partial_update(
-                pk=item["id"], **data
+                pk=item["id"], **civs
             )
         )
