@@ -757,11 +757,11 @@ class ClientBase(ApiDefinitions, ClientInterface):
         You can use this function, for example, to add metadata to an archive item.
         First, retrieve the archive items from your archive:
         archive = next(client.archives.iterate_all(params={"slug": "..."}))
-        items = next(
+        items = list(
             client.archive_items.iterate_all(params={"archive": archive["id"]})
         )
-        You can, for example, add a PDF report and a lung volume
-        value to the first archive item like this:
+        To then add, for example, a PDF report and a lung volume
+        value to the first archive item , do the following:
         client.update_archive_item(
             archive_item_pk=items[0]['id'],
             values={
