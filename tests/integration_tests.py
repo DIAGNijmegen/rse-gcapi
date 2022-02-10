@@ -490,6 +490,21 @@ def test_add_and_update_file_to_archive_item(local_grand_challenge):
     )
     old_civ_count = len(items[0]["values"])
 
+    with pytest.raises(ValueError) as e:
+        _ = c.update_archive_item(
+            archive_item_pk=items[0]["id"],
+            values={
+                "predictions-csv-file": [
+                    Path(__file__).parent / "testdata" / f
+                    for f in ["test.csv", "test.csv"]
+                ]
+            },
+        )
+    assert (
+        "You can only upload one single file to a predictions-csv-file interface"
+        in str(e)
+    )
+
     _ = c.update_archive_item(
         archive_item_pk=items[0]["id"],
         values={
@@ -622,7 +637,10 @@ def test_update_interface_kind_of_archive_item_image_civ(
 
     for _ in range(60):
         item_updated = c.archive_items.detail(items[0]["id"])
-        if item_updated["values"][0]["interface"]["slug"] == "generic-overlay":
+        if (
+            item_updated["values"][-1]["interface"]["slug"]
+            == "generic-overlay"
+        ):
             # interface type has been replaced
             break
         else:
@@ -632,6 +650,10 @@ def test_update_interface_kind_of_archive_item_image_civ(
 
     # still the same amount of civs
     assert len(item_updated["values"]) == old_n_values
+    assert "generic-medical-image" not in [
+        value["interface"]["slug"] for value in item_updated["values"]
+    ]
+    assert item_updated["values"][-1]["image"]["pk"] == im_pk
 
 
 def test_update_archive_item_with_non_existing_interface(
@@ -669,4 +691,4 @@ def test_update_archive_item_without_value(local_grand_challenge):
             archive_item_pk=items[0]["id"],
             values={"generic-medical-image": None},
         )
-    assert "You need to provide a value for Generic Medical Image" in str(e)
+    assert "You need to provide a value for generic-medical-image" in str(e)

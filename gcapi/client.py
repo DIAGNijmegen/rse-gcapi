@@ -238,7 +238,7 @@ class ArchiveItemsAPI(ModifiableMixin, APIBase):
 
 
 class ComponentInterfacesAPI(APIBase):
-    base_path = "interfaces/"
+    base_path = "components/interfaces/"
 
 
 class RetinaLandmarkAnnotationSetsAPI(ModifiableMixin, APIBase):
@@ -761,7 +761,8 @@ class ClientBase(ApiDefinitions, ClientInterface):
             client.archive_items.iterate_all(params={"archive": archive["id"]})
         )
         To then add, for example, a PDF report and a lung volume
-        value to the first archive item , do the following:
+        value to the first archive item , provide the interface slugs together
+        with the respective value or file path as follows:
         client.update_archive_item(
             archive_item_pk=items[0]['id'],
             values={
@@ -798,14 +799,14 @@ class ClientBase(ApiDefinitions, ClientInterface):
         )
         civs: Dict[str, list] = {"values": []}
 
-        for civ_title, value in values.items():
+        for civ_slug, value in values.items():
             try:
                 ci = yield from self.__org_api_meta.interfaces.detail(
-                    slug=civ_title
+                    slug=civ_slug
                 )
             except ObjectNotFound as e:
                 raise ValueError(
-                    f"{civ_title} is not an existing interface. "
+                    f"{civ_slug} is not an existing interface. "
                     f"Please provide one from this list: "
                     f"https://grand-challenge.org/algorithms/interfaces/"
                 ) from e
@@ -813,7 +814,7 @@ class ClientBase(ApiDefinitions, ClientInterface):
 
             if not value:
                 raise ValueError(
-                    f"You need to provide a value for {ci['title']}"
+                    f"You need to provide a value for {ci['slug']}"
                 )
 
             if ci["super_kind"].lower() == "image":
@@ -828,7 +829,7 @@ class ClientBase(ApiDefinitions, ClientInterface):
                 if len(value) != 1:
                     raise ValueError(
                         f"You can only upload one single file "
-                        f"to a {ci.title} interface."
+                        f"to a {ci['slug']} interface."
                     )
                 with open(value[0], "rb") as f:
                     upload = yield from self.__org_api_meta.uploads.upload_fileobj(
