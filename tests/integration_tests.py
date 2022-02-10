@@ -247,6 +247,7 @@ def test_upload_cases_to_archive(local_grand_challenge, files, interface):
         value["image"]["pk"]: value["interface"]["slug"]
         for item in archive_items
         for value in item["values"]
+        if value["image"]
     }
     if interface:
         assert image_pk_to_interface_slug_dict[image["pk"]] == interface
@@ -316,7 +317,9 @@ def test_upload_cases_to_archive_item_with_existing_interface(
 
     # And that it was added to the archive item
     item = c.archive_items.detail(pk=item["id"])
-    assert image["pk"] in [civ["image"]["pk"] for civ in item["values"]]
+    assert image["pk"] in [
+        civ["image"]["pk"] for civ in item["values"] if civ["image"]
+    ]
     # with the correct interface
     im_to_interface = {
         civ["image"]["pk"]: civ["interface"]["slug"] for civ in item["values"]
@@ -362,7 +365,9 @@ def test_upload_cases_to_archive_item_with_new_interface(
 
     # And that it was added to the archive item
     item = c.archive_items.detail(pk=item["id"])
-    assert image["pk"] in [civ["image"]["pk"] for civ in item["values"]]
+    assert image["pk"] in [
+        civ["image"]["pk"] for civ in item["values"] if civ["image"]
+    ]
     # with the correct interface
     im_to_interface = {
         civ["image"]["pk"]: civ["interface"]["slug"] for civ in item["values"]
@@ -483,16 +488,34 @@ def test_add_and_update_file_to_archive_item(local_grand_challenge):
         base_url=local_grand_challenge, verify=False, token=ARCHIVE_TOKEN,
     )
 
-    # retrieve existing archive item pk
+    # check number of archive items
     archive = next(c.archives.iterate_all(params={"slug": "archive"}))
-    items = list(
+    old_items_list = list(
         c.archive_items.iterate_all(params={"archive": archive["id"]})
     )
-    old_civ_count = len(items[0]["values"])
+
+    # create new archive item
+    _ = c.upload_cases(
+        archive="archive",
+        files=[Path(__file__).parent / "testdata" / "image10x10x101.mha"],
+    )
+
+    # retrieve existing archive item pk
+    for _ in range(60):
+        items = list(
+            c.archive_items.iterate_all(params={"archive": archive["id"]})
+        )
+        if len(items) > len(old_items_list):
+            # item has been added
+            break
+        else:
+            sleep(0.5)
+
+    old_civ_count = len(items[-1]["values"])
 
     with pytest.raises(ValueError) as e:
         _ = c.update_archive_item(
-            archive_item_pk=items[0]["id"],
+            archive_item_pk=items[-1]["id"],
             values={
                 "predictions-csv-file": [
                     Path(__file__).parent / "testdata" / f
@@ -506,7 +529,7 @@ def test_add_and_update_file_to_archive_item(local_grand_challenge):
     )
 
     _ = c.update_archive_item(
-        archive_item_pk=items[0]["id"],
+        archive_item_pk=items[-1]["id"],
         values={
             "predictions-csv-file": [
                 Path(__file__).parent / "testdata" / "test.csv"
@@ -515,7 +538,7 @@ def test_add_and_update_file_to_archive_item(local_grand_challenge):
     )
 
     for _ in range(60):
-        item_updated = c.archive_items.detail(items[0]["id"])
+        item_updated = c.archive_items.detail(items[-1]["id"])
         if len(item_updated["values"]) == old_civ_count + 1:
             # csv interface value has been added to item
             break
@@ -531,7 +554,7 @@ def test_add_and_update_file_to_archive_item(local_grand_challenge):
     updated_civ_count = len(item_updated["values"])
     # a new pdf upload will overwrite the old pdf interface value
     _ = c.update_archive_item(
-        archive_item_pk=items[0]["id"],
+        archive_item_pk=items[-1]["id"],
         values={
             "predictions-csv-file": [
                 Path(__file__).parent / "testdata" / "test.csv"
@@ -540,7 +563,7 @@ def test_add_and_update_file_to_archive_item(local_grand_challenge):
     )
 
     for _ in range(60):
-        item_updated_again = c.archive_items.detail(items[0]["id"])
+        item_updated_again = c.archive_items.detail(items[-1]["id"])
         if csv_civ not in item_updated_again["values"]:
             # csv interface value has been added to item and the
             # previously added pdf civ is no longer attached to this archive item
@@ -559,22 +582,39 @@ def test_add_and_update_value_to_archive_item(local_grand_challenge):
     c = Client(
         base_url=local_grand_challenge, verify=False, token=ARCHIVE_TOKEN,
     )
-
-    # retrieve existing archive item pk
+    # check number of archive items
     archive = next(c.archives.iterate_all(params={"slug": "archive"}))
-    items = list(
+    old_items_list = list(
         c.archive_items.iterate_all(params={"archive": archive["id"]})
     )
-    old_n_values = len(items[0]["values"])
+
+    # create new archive item
+    _ = c.upload_cases(
+        archive="archive",
+        files=[Path(__file__).parent / "testdata" / "image10x10x101.mha"],
+    )
+
+    # retrieve existing archive item pk
+    for _ in range(60):
+        items = list(
+            c.archive_items.iterate_all(params={"archive": archive["id"]})
+        )
+        if len(items) > len(old_items_list):
+            # item has been added
+            break
+        else:
+            sleep(0.5)
+
+    old_civ_count = len(items[-1]["values"])
 
     _ = c.update_archive_item(
-        archive_item_pk=items[0]["id"],
+        archive_item_pk=items[-1]["id"],
         values={"results-json-file": {"foo": 0.5}},
     )
 
     for _ in range(60):
-        item_updated = c.archive_items.detail(items[0]["id"])
-        if len(item_updated["values"]) == old_n_values + 1:
+        item_updated = c.archive_items.detail(items[-1]["id"])
+        if len(item_updated["values"]) == old_civ_count + 1:
             # results json interface value has been added to the item
             break
         else:
@@ -588,12 +628,12 @@ def test_add_and_update_value_to_archive_item(local_grand_challenge):
     updated_civ_count = len(item_updated["values"])
 
     _ = c.update_archive_item(
-        archive_item_pk=items[0]["id"],
+        archive_item_pk=items[-1]["id"],
         values={"results-json-file": {"foo": 0.8}},
     )
 
     for _ in range(60):
-        item_updated_again = c.archive_items.detail(items[0]["id"])
+        item_updated_again = c.archive_items.detail(items[-1]["id"])
         if json_civ not in item_updated_again["values"]:
             # results json interface value has been added to the item and
             # the previously added json civ is no longer attached
@@ -616,27 +656,45 @@ def test_update_interface_kind_of_archive_item_image_civ(
     c = Client(
         base_url=local_grand_challenge, verify=False, token=ARCHIVE_TOKEN,
     )
-
-    # retrieve existing archive item pk
+    # check number of archive items
     archive = next(c.archives.iterate_all(params={"slug": "archive"}))
-    items = list(
+    old_items_list = list(
         c.archive_items.iterate_all(params={"archive": archive["id"]})
     )
-    old_n_values = len(items[0]["values"])
-    assert (
-        items[0]["values"][0]["interface"]["slug"] == "generic-medical-image"
+
+    # create new archive item
+    _ = c.upload_cases(
+        archive="archive",
+        files=[Path(__file__).parent / "testdata" / "image10x10x101.mha"],
     )
-    im_pk = items[0]["values"][0]["image"]["pk"]
+
+    # retrieve existing archive item pk
+    for _ in range(60):
+        items = list(
+            c.archive_items.iterate_all(params={"archive": archive["id"]})
+        )
+        if len(items) > len(old_items_list):
+            # item has been added
+            break
+        else:
+            sleep(0.5)
+
+    old_civ_count = len(items[-1]["values"])
+
+    assert (
+        items[-1]["values"][0]["interface"]["slug"] == "generic-medical-image"
+    )
+    im_pk = items[-1]["values"][0]["image"]["pk"]
     image = c.images.detail(pk=im_pk)
 
     # change interface slug from generic-medical-image to generic-overlay
     _ = c.update_archive_item(
-        archive_item_pk=items[0]["id"],
+        archive_item_pk=items[-1]["id"],
         values={"generic-overlay": image["api_url"]},
     )
 
     for _ in range(60):
-        item_updated = c.archive_items.detail(items[0]["id"])
+        item_updated = c.archive_items.detail(items[-1]["id"])
         if (
             item_updated["values"][-1]["interface"]["slug"]
             == "generic-overlay"
@@ -649,7 +707,7 @@ def test_update_interface_kind_of_archive_item_image_civ(
         raise TimeoutError
 
     # still the same amount of civs
-    assert len(item_updated["values"]) == old_n_values
+    assert len(item_updated["values"]) == old_civ_count
     assert "generic-medical-image" not in [
         value["interface"]["slug"] for value in item_updated["values"]
     ]
