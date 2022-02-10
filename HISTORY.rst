@@ -5,9 +5,9 @@ History
 0.5.4 (2022-02-10)
 ------------------
 
-* Added `archive_item` to `upload_cases` which allows adding images to existing archive items
-* Added `interface` to `upload_cases` which allow specifying the image type when uploading to archive and archive items. Can only be used in combination with `archive` or `archive_item`.
-* Added `update_archive_item` which allows editing of archive item values
+* Added ``archive_item`` to ``upload_cases`` which allows adding images to existing archive items
+* Added ``interface`` to ``upload_cases`` which allows specifying the image type when uploading to archive and archive items. Can only be used in combination with ``archive`` or ``archive_item``.
+* Added ``update_archive_item`` which allows editing of archive item values
 
 0.5.3 (2021-12-09)
 ------------------
