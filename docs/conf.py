@@ -129,7 +129,7 @@ latex_documents = [
         "Grand Challenge API Client Documentation",
         "James Meakin",
         "manual",
-    ),
+    )
 ]
 
 # -- Options for manual page output ------------------------------------
@@ -160,5 +160,5 @@ texinfo_documents = [
         "gcapi",
         "One line description of project.",
         "Miscellaneous",
-    ),
+    )
 ]

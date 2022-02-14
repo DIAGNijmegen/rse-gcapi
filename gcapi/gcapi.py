@@ -89,9 +89,7 @@ class WrapApiInterfaces(ClientBase):
 
         for api_name in self._api_meta.__annotations__.keys():
             wrapped = wrap_api(getattr(self._api_meta, api_name))
-            setattr(
-                self._api_meta, api_name, wrapped,
-            )
+            setattr(self._api_meta, api_name, wrapped)
 
 
 class Client(httpx.Client, WrapApiInterfaces, ClientBase):

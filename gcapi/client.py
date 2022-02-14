@@ -411,7 +411,7 @@ class UploadsAPI(APIBase):
                 if status_code in [409, 423] or status_code >= 500:
                     num_retries += 1
                     e = _e
-                    sleep((2 ** num_retries) + (randint(0, 1000) / 1000))
+                    sleep((2**num_retries) + (randint(0, 1000) / 1000))
                 else:
                     raise
         else:
@@ -577,7 +577,7 @@ class ClientBase(ApiDefinitions, ClientInterface):
 
         return (
             yield from self.__org_api_meta.raw_image_upload_sessions.create(
-                uploads=[u["api_url"] for u in uploads], **kwargs,
+                uploads=[u["api_url"] for u in uploads], **kwargs
             )
         )
 
@@ -832,8 +832,10 @@ class ClientBase(ApiDefinitions, ClientInterface):
                         f"to a {ci['slug']} interface."
                     )
                 with open(value[0], "rb") as f:
-                    upload = yield from self.__org_api_meta.uploads.upload_fileobj(
-                        fileobj=f, filename=value[0].name
+                    upload = (
+                        yield from self.__org_api_meta.uploads.upload_fileobj(
+                            fileobj=f, filename=value[0].name
+                        )
                     )
                 i["user_upload"] = upload["api_url"]
             else:

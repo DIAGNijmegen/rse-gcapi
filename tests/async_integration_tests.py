@@ -534,7 +534,7 @@ async def test_get_algorithm_by_slug(local_grand_challenge):
 @pytest.mark.anyio
 async def test_get_reader_study_by_slug(local_grand_challenge):
     async with AsyncClient(
-        base_url=local_grand_challenge, verify=False, token=READERSTUDY_TOKEN,
+        base_url=local_grand_challenge, verify=False, token=READERSTUDY_TOKEN
     ) as c:
         by_slug = await c.reader_studies.detail(slug="reader-study")
         by_pk = await c.reader_studies.detail(pk=by_slug["pk"])
@@ -546,7 +546,7 @@ async def test_get_reader_study_by_slug(local_grand_challenge):
 @pytest.mark.anyio
 async def test_detail_no_objects(local_grand_challenge, key):
     async with AsyncClient(
-        base_url=local_grand_challenge, verify=False, token=READERSTUDY_TOKEN,
+        base_url=local_grand_challenge, verify=False, token=READERSTUDY_TOKEN
     ) as c:
         with pytest.raises(ObjectNotFound):
             await c.reader_studies.detail(**{key: "foo"})
@@ -581,7 +581,7 @@ async def test_auth_headers_not_sent():
 @pytest.mark.anyio
 async def test_add_and_update_file_to_archive_item(local_grand_challenge):
     async with AsyncClient(
-        base_url=local_grand_challenge, verify=False, token=ARCHIVE_TOKEN,
+        base_url=local_grand_challenge, verify=False, token=ARCHIVE_TOKEN
     ) as c:
         # check number of archive items
         archive = await (
@@ -630,7 +630,7 @@ async def test_add_and_update_file_to_archive_item(local_grand_challenge):
             values={
                 "predictions-csv-file": [
                     Path(__file__).parent / "testdata" / "test.csv"
-                ],
+                ]
             },
         )
 
@@ -655,7 +655,7 @@ async def test_add_and_update_file_to_archive_item(local_grand_challenge):
             values={
                 "predictions-csv-file": [
                     Path(__file__).parent / "testdata" / "test.csv"
-                ],
+                ]
             },
         )
 
@@ -680,7 +680,7 @@ async def test_add_and_update_file_to_archive_item(local_grand_challenge):
 @pytest.mark.anyio
 async def test_add_and_update_value_to_archive_item(local_grand_challenge):
     async with AsyncClient(
-        base_url=local_grand_challenge, verify=False, token=ARCHIVE_TOKEN,
+        base_url=local_grand_challenge, verify=False, token=ARCHIVE_TOKEN
     ) as c:
         # check number of archive items
         archive = await (
@@ -759,7 +759,7 @@ async def test_update_interface_kind_of_archive_item_image_civ(
     local_grand_challenge,
 ):
     async with AsyncClient(
-        base_url=local_grand_challenge, verify=False, token=ARCHIVE_TOKEN,
+        base_url=local_grand_challenge, verify=False, token=ARCHIVE_TOKEN
     ) as c:
         # check number of archive items
         archive = await (
@@ -827,7 +827,7 @@ async def test_update_archive_item_with_non_existing_interface(
     local_grand_challenge,
 ):
     async with AsyncClient(
-        base_url=local_grand_challenge, verify=False, token=ARCHIVE_TOKEN,
+        base_url=local_grand_challenge, verify=False, token=ARCHIVE_TOKEN
     ) as c:
 
         # retrieve existing archive item pk
@@ -838,7 +838,7 @@ async def test_update_archive_item_with_non_existing_interface(
         item_ids = [item["id"] async for item in items]
         with pytest.raises(ValueError) as e:
             _ = await c.update_archive_item(
-                archive_item_pk=item_ids[0], values={"new-interface": 5},
+                archive_item_pk=item_ids[0], values={"new-interface": 5}
             )
         assert "new-interface is not an existing interface" in str(e)
 
@@ -846,7 +846,7 @@ async def test_update_archive_item_with_non_existing_interface(
 @pytest.mark.anyio
 async def test_update_archive_item_without_value(local_grand_challenge):
     async with AsyncClient(
-        base_url=local_grand_challenge, verify=False, token=ARCHIVE_TOKEN,
+        base_url=local_grand_challenge, verify=False, token=ARCHIVE_TOKEN
     ) as c:
 
         # retrieve existing archive item pk
