@@ -36,6 +36,8 @@ setup(
         "Programming Language :: Python :: 3.6",
         "Programming Language :: Python :: 3.7",
         "Programming Language :: Python :: 3.8",
+        "Programming Language :: Python :: 3.9",
+        "Programming Language :: Python :: 3.10",
     ],
     description="Python client for the grand-challenge.org API",
     entry_points={"console_scripts": ["gcapi=gcapi.cli:main"]},
