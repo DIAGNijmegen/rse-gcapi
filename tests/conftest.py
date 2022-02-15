@@ -54,11 +54,9 @@ def local_grand_challenge() -> Generator[str, None, None]:
                     ["docker-compose", "pull", "--no-parallel"], cwd=tmp_path
                 )
 
+                check_call(["make", "development_fixtures"], cwd=tmp_path)
                 check_call(
-                    ["make", "development_fixtures"], cwd=tmp_path,
-                )
-                check_call(
-                    ["make", "algorithm_evaluation_fixtures"], cwd=tmp_path,
+                    ["make", "algorithm_evaluation_fixtures"], cwd=tmp_path
                 )
                 check_call(
                     [

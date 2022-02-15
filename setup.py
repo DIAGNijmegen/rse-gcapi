@@ -17,12 +17,7 @@ requirements = [
     "jsonschema[format_nongpl]>=3.0",
 ]
 
-test_requirements = [
-    "pytest",
-    "pyyaml",
-    "docker-compose-wait",
-    "pytest-cov",
-]
+test_requirements = ["pytest", "pyyaml", "docker-compose-wait", "pytest-cov"]
 
 about: Dict[str, str] = {}
 here = os.path.abspath(os.path.dirname(__file__))

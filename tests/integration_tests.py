@@ -445,7 +445,7 @@ def test_get_algorithm_by_slug(local_grand_challenge):
 
 def test_get_reader_study_by_slug(local_grand_challenge):
     c = Client(
-        base_url=local_grand_challenge, verify=False, token=READERSTUDY_TOKEN,
+        base_url=local_grand_challenge, verify=False, token=READERSTUDY_TOKEN
     )
 
     by_slug = c.reader_studies.detail(slug="reader-study")
@@ -457,7 +457,7 @@ def test_get_reader_study_by_slug(local_grand_challenge):
 @pytest.mark.parametrize("key", ["slug", "pk"])
 def test_detail_no_objects(local_grand_challenge, key):
     c = Client(
-        base_url=local_grand_challenge, verify=False, token=READERSTUDY_TOKEN,
+        base_url=local_grand_challenge, verify=False, token=READERSTUDY_TOKEN
     )
 
     with pytest.raises(ObjectNotFound):
@@ -485,7 +485,7 @@ def test_auth_headers_not_sent():
 
 def test_add_and_update_file_to_archive_item(local_grand_challenge):
     c = Client(
-        base_url=local_grand_challenge, verify=False, token=ARCHIVE_TOKEN,
+        base_url=local_grand_challenge, verify=False, token=ARCHIVE_TOKEN
     )
 
     # check number of archive items
@@ -533,7 +533,7 @@ def test_add_and_update_file_to_archive_item(local_grand_challenge):
         values={
             "predictions-csv-file": [
                 Path(__file__).parent / "testdata" / "test.csv"
-            ],
+            ]
         },
     )
 
@@ -558,7 +558,7 @@ def test_add_and_update_file_to_archive_item(local_grand_challenge):
         values={
             "predictions-csv-file": [
                 Path(__file__).parent / "testdata" / "test.csv"
-            ],
+            ]
         },
     )
 
@@ -580,7 +580,7 @@ def test_add_and_update_file_to_archive_item(local_grand_challenge):
 
 def test_add_and_update_value_to_archive_item(local_grand_challenge):
     c = Client(
-        base_url=local_grand_challenge, verify=False, token=ARCHIVE_TOKEN,
+        base_url=local_grand_challenge, verify=False, token=ARCHIVE_TOKEN
     )
     # check number of archive items
     archive = next(c.archives.iterate_all(params={"slug": "archive"}))
@@ -654,7 +654,7 @@ def test_update_interface_kind_of_archive_item_image_civ(
     local_grand_challenge,
 ):
     c = Client(
-        base_url=local_grand_challenge, verify=False, token=ARCHIVE_TOKEN,
+        base_url=local_grand_challenge, verify=False, token=ARCHIVE_TOKEN
     )
     # check number of archive items
     archive = next(c.archives.iterate_all(params={"slug": "archive"}))
@@ -718,7 +718,7 @@ def test_update_archive_item_with_non_existing_interface(
     local_grand_challenge,
 ):
     c = Client(
-        base_url=local_grand_challenge, verify=False, token=ARCHIVE_TOKEN,
+        base_url=local_grand_challenge, verify=False, token=ARCHIVE_TOKEN
     )
 
     # retrieve existing archive item pk
@@ -728,14 +728,14 @@ def test_update_archive_item_with_non_existing_interface(
     )
     with pytest.raises(ValueError) as e:
         _ = c.update_archive_item(
-            archive_item_pk=items[0]["id"], values={"new-interface": 5},
+            archive_item_pk=items[0]["id"], values={"new-interface": 5}
         )
     assert "new-interface is not an existing interface" in str(e)
 
 
 def test_update_archive_item_without_value(local_grand_challenge):
     c = Client(
-        base_url=local_grand_challenge, verify=False, token=ARCHIVE_TOKEN,
+        base_url=local_grand_challenge, verify=False, token=ARCHIVE_TOKEN
     )
 
     # retrieve existing archive item pk
