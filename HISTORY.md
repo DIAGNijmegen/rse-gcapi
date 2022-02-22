@@ -36,8 +36,8 @@
   - Added optional `answer` argument to `upload_cases`
   - Added `archives` endpoint
   - Added `MASK` answertype
-  - Added optional <span class="title-ref">follow\_redirects</span>
-    argument to <span class="title-ref">Client.\_\_call\_\_</span>
+  - Added optional `follow_redirects`
+    argument to `Client.__call__`
 
 ## 0.4.0 (2021-06-01)
 
@@ -65,17 +65,17 @@
 ## 0.3.1 (2021-02-01)
 
   - Adds support for Image answers
-  - Allows setting <span class="title-ref">content</span> rather than
-    <span class="title-ref">filename</span> in
-    <span class="title-ref">upload\_files</span>
+  - Allows setting `content` rather than
+    `filename` in
+    `upload_files`
 
 ## 0.3.0 (2020-12-02)
 
-  -   - Breaking Changes in `upload_cases`:
+  - Breaking Changes in `upload_cases`:
 
-          - Renamed kwarg `files_to_upload` to `files`
-          - `algorithm` kwarg now takes a `slug` rather than a `title`
-          - Removed `run_external_algorithm`, use `upload_cases` instead
+    - Renamed kwarg `files_to_upload` to `files`
+    - `algorithm` kwarg now takes a `slug` rather than a `title`
+    - Removed `run_external_algorithm`, use `upload_cases` instead
 
   - Add Multiple 2D bounding box question types to reader studies
 
@@ -97,7 +97,7 @@
   - Added support for retina polygon annotation sets and retina single
     polygon annotations
   - If authentication token is unset, the
-    <span class="title-ref">GRAND\_CHALLENGE\_AUTHORIZATION</span> will
+    `GRAND_CHALLENGE_AUTHORIZATION` will
     be used as a fallback
 
 ## 0.2.5 (2020-04-24)
