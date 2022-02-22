@@ -1,6 +1,70 @@
+[tool.poetry]
+name = "gcapi"
+version = "0.5.4"
+description = "Python client for the grand-challenge.org REST API"
+authors = ["James Meakin <gcapi@jmsmkn.com>"]
+license = "Apache-2.0"
+readme = "README.md"
+repository = "https://github.com/DIAGNijmegen/rse-gcapi"
+classifiers = [
+    "Development Status :: 3 - Alpha",
+    "Intended Audience :: Developers",
+]
+
+[tool.poetry.scripts]
+gcapi = "gcapi.cli:main"
+
+[tool.poetry.dependencies]
+python = ">=3.6,<3.11"
+httpx = "~0.20.0"
+Click = ">=6.0"
+jsonschema = { extras = ["format_nongpl"], version = ">=3.0" }
+
+[tool.poetry.dev-dependencies]
+pytest = "*"
+pytest-xdist = "*"
+pytest-randomly = "*"
+pytest-cov = "*"
+pyyaml = "*"
+docker-compose-wait = "*"
+
+[build-system]
+requires = ["poetry-core>=1.0.0"]
+build-backend = "poetry.core.masonry.api"
+
 [tool.black]
 line-length = 79
 target-version = ['py36']
 
-[tool.check-manifest]
-ignore = [".travis.yml", ".editorconfig", ".pre-commit-config.yaml"]
+[tool.pytest.ini_options]
+minversion = "6.0"
+testpaths = [
+    "tests",
+]
+python_files = "tests.py test_*.py *_tests.py"
+addopts = "--strict-markers --showlocals -n auto --dist loadscope"
+xfail_strict = true
+
+[tool.tox]
+legacy_tox_ini = """
+[tox]
+isolated_build = True
+envlist = py36, py37, py38, py39, py310
+
+[gh-actions]
+python =
+    3.6: py36
+    3.7: py37
+    3.8: py38
+    3.9: py39
+    3.10: py310
+
+[testenv]
+allowlist_externals =
+    poetry
+setenv =
+    PYTHONPATH = {toxinidir}
+commands =
+    poetry install -v
+    poetry run pytest --cov-branch --cov-report term-missing --cov=tests/ --cov=gcapi/ --basetemp={envtmpdir} {posargs}
+"""

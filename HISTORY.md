@@ -72,7 +72,7 @@
 ## 0.3.0 (2020-12-02)
 
   -   - Breaking Changes in `upload_cases`:
-        
+
           - Renamed kwarg `files_to_upload` to `files`
           - `algorithm` kwarg now takes a `slug` rather than a `title`
           - Removed `run_external_algorithm`, use `upload_cases` instead
