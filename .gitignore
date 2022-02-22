@@ -104,3 +104,6 @@ ENV/
 # IDEs
 .idea/
 .vscode/
+
+# Poetry
+poetry.lock

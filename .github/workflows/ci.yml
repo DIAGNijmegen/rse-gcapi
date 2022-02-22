@@ -1,48 +1,72 @@
 name: CI
 
-on: [push, pull_request]
+on:
+  push:
+  pull_request:
+  release:
+    types:
+      - published
 
 env:
-  PYTHON_VERSION: '3.10'
+  MINIMUM_PYTHON_VERSION: '3.6'
+
+concurrency:
+  group: ${{ github.head_ref || github.run_id }}
+  cancel-in-progress: true
 
 jobs:
-
   precommit:
     runs-on: ubuntu-latest
     steps:
-      - name: Install Python ${{ env.PYTHON_VERSION }}
+      - name: Install Python ${{ env.MINIMUM_PYTHON_VERSION }}
         uses: actions/setup-python@v2
         with:
-          python-version: ${{ env.PYTHON_VERSION }}
+          python-version: ${{ env.MINIMUM_PYTHON_VERSION }}
       - uses: actions/checkout@v2
       - name: Install pre-commit
         run: |
-          python -m pip install pre-commit
+          python -m pip install --upgrade pip
+          python -m pip install pre-commit virtualenv!=20.0.6
           pre-commit install
       - name: Run static code inspections
         run: pre-commit run --all-files
 
-  test:
-    needs: [precommit]
+  build:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        python: ["3.6", "3.7", "3.8", "3.9", "3.10"]
+        python-version: ["3.6", "3.7", "3.8", "3.9", "3.10"]
     steps:
       - uses: actions/checkout@v2
-      - name: Setup Python
+      - name: Set up Python ${{ matrix.python-version }}
         uses: actions/setup-python@v2
         with:
-          python-version: ${{ matrix.python }}
-      - name: Install Tox and any other packages
+          python-version: ${{ matrix.python-version }}
+      - name: Add gc.localhost to /etc/hosts
+        run: sudo echo "127.0.0.1 gc.localhost\n127.0.0.1 minio.localhost" | sudo tee -a /etc/hosts
+      - name: Install dependencies
         run: |
-          pip install -U pip
-          pip install tox codecov
-      - run: sudo echo "127.0.0.1 gc.localhost\n127.0.0.1 minio.localhost" | sudo tee -a /etc/hosts
-      - name: Run Tox with system python
-        run: tox -e py
-      - name: Upload coverage results
-        if: matrix.python == '3.10'
-        run: codecov
+          python -m pip install --upgrade pip
+          python -m pip install tox-gh-actions poetry
+      - name: Run tox
+        run: tox
+
+  deploy:
+    if: github.event_name == 'release'
+    needs: [precommit, build]
+    runs-on: ubuntu-latest
+    steps:
+      - name: Install Python ${{ env.MINIMUM_PYTHON_VERSION }}
+        uses: actions/setup-python@v2
+        with:
+          python-version: ${{ env.MINIMUM_PYTHON_VERSION }}
+      - uses: actions/checkout@v2
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install poetry
+      - name: Upload to pypi
         env:
-            CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }}
+          POETRY_PYPI_TOKEN_PYPI: ${{ secrets.POETRY_PYPI_TOKEN_PYPI }}
+        run: |
+          poetry publish --build
