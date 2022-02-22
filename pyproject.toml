@@ -22,7 +22,6 @@ jsonschema = { extras = ["format_nongpl"], version = ">=3.0" }
 
 [tool.poetry.dev-dependencies]
 pytest = "*"
-pytest-xdist = "*"
 pytest-randomly = "*"
 pytest-cov = "*"
 pyyaml = "*"
@@ -42,7 +41,7 @@ testpaths = [
     "tests",
 ]
 python_files = "tests.py test_*.py *_tests.py"
-addopts = "--strict-markers --showlocals -n auto --dist loadscope"
+addopts = "--strict-markers --showlocals"
 xfail_strict = true
 
 [tool.tox]
