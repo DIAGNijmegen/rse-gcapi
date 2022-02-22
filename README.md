@@ -1,12 +1,11 @@
 # Grand Challenge API Client
 
-[![image](https://img.shields.io/pypi/v/gcapi.svg)](https://pypi.python.org/pypi/gcapi)
-[![Build
-Status](https://github.com/DIAGNijmegen/rse-gcapi/workflows/CI/badge.svg)](https://github.com/DIAGNijmegen/rse-gcapi/actions?query=workflow%3ACI+branch%3Amaster)
-[![Code Coverage
-Status](https://codecov.io/gh/DIAGNijmegen/rse-gcapi/branch/master/graph/badge.svg)](https://codecov.io/gh/DIAGNijmegen/rse-gcapi)
+[![CI](https://github.com/DIAGNijmegen/rse-gcapi/actions/workflows/ci.yml/badge.svg?branch=master)](https://github.com/DIAGNijmegen/rse-gcapi/actions/workflows/ci.yml?query=branch%3Amaster)
+[![PyPI](https://img.shields.io/pypi/v/gcapi)](https://pypi.org/project/gcapi/)
+[![PyPI - Python Version](https://img.shields.io/pypi/pyversions/gcapi)](https://pypi.org/project/gcapi/)
+[![Code style: black](https://img.shields.io/badge/code%20style-black-000000.svg)](https://github.com/psf/black)
 
-Python client for the grand-challenge.org API
+Python client for the grand-challenge.org REST API
 
   - Free software: Apache Software License 2.0
 
