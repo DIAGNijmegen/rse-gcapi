@@ -15,7 +15,7 @@ classifiers = [
 gcapi = "gcapi.cli:main"
 
 [tool.poetry.dependencies]
-python = ">=3.6,<3.11"
+python = "^3.6"
 httpx = "~0.20.0"
 Click = ">=6.0"
 jsonschema = { extras = ["format_nongpl"], version = ">=3.0" }
