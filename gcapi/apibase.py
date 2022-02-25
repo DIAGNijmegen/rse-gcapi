@@ -2,7 +2,7 @@ from typing import Any, Dict, Generator, Optional, Type
 from urllib.parse import urljoin
 
 import jsonschema
-from httpx import HTTPStatusError, URL
+from httpx import URL, HTTPStatusError
 from httpx._types import URLTypes
 
 from .exceptions import MultipleObjectsReturned, ObjectNotFound

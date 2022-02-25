@@ -7,13 +7,12 @@ from json import load
 from pathlib import Path
 from random import randint
 from time import sleep
-from typing import Any, Dict, Generator, List, TYPE_CHECKING, Union
+from typing import TYPE_CHECKING, Any, Dict, Generator, List, Union
 from urllib.parse import urljoin
 
 import httpx
 import jsonschema
-from httpx import HTTPStatusError
-from httpx import Timeout, URL
+from httpx import URL, HTTPStatusError, Timeout
 
 from gcapi.apibase import APIBase, ClientInterface, ModifiableMixin
 from gcapi.exceptions import ObjectNotFound
