@@ -31,6 +31,11 @@ docker-compose-wait = "*"
 requires = ["poetry-core>=1.0.0"]
 build-backend = "poetry.core.masonry.api"
 
+[tool.isort]
+profile = "black"
+known_first_party = ["gcapi", "tests"]
+line_length = 79
+
 [tool.black]
 line-length = 79
 target-version = ['py36']
