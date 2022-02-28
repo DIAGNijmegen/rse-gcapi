@@ -50,9 +50,7 @@ def local_grand_challenge() -> Generator[str, None, None]:
                 get_grand_challenge_file(Path(f), Path(tmp_path))
 
             try:
-                check_call(
-                    ["docker-compose", "pull"], cwd=tmp_path
-                )
+                check_call(["docker-compose", "pull"], cwd=tmp_path)
 
                 check_call(["make", "development_fixtures"], cwd=tmp_path)
                 check_call(
