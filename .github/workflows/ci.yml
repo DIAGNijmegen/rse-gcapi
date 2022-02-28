@@ -33,6 +33,10 @@ jobs:
 
   build:
     runs-on: ubuntu-latest
+    permissions:
+      # These permissions are needed to interact with GitHub's OIDC Token endpoint.
+      id-token: write
+      contents: read
     strategy:
       matrix:
         python-version: ["3.6", "3.7", "3.8", "3.9", "3.10"]
