@@ -101,6 +101,36 @@
             },
             "required": ["corners"]
         },
+        "spline-object": {
+            "type": "object",
+            "properties": {
+                "name": {"type": "string"},
+                "type": {"enum": ["Line"]},
+                "seed_points": {
+                    "type": "array",
+                    "items": {
+                        "type": "array",
+                        "items": {"type": "number"},
+                        "minItems": 3,
+                        "maxItems": 3
+                    }
+                },
+                "path_point_lists": {
+                    "type": "array",
+                    "items": {
+                        "type": "array",
+                        "items": {
+                            "type": "array",
+                            "items": {"type": "number"},
+                            "minItems": 3,
+                            "maxItems": 3
+                        }
+                    }
+                },
+                "probability": {"type": "number", "minimum": 0, "maximum": 1}
+            },
+            "required": ["seed_points", "path_point_lists"]
+        },
         "2DBB": {
             "type": "object",
             "properties": {
@@ -248,6 +278,50 @@
                 }
             },
             "required": ["type", "version", "polygons"]
+        },
+        "LINE": {
+            "type": "object",
+            "properties": {
+                "name": {"type": "string"},
+                "type": {"enum": ["Line"]},
+                "seed_points": {
+                    "type": "array",
+                    "items": {
+                        "type": "array",
+                        "items": {"type": "number"},
+                        "minItems": 3,
+                        "maxItems": 3
+                    }
+                },
+                "path_point_lists": {
+                    "type": "array",
+                    "items": {
+                        "type": "array",
+                        "items": {
+                            "type": "array",
+                            "items": {"type": "number"},
+                            "minItems": 3,
+                            "maxItems": 3
+                        }
+                    }
+                },
+                "version": {"$ref": "#/definitions/version"},
+                "probability": {"type": "number", "minimum": 0, "maximum": 1}
+            },
+            "required": ["seed_points", "path_point_lists", "version"]
+        },
+        "MLIN": {
+            "type": "object",
+            "properties": {
+                "type": {"enum": ["Multiple lines"]},
+                "name": {"type": "string"},
+                "lines": {
+                    "type": "array",
+                    "items": {"$ref": "#/definitions/spline-object"}
+                },
+                "version": {"$ref": "#/definitions/version"}
+            },
+            "required": ["type", "version", "lines"]
         },
         "CHOI": {"type": "number"},
         "MCHO": {"type": "array", "items": {"type": "number"}},
