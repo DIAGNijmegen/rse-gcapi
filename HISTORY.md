@@ -1,5 +1,11 @@
 # History
 
+## 0.6.0 (2022-03-03)
+
+  - **Breaking Change** Removed `_IMAGE` answer types
+  - Added support for python 3.9 and 3.10
+  - Added line answer types
+
 ## 0.5.4 (2022-02-10)
 
   - Added `archive_item` to `upload_cases` which allows adding images to
