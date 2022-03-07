@@ -75,6 +75,8 @@
                                 "Multiple points",
                                 "Polygon",
                                 "Multiple polygons",
+                                "Line",
+                                "Multiple lines",
                                 "Mask"
                             ]
                         },
