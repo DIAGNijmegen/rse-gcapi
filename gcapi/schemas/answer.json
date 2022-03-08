@@ -348,6 +348,8 @@
                 {"$ref": "#/definitions/MPOL"},
                 {"$ref": "#/definitions/CHOI"},
                 {"$ref": "#/definitions/MCHO"},
+                {"$ref": "#/definitions/LINE"},
+                {"$ref": "#/definitions/MLIN"},
                 {"$ref": "#/definitions/MASK"}
             ]
         }
