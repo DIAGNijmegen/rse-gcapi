@@ -71,7 +71,7 @@ def local_grand_challenge() -> Generator[str, None, None]:
                 )
 
                 # Give the system some time to import the algorithm image
-                sleep(10)
+                sleep(30)
 
                 yield local_api_url
 
