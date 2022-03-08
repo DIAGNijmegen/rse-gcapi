@@ -1,5 +1,10 @@
 # History
 
+
+## 0.6.2 (2022-03-08)
+
+  - Added line answer types to other schemas
+
 ## 0.6.1 (2022-03-08)
 
   - Added line answer types to reader study schema
