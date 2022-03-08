@@ -2,6 +2,7 @@ from os import makedirs
 from pathlib import Path
 from subprocess import check_call
 from tempfile import TemporaryDirectory
+from time import sleep
 from typing import Generator
 
 import httpx
@@ -68,6 +69,9 @@ def local_grand_challenge() -> Generator[str, None, None]:
                 check_call(
                     ["docker-compose-wait", "-w", "-t", "5m"], cwd=tmp_path
                 )
+
+                # Give the system some time to import the algorithm image
+                sleep(10)
 
                 yield local_api_url
 
