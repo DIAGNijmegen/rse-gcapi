@@ -1,5 +1,9 @@
 # History
 
+## 0.6.1 (2022-03-08)
+
+  - Added line answer types to reader study schema
+
 ## 0.6.0 (2022-03-03)
 
   - **Breaking Change** Removed `_IMAGE` answer types
