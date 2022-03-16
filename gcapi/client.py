@@ -189,6 +189,10 @@ class ReaderStudyAnswersAPI(ModifiableMixin, APIBase):
         return ModifiableMixin._process_request_arguments(self, method, data)
 
 
+class ReaderStudyDisplaySetsAPI(ModifiableMixin, APIBase):
+    base_path = "reader-studies/display-sets"
+
+
 class ReaderStudiesAPI(APIBase):
     base_path = "reader-studies/"
     validation_schemas = {"GET": import_json_schema("reader-study.json")}
@@ -196,6 +200,7 @@ class ReaderStudiesAPI(APIBase):
     sub_apis = {
         "answers": ReaderStudyAnswersAPI,
         "questions": ReaderStudyQuestionsAPI,
+        "display_sets": ReaderStudyDisplaySetsAPI,
     }
 
     answers = None  # type: ReaderStudyAnswersAPI
