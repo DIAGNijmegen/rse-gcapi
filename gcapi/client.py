@@ -190,7 +190,7 @@ class ReaderStudyAnswersAPI(ModifiableMixin, APIBase):
 
 
 class ReaderStudyDisplaySetsAPI(ModifiableMixin, APIBase):
-    base_path = "reader-studies/display-sets"
+    base_path = "reader-studies/display-sets/"
 
 
 class ReaderStudiesAPI(APIBase):
