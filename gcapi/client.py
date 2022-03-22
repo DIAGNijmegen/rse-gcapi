@@ -183,7 +183,7 @@ class ReaderStudyAnswersAPI(ModifiableMixin, APIBase):
             "question": ReaderStudyQuestionsAPI.base_path,
             "display_set": ReaderStudyDisplaySetsAPI.base_path,
         }
-        for key, api in enumerate(key_and_url):
+        for key, api in key_and_url.items():
             if is_uuid(data.get(key, "")):
                 data[key] = str(
                     self._client.base_url.join(api).join(data[key] + "/")
