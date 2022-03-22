@@ -205,6 +205,7 @@ class ReaderStudiesAPI(APIBase):
 
     answers = None  # type: ReaderStudyAnswersAPI
     questions = None  # type: ReaderStudyQuestionsAPI
+    display_sets = None  # type: ReaderStudyDisplaySetsAPI
 
     def ground_truth(self, pk, case_pk):
         return (
