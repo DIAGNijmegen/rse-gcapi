@@ -179,12 +179,15 @@ class ReaderStudyAnswersAPI(ModifiableMixin, APIBase):
     mine = None  # type: ReaderStudyMineAnswersAPI
 
     def _process_request_arguments(self, method, data):
-        if is_uuid(data.get("question", "")):
-            data["question"] = str(
-                self._client.base_url.join(
-                    ReaderStudyQuestionsAPI.base_path
-                ).join(data["question"] + "/")
-            )
+        key_and_url = {
+            "question": ReaderStudyQuestionsAPI.base_path,
+            "display_set": ReaderStudyDisplaySetsAPI.base_path,
+        }
+        for key, api in enumerate(key_and_url):
+            if is_uuid(data.get(key, "")):
+                data[key] = str(
+                    self._client.base_url.join(api).join(data[key] + "/")
+                )
 
         return ModifiableMixin._process_request_arguments(self, method, data)
 
@@ -416,7 +419,7 @@ class UploadsAPI(APIBase):
                 if status_code in [409, 423] or status_code >= 500:
                     num_retries += 1
                     e = _e
-                    sleep((2**num_retries) + (randint(0, 1000) / 1000))
+                    sleep((2 ** num_retries) + (randint(0, 1000) / 1000))
                 else:
                     raise
         else:
