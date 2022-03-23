@@ -419,7 +419,7 @@ class UploadsAPI(APIBase):
                 if status_code in [409, 423] or status_code >= 500:
                     num_retries += 1
                     e = _e
-                    sleep((2 ** num_retries) + (randint(0, 1000) / 1000))
+                    sleep((2**num_retries) + (randint(0, 1000) / 1000))
                 else:
                     raise
         else:
