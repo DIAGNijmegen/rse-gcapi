@@ -58,12 +58,11 @@ jobs:
           aws-region: us-east-1
       - name: Pull the grand-challenge container images
         run: |
-          aws ecr-public get-login-password --region us-east-1 | docker login --username AWS --password-stdin public.ecr.aws/diag-nijmegen/grand-challenge/web
+          DOCKER_PASSWORD=`aws ecr-public get-login-password --region us-east-1`
+          echo "${DOCKER_PASSWORD}" | docker login --username AWS --password-stdin public.ecr.aws/diag-nijmegen/grand-challenge/web
           docker pull public.ecr.aws/diag-nijmegen/grand-challenge/web:latest
-          docker logout
-          aws ecr-public get-login-password --region us-east-1 | docker login --username AWS --password-stdin public.ecr.aws/diag-nijmegen/grand-challenge/http
+          echo "${DOCKER_PASSWORD}" | docker login --username AWS --password-stdin public.ecr.aws/diag-nijmegen/grand-challenge/http
           docker pull public.ecr.aws/diag-nijmegen/grand-challenge/http:latest
-          docker logout
       - name: Add gc.localhost to /etc/hosts
         run: sudo echo "127.0.0.1 gc.localhost\n127.0.0.1 minio.localhost" | sudo tee -a /etc/hosts
       - name: Run tox
