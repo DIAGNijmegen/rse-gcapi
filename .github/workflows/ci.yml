@@ -38,6 +38,7 @@ jobs:
       id-token: write
       contents: read
     strategy:
+      fail-fast: false # Try to work around ECS errors
       matrix:
         python-version: ["3.6", "3.7", "3.8", "3.9", "3.10"]
     steps:
@@ -59,8 +60,10 @@ jobs:
         run: |
           aws ecr-public get-login-password --region us-east-1 | docker login --username AWS --password-stdin public.ecr.aws/diag-nijmegen/grand-challenge/web
           docker pull public.ecr.aws/diag-nijmegen/grand-challenge/web:latest
+          docker logout public.ecr.aws/diag-nijmegen/grand-challenge/web
           aws ecr-public get-login-password --region us-east-1 | docker login --username AWS --password-stdin public.ecr.aws/diag-nijmegen/grand-challenge/http
           docker pull public.ecr.aws/diag-nijmegen/grand-challenge/http:latest
+          docker logout public.ecr.aws/diag-nijmegen/grand-challenge/http
       - name: Add gc.localhost to /etc/hosts
         run: sudo echo "127.0.0.1 gc.localhost\n127.0.0.1 minio.localhost" | sudo tee -a /etc/hosts
       - name: Run tox

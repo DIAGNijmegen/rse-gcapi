@@ -179,12 +179,15 @@ class ReaderStudyAnswersAPI(ModifiableMixin, APIBase):
     mine = None  # type: ReaderStudyMineAnswersAPI
 
     def _process_request_arguments(self, method, data):
-        if is_uuid(data.get("question", "")):
-            data["question"] = str(
-                self._client.base_url.join(
-                    ReaderStudyQuestionsAPI.base_path
-                ).join(data["question"] + "/")
-            )
+        key_and_url = {
+            "question": ReaderStudyQuestionsAPI.base_path,
+            "display_set": ReaderStudyDisplaySetsAPI.base_path,
+        }
+        for key, api in key_and_url.items():
+            if is_uuid(data.get(key, "")):
+                data[key] = str(
+                    self._client.base_url.join(api).join(data[key] + "/")
+                )
 
         return ModifiableMixin._process_request_arguments(self, method, data)
 
@@ -205,6 +208,7 @@ class ReaderStudiesAPI(APIBase):
 
     answers = None  # type: ReaderStudyAnswersAPI
     questions = None  # type: ReaderStudyQuestionsAPI
+    display_sets = None  # type: ReaderStudyDisplaySetsAPI
 
     def ground_truth(self, pk, case_pk):
         return (
