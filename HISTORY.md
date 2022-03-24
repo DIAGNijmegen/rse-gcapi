@@ -1,6 +1,10 @@
 # History
 
 
+## 0.6.3 (2022-03-24)
+
+  - Added support for display items
+
 ## 0.6.2 (2022-03-08)
 
   - Added line answer types to other schemas
