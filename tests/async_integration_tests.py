@@ -187,8 +187,8 @@ async def test_upload_cases_to_reader_study(local_grand_challenge, files):
                 files=[Path(__file__).parent / "testdata" / f for f in files],
             )
         assert (
-            "An interface can only be defined for archive and archive item uploads"
-            in str(e)
+            "An interface can only be defined for archive, archive item "
+            "or display set uploads" in str(e)
         )
 
         us = await c.upload_cases(

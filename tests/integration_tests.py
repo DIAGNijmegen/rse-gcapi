@@ -164,8 +164,8 @@ def test_upload_cases_to_reader_study(local_grand_challenge, files):
             files=[Path(__file__).parent / "testdata" / f for f in files],
         )
     assert (
-        "An interface can only be defined for archive and archive item uploads"
-        in str(e)
+        "An interface can only be defined for archive, archive item or "
+        "display set uploads" in str(e)
     )
 
     us = c.upload_cases(
@@ -797,16 +797,3 @@ def test_create_display_sets_from_images(local_grand_challenge):
     )
 
     assert all([x in [y["pk"] for y in display_sets] for x in created])
-
-    for idx, pk in enumerate(created):
-        ds = c.reader_studies.display_sets.detail(pk)
-        interface = ds["values"][0]["interface"]["slug"]
-        assert (
-            interface == "generic-medical-image"
-            if idx == 0
-            else "generic-overlay"
-        )
-        image_url = ds["values"][0]["image"]
-        image_pk = parse_uuid(image_url)
-        image = c.images.detail(image_pk)
-        assert image["name"] == "image10x10x101.mha"
