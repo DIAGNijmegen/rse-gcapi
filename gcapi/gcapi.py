@@ -137,6 +137,11 @@ class Client(httpx.Client, WrapApiInterfaces, ClientBase):
             *args, **kwargs
         )
 
+    def create_display_sets_from_images(self, *args, **kwargs):
+        return self._wrap_function(super().create_display_sets_from_images)(
+            *args, **kwargs
+        )
+
 
 class AsyncClient(httpx.AsyncClient, WrapApiInterfaces, ClientBase):
     def _wrap_generator(self, f):
@@ -185,3 +190,8 @@ class AsyncClient(httpx.AsyncClient, WrapApiInterfaces, ClientBase):
         return await self._wrap_function(super().update_archive_item)(
             *args, **kwargs
         )
+
+    async def create_display_sets_from_images(self, *args, **kwargs):
+        return await self._wrap_function(
+            super().create_display_sets_from_images
+        )(*args, **kwargs)

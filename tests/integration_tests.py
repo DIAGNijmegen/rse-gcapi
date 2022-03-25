@@ -1,3 +1,4 @@
+import re
 from io import BytesIO
 from pathlib import Path
 from time import sleep
@@ -750,3 +751,62 @@ def test_update_archive_item_without_value(local_grand_challenge):
             values={"generic-medical-image": None},
         )
     assert "You need to provide a value for generic-medical-image" in str(e)
+
+
+def test_create_display_sets_from_images(local_grand_challenge):
+    def parse_uuid(gcurl):
+        match = re.match(
+            ".*/?(?P<uuid>[^/]*[a-f0-9]{8}-?[a-f0-9]{4}-?[a-f0-9]{4}-?[a-f0-9]{4}-?[a-f0-9]{12})/?",
+            gcurl,
+        )
+        if not match:
+            raise ValueError("Could not find uuid")
+        return match.group("uuid")
+
+    c = Client(
+        base_url=local_grand_challenge, verify=False, token=READERSTUDY_TOKEN
+    )
+
+    display_sets = [
+        {
+            "generic-medical-image": [
+                Path(__file__).parent / "testdata" / "image10x10x101.mha"
+            ]
+        },
+        {
+            "generic-overlay": [
+                Path(__file__).parent / "testdata" / "image10x10x101.mha"
+            ]
+        },
+    ]
+
+    created = c.create_display_sets_from_images(
+        reader_study="reader-study",
+        display_sets=display_sets,
+    )
+
+    assert len(created) == 2
+
+    reader_study = next(
+        c.reader_studies.iterate_all(params={"slug": "reader-study"})
+    )
+    display_sets = list(
+        c.reader_studies.display_sets.iterate_all(
+            params={"reader_study": reader_study["pk"]}
+        )
+    )
+
+    assert all([x in [y["pk"] for y in display_sets] for x in created])
+
+    for idx, pk in enumerate(created):
+        ds = c.reader_studies.display_sets.detail(pk)
+        interface = ds["values"][0]["interface"]["slug"]
+        assert (
+            interface == "generic-medical-image"
+            if idx == 0
+            else "generic-overlay"
+        )
+        image_url = ds["values"][0]["image"]
+        image_pk = parse_uuid(image_url)
+        image = c.images.detail(image_pk)
+        assert image["name"] == "image10x10x101.mha"
