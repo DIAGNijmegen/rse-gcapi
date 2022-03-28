@@ -244,17 +244,17 @@ def test_upload_cases_to_archive(local_grand_challenge, files, interface):
         params={"archive": archive["pk"]}
     )
     # with the correct interface
-    image_pk_to_interface_slug_dict = {
-        value["image"]["pk"]: value["interface"]["slug"]
+    image_url_to_interface_slug_dict = {
+        value["image"]: value["interface"]["slug"]
         for item in archive_items
         for value in item["values"]
         if value["image"]
     }
     if interface:
-        assert image_pk_to_interface_slug_dict[image["pk"]] == interface
+        assert image_url_to_interface_slug_dict[image["api_url"]] == interface
     else:
         assert (
-            image_pk_to_interface_slug_dict[image["pk"]]
+            image_url_to_interface_slug_dict[image["api_url"]]
             == "generic-medical-image"
         )
 
@@ -318,14 +318,14 @@ def test_upload_cases_to_archive_item_with_existing_interface(
 
     # And that it was added to the archive item
     item = c.archive_items.detail(pk=item["pk"])
-    assert image["pk"] in [
-        civ["image"]["pk"] for civ in item["values"] if civ["image"]
+    assert image["api_url"] in [
+        civ["image"] for civ in item["values"] if civ["image"]
     ]
     # with the correct interface
     im_to_interface = {
-        civ["image"]["pk"]: civ["interface"]["slug"] for civ in item["values"]
+        civ["image"]: civ["interface"]["slug"] for civ in item["values"]
     }
-    assert im_to_interface[image["pk"]] == "generic-medical-image"
+    assert im_to_interface[image["api_url"]] == "generic-medical-image"
 
 
 def test_upload_cases_to_archive_item_with_new_interface(
@@ -366,14 +366,14 @@ def test_upload_cases_to_archive_item_with_new_interface(
 
     # And that it was added to the archive item
     item = c.archive_items.detail(pk=item["pk"])
-    assert image["pk"] in [
-        civ["image"]["pk"] for civ in item["values"] if civ["image"]
+    assert image["api_url"] in [
+        civ["image"] for civ in item["values"] if civ["image"]
     ]
     # with the correct interface
     im_to_interface = {
-        civ["image"]["pk"]: civ["interface"]["slug"] for civ in item["values"]
+        civ["image"]: civ["interface"]["slug"] for civ in item["values"]
     }
-    assert im_to_interface[image["pk"]] == "generic-overlay"
+    assert im_to_interface[image["api_url"]] == "generic-overlay"
 
 
 @pytest.mark.parametrize("files", (["image10x10x101.mha"],))
@@ -685,8 +685,8 @@ def test_update_interface_kind_of_archive_item_image_civ(
     assert (
         items[-1]["values"][0]["interface"]["slug"] == "generic-medical-image"
     )
-    im_pk = items[-1]["values"][0]["image"]["pk"]
-    image = c.images.detail(pk=im_pk)
+    im = items[-1]["values"][0]["image"]
+    image = c(url=im)
 
     # change interface slug from generic-medical-image to generic-overlay
     _ = c.update_archive_item(
@@ -712,7 +712,7 @@ def test_update_interface_kind_of_archive_item_image_civ(
     assert "generic-medical-image" not in [
         value["interface"]["slug"] for value in item_updated["values"]
     ]
-    assert item_updated["values"][-1]["image"]["pk"] == im_pk
+    assert item_updated["values"][-1]["image"] == im
 
 
 def test_update_archive_item_with_non_existing_interface(

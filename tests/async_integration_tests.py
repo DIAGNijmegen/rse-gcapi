@@ -279,18 +279,18 @@ async def test_upload_cases_to_archive(
         )
 
         # with the correct interface
-        image_pk_to_interface_slug = {
-            val["image"]["pk"]: val["interface"]["slug"]
+        image_url_to_interface_slug = {
+            val["image"]: val["interface"]["slug"]
             async for item in archive_items
             for val in item["values"]
             if val["image"]
         }
 
         if interface:
-            assert image_pk_to_interface_slug[image["pk"]] == interface
+            assert image_url_to_interface_slug[image["api_url"]] == interface
         else:
             assert (
-                image_pk_to_interface_slug[image["pk"]]
+                image_url_to_interface_slug[image["api_url"]]
                 == "generic-medical-image"
             )
 
@@ -388,13 +388,12 @@ async def test_upload_cases_to_archive_item_with_existing_interface(
 
         # And that it was added to the archive item
         item = await c.archive_items.detail(pk=items_list[-1]["pk"])
-        assert image["pk"] in [civ["image"]["pk"] for civ in item["values"]]
+        assert image["api_url"] in [civ["image"] for civ in item["values"]]
         # with the correct interface
         im_to_interface = {
-            civ["image"]["pk"]: civ["interface"]["slug"]
-            for civ in item["values"]
+            civ["image"]: civ["interface"]["slug"] for civ in item["values"]
         }
-        assert im_to_interface[image["pk"]] == "generic-medical-image"
+        assert im_to_interface[image["api_url"]] == "generic-medical-image"
 
 
 @pytest.mark.anyio
@@ -455,13 +454,12 @@ async def test_upload_cases_to_archive_item_with_new_interface(
 
         # And that it was added to the archive item
         item = await c.archive_items.detail(pk=items_list[-1]["pk"])
-        assert image["pk"] in [civ["image"]["pk"] for civ in item["values"]]
+        assert image["api_url"] in [civ["image"] for civ in item["values"]]
         # with the correct interface
         im_to_interface = {
-            civ["image"]["pk"]: civ["interface"]["slug"]
-            for civ in item["values"]
+            civ["image"]: civ["interface"]["slug"] for civ in item["values"]
         }
-        assert im_to_interface[image["pk"]] == "generic-overlay"
+        assert im_to_interface[image["api_url"]] == "generic-overlay"
 
 
 @pytest.mark.parametrize("files", (["image10x10x101.mha"],))
@@ -793,8 +791,8 @@ async def test_update_interface_kind_of_archive_item_image_civ(
             items_list[-1]["values"][0]["interface"]["slug"]
             == "generic-medical-image"
         )
-        im_pk = items_list[-1]["values"][0]["image"]["pk"]
-        image = await c.images.detail(pk=im_pk)
+        im = items_list[-1]["values"][0]["image"]
+        image = await c(url=im)
 
         # change interface slug from generic-medical-image to generic-overlay
         _ = await c.update_archive_item(
@@ -820,7 +818,7 @@ async def test_update_interface_kind_of_archive_item_image_civ(
         assert "generic-medical-image" not in [
             value["interface"]["slug"] for value in item_updated["values"]
         ]
-        assert item_updated["values"][-1]["image"]["pk"] == im_pk
+        assert item_updated["values"][-1]["image"] == im
 
 
 @pytest.mark.anyio
