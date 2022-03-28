@@ -869,6 +869,32 @@ class ClientBase(ApiDefinitions, ClientInterface):
     def create_display_sets_from_images(
         self, *, reader_study: str, display_sets: List[Dict[str, list]]
     ):
+        """
+        This function takes a reader study slug and a list of diplay sets
+        and created the provided display sets and adds them to the reader
+        study. The format for the list of display sets is as follows:
+        [
+            {
+                "slug_0": ["filepath_0", ...]
+                ...
+                "slug_n": ["filepath_n", ...]
+
+            },
+            ...
+        ]
+
+        Where the file paths are local paths to the files making up a
+        single image.
+
+        Parameters
+        ----------
+        reader_study
+        display_sets
+
+        Returns
+        -------
+        The pks of the newly created display sets.S
+        """
         res = []
         for display_set in display_sets:
             ds = yield from self.__org_api_meta.reader_studies.display_sets.create(
