@@ -1,3 +1,4 @@
+import re
 from io import BytesIO
 from pathlib import Path
 from time import sleep
@@ -163,8 +164,8 @@ def test_upload_cases_to_reader_study(local_grand_challenge, files):
             files=[Path(__file__).parent / "testdata" / f for f in files],
         )
     assert (
-        "An interface can only be defined for archive and archive item uploads"
-        in str(e)
+        "An interface can only be defined for archive, archive item or "
+        "display set uploads" in str(e)
     )
 
     us = c.upload_cases(
@@ -750,3 +751,49 @@ def test_update_archive_item_without_value(local_grand_challenge):
             values={"generic-medical-image": None},
         )
     assert "You need to provide a value for generic-medical-image" in str(e)
+
+
+def test_create_display_sets_from_images(local_grand_challenge):
+    def parse_uuid(gcurl):
+        match = re.match(
+            ".*/?(?P<uuid>[^/]*[a-f0-9]{8}-?[a-f0-9]{4}-?[a-f0-9]{4}-?[a-f0-9]{4}-?[a-f0-9]{12})/?",
+            gcurl,
+        )
+        if not match:
+            raise ValueError("Could not find uuid")
+        return match.group("uuid")
+
+    c = Client(
+        base_url=local_grand_challenge, verify=False, token=READERSTUDY_TOKEN
+    )
+
+    display_sets = [
+        {
+            "generic-medical-image": [
+                Path(__file__).parent / "testdata" / "image10x10x101.mha"
+            ]
+        },
+        {
+            "generic-overlay": [
+                Path(__file__).parent / "testdata" / "image10x10x101.mha"
+            ]
+        },
+    ]
+
+    created = c.create_display_sets_from_images(
+        reader_study="reader-study",
+        display_sets=display_sets,
+    )
+
+    assert len(created) == 2
+
+    reader_study = next(
+        c.reader_studies.iterate_all(params={"slug": "reader-study"})
+    )
+    display_sets = list(
+        c.reader_studies.display_sets.iterate_all(
+            params={"reader_study": reader_study["pk"]}
+        )
+    )
+
+    assert all([x in [y["pk"] for y in display_sets] for x in created])
