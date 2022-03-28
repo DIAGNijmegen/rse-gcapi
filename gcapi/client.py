@@ -589,7 +589,7 @@ class ClientBase(ApiDefinitions, ClientInterface):
             )
         )
 
-    def upload_cases(
+    def upload_cases(  # noqa: C901
         self,
         *,
         files: List[str],
@@ -597,6 +597,7 @@ class ClientBase(ApiDefinitions, ClientInterface):
         reader_study: str = None,
         answer: str = None,
         archive_item: str = None,
+        display_set: str = None,
         interface: str = None,
     ):
         """
@@ -659,23 +660,32 @@ class ClientBase(ApiDefinitions, ClientInterface):
         if archive_item is not None:
             upload_session_data["archive_item"] = archive_item
 
+        if display_set is not None:
+            upload_session_data["display_set"] = display_set
+
         if len(upload_session_data) != 1:
             raise ValueError(
-                "One of archive, archive_item, answer or reader_study can be set"
+                "One of archive, archive_item, display_set, answer or "
+                "reader_study can be set"
             )
 
         if interface:
             upload_session_data["interface"] = interface
 
-        if interface and not (archive or archive_item):
+        if interface and not (archive or archive_item or display_set):
             raise ValueError(
-                "An interface can only be defined for archive and archive item "
-                "uploads."
+                "An interface can only be defined for archive, archive item "
+                "or display set uploads."
             )
 
         if archive_item and not interface:
             raise ValueError(
                 "You need to define an interface for archive item uploads."
+            )
+
+        if display_set and not interface:
+            raise ValueError(
+                "You need to define an interface for display set uploads."
             )
 
         raw_image_upload_session = yield from self._upload_files(
@@ -855,3 +865,57 @@ class ClientBase(ApiDefinitions, ClientInterface):
                 pk=item["id"], **civs
             )
         )
+
+    def create_display_sets_from_images(
+        self, *, reader_study: str, display_sets: List[Dict[str, list]]
+    ):
+        """
+        This function takes a reader study slug and a list of diplay sets
+        and created the provided display sets and adds them to the reader
+        study. The format for the list of display sets is as follows:
+        [
+            {
+                "slug_0": ["filepath_0", ...]
+                ...
+                "slug_n": ["filepath_n", ...]
+
+            },
+            ...
+        ]
+
+        Where the file paths are local paths to the files making up a
+        single image.
+
+        Parameters
+        ----------
+        reader_study
+        display_sets
+
+        Returns
+        -------
+        The pks of the newly created display sets.S
+        """
+        res = []
+        for display_set in display_sets:
+            ds = yield from self.__org_api_meta.reader_studies.display_sets.create(
+                reader_study=reader_study
+            )
+            for interface, files in display_set.items():
+                try:
+                    yield from self.__org_api_meta.interfaces.detail(
+                        slug=interface
+                    )
+                except ObjectNotFound as e:
+                    raise ValueError(
+                        f"{interface} is not an existing interface. "
+                        f"Please provide one from this list: "
+                        f"https://grand-challenge.org/algorithms/interfaces/"
+                    ) from e
+
+                self.upload_cases(
+                    display_set=ds["pk"],
+                    interface=interface,
+                    files=files,
+                )
+            res.append(ds["pk"])
+        return res  # noqa: B901
