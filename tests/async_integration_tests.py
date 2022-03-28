@@ -271,11 +271,11 @@ async def test_upload_cases_to_archive(
             c.archives.iterate_all(params={"slug": "archive"})
         ).__anext__()
         archive_images = c.images.iterate_all(
-            params={"archive": archive["id"]}
+            params={"archive": archive["pk"]}
         )
         assert image["pk"] in [im["pk"] async for im in archive_images]
         archive_items = c.archive_items.iterate_all(
-            params={"archive": archive["id"]}
+            params={"archive": archive["pk"]}
         )
 
         # with the correct interface
@@ -313,7 +313,7 @@ async def test_upload_cases_to_archive_item_without_interface(
             c.archives.iterate_all(params={"slug": "archive"})
         ).__anext__()
         item = await (
-            c.archive_items.iterate_all(params={"archive": archive["id"]})
+            c.archive_items.iterate_all(params={"archive": archive["pk"]})
         ).__anext__()
 
         with pytest.raises(ValueError) as e:
@@ -340,7 +340,7 @@ async def test_upload_cases_to_archive_item_with_existing_interface(
         archive = await (
             c.archives.iterate_all(params={"slug": "archive"})
         ).__anext__()
-        items = c.archive_items.iterate_all(params={"archive": archive["id"]})
+        items = c.archive_items.iterate_all(params={"archive": archive["pk"]})
         old_items_list = [item async for item in items]
 
         # create new archive item
@@ -351,7 +351,7 @@ async def test_upload_cases_to_archive_item_with_existing_interface(
         # retrieve existing archive item pk
         for _ in range(60):
             items = c.archive_items.iterate_all(
-                params={"archive": archive["id"]}
+                params={"archive": archive["pk"]}
             )
             items_list = [item async for item in items]
             if len(items_list) > len(old_items_list):
@@ -407,7 +407,7 @@ async def test_upload_cases_to_archive_item_with_new_interface(
         archive = await (
             c.archives.iterate_all(params={"slug": "archive"})
         ).__anext__()
-        items = c.archive_items.iterate_all(params={"archive": archive["id"]})
+        items = c.archive_items.iterate_all(params={"archive": archive["pk"]})
         old_items_list = [item async for item in items]
 
         # create new archive item
@@ -418,7 +418,7 @@ async def test_upload_cases_to_archive_item_with_new_interface(
         # retrieve existing archive item pk
         for _ in range(60):
             items = c.archive_items.iterate_all(
-                params={"archive": archive["id"]}
+                params={"archive": archive["pk"]}
             )
             items_list = [item async for item in items]
             if len(items_list) > len(old_items_list):
@@ -588,7 +588,7 @@ async def test_add_and_update_file_to_archive_item(local_grand_challenge):
         archive = await (
             c.archives.iterate_all(params={"slug": "archive"})
         ).__anext__()
-        items = c.archive_items.iterate_all(params={"archive": archive["id"]})
+        items = c.archive_items.iterate_all(params={"archive": archive["pk"]})
         old_items_list = [item async for item in items]
 
         # create new archive item
@@ -600,7 +600,7 @@ async def test_add_and_update_file_to_archive_item(local_grand_challenge):
         # retrieve existing archive item pk
         for _ in range(60):
             items = c.archive_items.iterate_all(
-                params={"archive": archive["id"]}
+                params={"archive": archive["pk"]}
             )
             items_list = [item async for item in items]
             if len(items_list) > len(old_items_list):
@@ -687,7 +687,7 @@ async def test_add_and_update_value_to_archive_item(local_grand_challenge):
         archive = await (
             c.archives.iterate_all(params={"slug": "archive"})
         ).__anext__()
-        items = c.archive_items.iterate_all(params={"archive": archive["id"]})
+        items = c.archive_items.iterate_all(params={"archive": archive["pk"]})
         old_items_list = [item async for item in items]
 
         # create new archive item
@@ -699,7 +699,7 @@ async def test_add_and_update_value_to_archive_item(local_grand_challenge):
         # retrieve existing archive item pk
         for _ in range(60):
             items = c.archive_items.iterate_all(
-                params={"archive": archive["id"]}
+                params={"archive": archive["pk"]}
             )
             items_list = [item async for item in items]
             if len(items_list) > len(old_items_list):
@@ -766,7 +766,7 @@ async def test_update_interface_kind_of_archive_item_image_civ(
         archive = await (
             c.archives.iterate_all(params={"slug": "archive"})
         ).__anext__()
-        items = c.archive_items.iterate_all(params={"archive": archive["id"]})
+        items = c.archive_items.iterate_all(params={"archive": archive["pk"]})
         old_items_list = [item async for item in items]
 
         # create new archive item
@@ -778,7 +778,7 @@ async def test_update_interface_kind_of_archive_item_image_civ(
         # retrieve existing archive item pk
         for _ in range(60):
             items = c.archive_items.iterate_all(
-                params={"archive": archive["id"]}
+                params={"archive": archive["pk"]}
             )
             items_list = [item async for item in items]
             if len(items_list) > len(old_items_list):
@@ -835,7 +835,7 @@ async def test_update_archive_item_with_non_existing_interface(
         archive = await (
             c.archives.iterate_all(params={"slug": "archive"})
         ).__anext__()
-        items = c.archive_items.iterate_all(params={"archive": archive["id"]})
+        items = c.archive_items.iterate_all(params={"archive": archive["pk"]})
         item_ids = [item["id"] async for item in items]
         with pytest.raises(ValueError) as e:
             _ = await c.update_archive_item(
@@ -854,7 +854,7 @@ async def test_update_archive_item_without_value(local_grand_challenge):
         archive = await (
             c.archives.iterate_all(params={"slug": "archive"})
         ).__anext__()
-        items = c.archive_items.iterate_all(params={"archive": archive["id"]})
+        items = c.archive_items.iterate_all(params={"archive": archive["pk"]})
         item_ids = [item["id"] async for item in items]
 
         with pytest.raises(ValueError) as e:

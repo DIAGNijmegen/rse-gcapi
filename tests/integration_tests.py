@@ -238,10 +238,10 @@ def test_upload_cases_to_archive(local_grand_challenge, files, interface):
 
     # And that it was added to the archive
     archive = next(c.archives.iterate_all(params={"slug": "archive"}))
-    archive_images = c.images.iterate_all(params={"archive": archive["id"]})
+    archive_images = c.images.iterate_all(params={"archive": archive["pk"]})
     assert image["pk"] in [im["pk"] for im in archive_images]
     archive_items = c.archive_items.iterate_all(
-        params={"archive": archive["id"]}
+        params={"archive": archive["pk"]}
     )
     # with the correct interface
     image_pk_to_interface_slug_dict = {
@@ -269,7 +269,7 @@ def test_upload_cases_to_archive_item_without_interface(local_grand_challenge):
     )
     # retrieve existing archive item pk
     archive = next(c.archives.iterate_all(params={"slug": "archive"}))
-    item = next(c.archive_items.iterate_all(params={"archive": archive["id"]}))
+    item = next(c.archive_items.iterate_all(params={"archive": archive["pk"]}))
 
     # try upload without providing interface
     with pytest.raises(ValueError) as e:
@@ -288,7 +288,7 @@ def test_upload_cases_to_archive_item_with_existing_interface(
     )
     # retrieve existing archive item pk
     archive = next(c.archives.iterate_all(params={"slug": "archive"}))
-    item = next(c.archive_items.iterate_all(params={"archive": archive["id"]}))
+    item = next(c.archive_items.iterate_all(params={"archive": archive["pk"]}))
 
     us = c.upload_cases(
         archive_item=item["id"],
@@ -336,7 +336,7 @@ def test_upload_cases_to_archive_item_with_new_interface(
     )
     # retrieve existing archive item pk
     archive = next(c.archives.iterate_all(params={"slug": "archive"}))
-    item = next(c.archive_items.iterate_all(params={"archive": archive["id"]}))
+    item = next(c.archive_items.iterate_all(params={"archive": archive["pk"]}))
 
     us = c.upload_cases(
         archive_item=item["id"],
@@ -492,7 +492,7 @@ def test_add_and_update_file_to_archive_item(local_grand_challenge):
     # check number of archive items
     archive = next(c.archives.iterate_all(params={"slug": "archive"}))
     old_items_list = list(
-        c.archive_items.iterate_all(params={"archive": archive["id"]})
+        c.archive_items.iterate_all(params={"archive": archive["pk"]})
     )
 
     # create new archive item
@@ -504,7 +504,7 @@ def test_add_and_update_file_to_archive_item(local_grand_challenge):
     # retrieve existing archive item pk
     for _ in range(60):
         items = list(
-            c.archive_items.iterate_all(params={"archive": archive["id"]})
+            c.archive_items.iterate_all(params={"archive": archive["pk"]})
         )
         if len(items) > len(old_items_list):
             # item has been added
@@ -586,7 +586,7 @@ def test_add_and_update_value_to_archive_item(local_grand_challenge):
     # check number of archive items
     archive = next(c.archives.iterate_all(params={"slug": "archive"}))
     old_items_list = list(
-        c.archive_items.iterate_all(params={"archive": archive["id"]})
+        c.archive_items.iterate_all(params={"archive": archive["pk"]})
     )
 
     # create new archive item
@@ -598,7 +598,7 @@ def test_add_and_update_value_to_archive_item(local_grand_challenge):
     # retrieve existing archive item pk
     for _ in range(60):
         items = list(
-            c.archive_items.iterate_all(params={"archive": archive["id"]})
+            c.archive_items.iterate_all(params={"archive": archive["pk"]})
         )
         if len(items) > len(old_items_list):
             # item has been added
@@ -660,7 +660,7 @@ def test_update_interface_kind_of_archive_item_image_civ(
     # check number of archive items
     archive = next(c.archives.iterate_all(params={"slug": "archive"}))
     old_items_list = list(
-        c.archive_items.iterate_all(params={"archive": archive["id"]})
+        c.archive_items.iterate_all(params={"archive": archive["pk"]})
     )
 
     # create new archive item
@@ -672,7 +672,7 @@ def test_update_interface_kind_of_archive_item_image_civ(
     # retrieve existing archive item pk
     for _ in range(60):
         items = list(
-            c.archive_items.iterate_all(params={"archive": archive["id"]})
+            c.archive_items.iterate_all(params={"archive": archive["pk"]})
         )
         if len(items) > len(old_items_list):
             # item has been added
@@ -725,7 +725,7 @@ def test_update_archive_item_with_non_existing_interface(
     # retrieve existing archive item pk
     archive = next(c.archives.iterate_all(params={"slug": "archive"}))
     items = list(
-        c.archive_items.iterate_all(params={"archive": archive["id"]})
+        c.archive_items.iterate_all(params={"archive": archive["pk"]})
     )
     with pytest.raises(ValueError) as e:
         _ = c.update_archive_item(
@@ -742,7 +742,7 @@ def test_update_archive_item_without_value(local_grand_challenge):
     # retrieve existing archive item pk
     archive = next(c.archives.iterate_all(params={"slug": "archive"}))
     items = list(
-        c.archive_items.iterate_all(params={"archive": archive["id"]})
+        c.archive_items.iterate_all(params={"archive": archive["pk"]})
     )
 
     with pytest.raises(ValueError) as e:
