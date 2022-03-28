@@ -776,7 +776,7 @@ class ClientBase(ApiDefinitions, ClientInterface):
         First, retrieve the archive items from your archive:
         archive = next(client.archives.iterate_all(params={"slug": "..."}))
         items = list(
-            client.archive_items.iterate_all(params={"archive": archive["id"]})
+            client.archive_items.iterate_all(params={"archive": archive["pk"]})
         )
         To then add, for example, a PDF report and a lung volume
         value to the first archive item , provide the interface slugs together
@@ -862,7 +862,7 @@ class ClientBase(ApiDefinitions, ClientInterface):
 
         return (
             yield from self.__org_api_meta.archive_items.partial_update(
-                pk=item["id"], **civs
+                pk=item["pk"], **civs
             )
         )
 
