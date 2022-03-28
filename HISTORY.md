@@ -1,6 +1,10 @@
 # History
 
 
+## 0.6.3 (2022-03-28)
+
+  - Added display sets to reader study schema 
+
 ## 0.6.2 (2022-03-08)
 
   - Added line answer types to other schemas
