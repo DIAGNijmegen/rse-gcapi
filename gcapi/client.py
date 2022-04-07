@@ -578,7 +578,7 @@ class ClientBase(ApiDefinitions, ClientInterface):
                 uploads.append(
                     (
                         yield from self.__org_api_meta.uploads.upload_fileobj(
-                            fileobj=f, filename=f.name
+                            fileobj=f, filename=os.path.basename(file)
                         )
                     )
                 )
