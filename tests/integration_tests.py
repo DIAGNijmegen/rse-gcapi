@@ -150,9 +150,39 @@ def test_chunked_uploads(local_grand_challenge):
 
 @pytest.mark.parametrize(
     "files",
-    (["image10x10x101.mha"], ["image10x10x10.mhd", "image10x10x10.zraw"]),
+    (
+        # Path based
+        [Path(__file__).parent / "testdata" / "image10x10x101.mha"],
+        # str based
+        [str(Path(__file__).parent / "testdata" / "image10x10x101.mha")],
+        # mixed str and Path
+        [
+            str(Path(__file__).parent / "testdata" / "image10x10x10.mhd"),
+            Path(__file__).parent / "testdata" / "image10x10x10.zraw",
+        ],
+    ),
+)
+def test_file_reference_types(local_grand_challenge, files):
+    _upload_cases_to_reader_study(
+        local_grand_challenge=local_grand_challenge, files=files
+    )
+
+
+@pytest.mark.parametrize(
+    "files",
+    (
+        ["image10x10x101.mha"],
+        ["image10x10x10.mhd", "image10x10x10.zraw"],
+    ),
 )
 def test_upload_cases_to_reader_study(local_grand_challenge, files):
+    _upload_cases_to_reader_study(
+        local_grand_challenge=local_grand_challenge,
+        files=[Path(__file__).parent / "testdata" / f for f in files],
+    )
+
+
+def _upload_cases_to_reader_study(local_grand_challenge, files):
     c = Client(
         base_url=local_grand_challenge, verify=False, token=READERSTUDY_TOKEN
     )
@@ -161,7 +191,7 @@ def test_upload_cases_to_reader_study(local_grand_challenge, files):
         _ = c.upload_cases(
             reader_study="reader-study",
             interface="generic-medical-image",
-            files=[Path(__file__).parent / "testdata" / f for f in files],
+            files=files,
         )
     assert (
         "An interface can only be defined for archive, archive item or "
@@ -170,7 +200,7 @@ def test_upload_cases_to_reader_study(local_grand_challenge, files):
 
     us = c.upload_cases(
         reader_study="reader-study",
-        files=[Path(__file__).parent / "testdata" / f for f in files],
+        files=files,
     )
 
     for _ in range(60):
