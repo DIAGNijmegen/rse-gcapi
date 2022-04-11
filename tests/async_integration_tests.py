@@ -173,41 +173,10 @@ async def test_chunked_uploads(local_grand_challenge):
 
 @pytest.mark.parametrize(
     "files",
-    (
-        # Path based
-        [Path(__file__).parent / "testdata" / "image10x10x101.mha"],
-        # str based
-        [str(Path(__file__).parent / "testdata" / "image10x10x101.mha")],
-        # mixed str and Path
-        [
-            str(Path(__file__).parent / "testdata" / "image10x10x10.mhd"),
-            Path(__file__).parent / "testdata" / "image10x10x10.zraw",
-        ],
-    ),
-)
-@pytest.mark.anyio
-async def test_file_reference_types(local_grand_challenge, files):
-    await _upload_cases_to_reader_study(
-        local_grand_challenge=local_grand_challenge, files=files
-    )
-
-
-@pytest.mark.parametrize(
-    "files",
-    (
-        ["image10x10x101.mha"],
-        ["image10x10x10.mhd", "image10x10x10.zraw"],
-    ),
+    (["image10x10x101.mha"], ["image10x10x10.mhd", "image10x10x10.zraw"]),
 )
 @pytest.mark.anyio
 async def test_upload_cases_to_reader_study(local_grand_challenge, files):
-    await _upload_cases_to_reader_study(
-        local_grand_challenge=local_grand_challenge,
-        files=[Path(__file__).parent / "testdata" / f for f in files],
-    )
-
-
-async def _upload_cases_to_reader_study(local_grand_challenge, files):
     async with AsyncClient(
         base_url=local_grand_challenge, verify=False, token=READERSTUDY_TOKEN
     ) as c:
@@ -215,7 +184,7 @@ async def _upload_cases_to_reader_study(local_grand_challenge, files):
             _ = await c.upload_cases(
                 reader_study="reader-study",
                 interface="generic-medical-image",
-                files=files,
+                files=[Path(__file__).parent / "testdata" / f for f in files],
             )
         assert (
             "An interface can only be defined for archive, archive item "
@@ -224,7 +193,7 @@ async def _upload_cases_to_reader_study(local_grand_challenge, files):
 
         us = await c.upload_cases(
             reader_study="reader-study",
-            files=files,
+            files=[Path(__file__).parent / "testdata" / f for f in files],
         )
 
         for _ in range(60):
