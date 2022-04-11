@@ -104,6 +104,30 @@ def test_create_single_polygon_annotations(local_grand_challenge):
     )
 
 
+@pytest.mark.parametrize(
+    "files",
+    (
+        # Path based
+        [Path(__file__).parent / "testdata" / "image10x10x101.mha"],
+        # str based
+        [str(Path(__file__).parent / "testdata" / "image10x10x101.mha")],
+        # mixed str and Path
+        [
+            str(Path(__file__).parent / "testdata" / "image10x10x10.mhd"),
+            Path(__file__).parent / "testdata" / "image10x10x10.zraw",
+        ],
+    ),
+)
+def test_input_types_upload_cases(local_grand_challenge, files):
+    c = Client(
+        base_url=local_grand_challenge, verify=False, token=READERSTUDY_TOKEN
+    )
+    c.upload_cases(
+        reader_study="reader-study",
+        files=files,
+    )
+
+
 def test_raw_image_and_upload_session(local_grand_challenge):
     c = Client(base_url=local_grand_challenge, verify=False, token=ADMIN_TOKEN)
     assert c.raw_image_upload_sessions.page() == []
