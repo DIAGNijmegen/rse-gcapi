@@ -362,7 +362,7 @@
                 "answer": {"$ref": "#/definitions/valid-answers"},
                 "creator": {"type": "string"},
                 "question": {"$ref": "#/definitions/api-link"},
-                "display_set": {"$ref": "#/definitions/api-link"},
+                "display_set": {"$ref": "#/definitions/api-link"}
             },
             "required": ["answer", "creator", "question"]
         }
