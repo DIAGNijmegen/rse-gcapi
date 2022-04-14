@@ -1,5 +1,8 @@
 # History
 
+## 0.6.4 (2022-04-14)
+
+  - Remove deprecated keys from reader study API
 
 ## 0.6.3 (2022-03-24)
 
