@@ -88,27 +88,33 @@ class APIBase(Common):
             self.verify_against_schema(i)
         return result
 
-    def page(self, offset=0, limit=100, params=None):
+    def page(self, offset=0, limit=100, params=None, page_meta=None):
         if params is None:
             params = {}
         params["offset"] = offset
         params["limit"] = limit
-        result = (
-            yield self.yield_request(
-                method="GET", path=self.base_path, params=params
-            )
-        )["results"]
-        for i in result:
+        response = yield self.yield_request(
+            method="GET", path=self.base_path, params=params
+        )
+        results = response["results"]
+        for i in results:
             self.verify_against_schema(i)
-        return result
+        if page_meta is not None:
+            page_meta.update(
+                {k: v for k, v in response.items() if k != "results"}
+            )
+        return results
 
     @mark_generator
-    def iterate_all(self, params=None):
+    def iterate_all(self, params=None, page_meta=None):
         req_count = 100
         offset = 0
         while True:
             current_list = yield from self.page(
-                offset=offset, limit=req_count, params=params
+                offset=offset,
+                limit=req_count,
+                params=params,
+                page_meta=page_meta,
             )
             if len(current_list) == 0:
                 break

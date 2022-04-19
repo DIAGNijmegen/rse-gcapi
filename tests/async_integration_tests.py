@@ -223,6 +223,21 @@ async def test_upload_cases_to_reader_study(local_grand_challenge, files):
         assert response.status_code == 200
 
 
+@pytest.mark.anyio
+async def test_page_meta(local_grand_challenge):
+    c = AsyncClient(
+        base_url=local_grand_challenge, verify=False, token=ARCHIVE_TOKEN
+    )
+    page_meta = {}
+
+    archives = c.archives.iterate_all(page_meta=page_meta)
+    assert len([item async for item in archives]) == page_meta["count"]
+
+    page_meta = {}
+    archives = await c.archives.page(page_meta=page_meta)
+    assert len(list(archives)) == page_meta["count"]
+
+
 @pytest.mark.parametrize(
     "files, interface",
     (

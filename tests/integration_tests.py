@@ -280,6 +280,17 @@ def test_upload_cases_to_archive_item_without_interface(local_grand_challenge):
     assert "You need to define an interface for archive item uploads" in str(e)
 
 
+@pytest.mark.parametrize("api_method_name", ("page", "iterate_all"))
+def test_page_meta(local_grand_challenge, api_method_name):
+    c = Client(
+        base_url=local_grand_challenge, verify=False, token=ARCHIVE_TOKEN
+    )
+    page_meta = {}
+    api_method = getattr(c.archives, api_method_name)
+    archives = api_method(page_meta=page_meta)
+    assert len(list(archives)) == page_meta["count"]
+
+
 def test_upload_cases_to_archive_item_with_existing_interface(
     local_grand_challenge,
 ):
