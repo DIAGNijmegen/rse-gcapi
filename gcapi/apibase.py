@@ -88,7 +88,7 @@ class APIBase(Common):
             self.verify_against_schema(i)
         return result
 
-    def page(self, offset=0, limit=100, params=None, page_meta=None):
+    def page(self, offset=0, limit=100, params=None):
         if params is None:
             params = {}
         params["offset"] = offset
@@ -96,17 +96,18 @@ class APIBase(Common):
         response = yield self.yield_request(
             method="GET", path=self.base_path, params=params
         )
-        results = response["results"]
+        results = PageResult(
+            offset=offset,
+            limit=limit,
+            total_count=response["count"],
+            results=response["results"],
+        )
         for i in results:
             self.verify_against_schema(i)
-        if page_meta is not None:
-            page_meta.update(
-                {k: v for k, v in response.items() if k != "results"}
-            )
         return results
 
     @mark_generator
-    def iterate_all(self, params=None, page_meta=None):
+    def iterate_all(self, params=None):
         req_count = 100
         offset = 0
         while True:
@@ -114,7 +115,6 @@ class APIBase(Common):
                 offset=offset,
                 limit=req_count,
                 params=params,
-                page_meta=page_meta,
             )
             if len(current_list) == 0:
                 break
@@ -182,3 +182,15 @@ class ModifiableMixin(Common):
 
     def delete(self, pk):
         return (yield from self.perform_request("DELETE", pk=pk))
+
+
+class PageResult(list):
+    offset: int
+    limit: int
+    total_count: int
+
+    def __init__(self, *, offset, limit, total_count, results):
+        super().__init__(results)
+        self.offset = offset
+        self.limit = limit
+        self.total_count = total_count
