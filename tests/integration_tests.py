@@ -289,7 +289,7 @@ def test_page_meta_info(local_grand_challenge):
     assert len(archives) == 1
     assert archives.offset == 0
     assert archives.limit == 123
-    assert archives.count == 1
+    assert archives.total_count == 1
 
 
 def test_upload_cases_to_archive_item_with_existing_interface(
