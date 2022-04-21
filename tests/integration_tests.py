@@ -280,6 +280,18 @@ def test_upload_cases_to_archive_item_without_interface(local_grand_challenge):
     assert "You need to define an interface for archive item uploads" in str(e)
 
 
+def test_page_meta_info(local_grand_challenge):
+    c = Client(
+        base_url=local_grand_challenge, verify=False, token=ARCHIVE_TOKEN
+    )
+    archives = c.archives.page(limit=123)
+
+    assert len(archives) == 1
+    assert archives.offset == 0
+    assert archives.limit == 123
+    assert archives.total_count == 1
+
+
 def test_upload_cases_to_archive_item_with_existing_interface(
     local_grand_challenge,
 ):
