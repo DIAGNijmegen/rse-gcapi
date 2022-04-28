@@ -49,8 +49,8 @@ jobs:
           python-version: ${{ matrix.python-version }}
       - name: Install extra commands
         run: |
-          apt-get update
-          apt-get install -y retry
+          sudo apt-get update
+          sudo apt-get install -y retry
       - name: Install dependencies
         run: |
           python -m pip install --upgrade pip
