@@ -62,10 +62,10 @@ jobs:
           aws-region: us-east-1
       - name: Pull the grand-challenge container images
         run: |
-          retry -t 5 -- aws ecr-public get-login-password --region us-east-1 | docker login --username AWS --password-stdin public.ecr.aws/diag-nijmegen/grand-challenge/web
+          retry -t 5 -- /bin/bash -c 'aws ecr-public get-login-password --region us-east-1 | docker login --username AWS --password-stdin public.ecr.aws/diag-nijmegen/grand-challenge/web'
           retry -t 5 -- docker pull public.ecr.aws/diag-nijmegen/grand-challenge/web:latest
           retry -t 5 -- docker logout public.ecr.aws/diag-nijmegen/grand-challenge/web
-          retry -t 5 -- aws ecr-public get-login-password --region us-east-1 | docker login --username AWS --password-stdin public.ecr.aws/diag-nijmegen/grand-challenge/http
+          retry -t 5 -- /bin/bash -c 'aws ecr-public get-login-password --region us-east-1 | docker login --username AWS --password-stdin public.ecr.aws/diag-nijmegen/grand-challenge/http'
           retry -t 5 -- docker pull public.ecr.aws/diag-nijmegen/grand-challenge/http:latest
           retry -t 5 -- docker logout public.ecr.aws/diag-nijmegen/grand-challenge/http
       - name: Add gc.localhost to /etc/hosts
