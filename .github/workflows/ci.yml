@@ -47,10 +47,6 @@ jobs:
         uses: actions/setup-python@v2
         with:
           python-version: ${{ matrix.python-version }}
-      - name: Install extra commands
-        run: |
-          sudo apt-get update
-          sudo apt-get install -y retry
       - name: Install dependencies
         run: |
           python -m pip install --upgrade pip
@@ -62,12 +58,12 @@ jobs:
           aws-region: us-east-1
       - name: Pull the grand-challenge container images
         run: |
+          sudo apt-get update
+          sudo apt-get install -y retry
           retry -t 5 -- /bin/bash -c 'aws ecr-public get-login-password --region us-east-1 | docker login --username AWS --password-stdin public.ecr.aws/diag-nijmegen/grand-challenge/web'
           retry -t 5 -- docker pull public.ecr.aws/diag-nijmegen/grand-challenge/web:latest
-          retry -t 5 -- docker logout public.ecr.aws/diag-nijmegen/grand-challenge/web
           retry -t 5 -- /bin/bash -c 'aws ecr-public get-login-password --region us-east-1 | docker login --username AWS --password-stdin public.ecr.aws/diag-nijmegen/grand-challenge/http'
           retry -t 5 -- docker pull public.ecr.aws/diag-nijmegen/grand-challenge/http:latest
-          retry -t 5 -- docker logout public.ecr.aws/diag-nijmegen/grand-challenge/http
       - name: Add gc.localhost to /etc/hosts
         run: sudo echo "127.0.0.1 gc.localhost\n127.0.0.1 minio.localhost" | sudo tee -a /etc/hosts
       - name: Run tox
