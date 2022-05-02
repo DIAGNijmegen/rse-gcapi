@@ -15,3 +15,13 @@ This client library is a handy way to interact with the REST API for
 grand-challenge.org from python, and provides some convenience methods.
 Documentation and examples can be found on [Grand
 Challenge](https://grand-challenge.org/documentation/grand-challenge-api/).
+
+## Tests
+This client is tested using the `tox` framework. This enables testing
+the client in various python-version environments.
+
+For example, running a specific `your_test` for only the python 3.6
+environment can be done as follows:
+```bash
+tox -e py36 -- -k your_test
+```

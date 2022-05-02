@@ -530,6 +530,33 @@ async def test_create_job_with_upload(local_grand_challenge, files):
         assert job["status"] == "Queued"
 
 
+@pytest.mark.parametrize(
+    "files",
+    (
+        # Path based
+        [Path(__file__).parent / "testdata" / "image10x10x101.mha"],
+        # str based
+        [str(Path(__file__).parent / "testdata" / "image10x10x101.mha")],
+        # mixed str and Path
+        [
+            str(Path(__file__).parent / "testdata" / "image10x10x10.mhd"),
+            Path(__file__).parent / "testdata" / "image10x10x10.zraw",
+        ],
+    ),
+)
+@pytest.mark.anyio
+async def test_input_types_upload_cases(local_grand_challenge, files):
+    async with AsyncClient(
+        base_url=local_grand_challenge,
+        verify=False,
+        token=READERSTUDY_TOKEN,
+    ) as c:
+        await c.upload_cases(
+            reader_study="reader-study",
+            files=files,
+        )
+
+
 @pytest.mark.anyio
 async def test_get_algorithm_by_slug(local_grand_challenge):
     async with AsyncClient(
