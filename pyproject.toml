@@ -48,6 +48,9 @@ testpaths = [
 python_files = "tests.py test_*.py *_tests.py"
 addopts = "--strict-markers --showlocals"
 xfail_strict = true
+filterwarnings = [
+    "error",
+]
 
 [tool.tox]
 legacy_tox_ini = """

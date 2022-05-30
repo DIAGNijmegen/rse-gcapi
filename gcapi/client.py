@@ -908,10 +908,10 @@ class ClientBase(ApiDefinitions, ClientInterface):
                         f"https://grand-challenge.org/algorithms/interfaces/"
                     ) from e
 
-                self.upload_cases(
+                yield from self._upload_files(
                     display_set=ds["pk"],
                     interface=interface,
-                    files=files,
+                    files=files
                 )
             res.append(ds["pk"])
         return res  # noqa: B901

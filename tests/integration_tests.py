@@ -386,18 +386,16 @@ def test_download_cases(local_grand_challenge, files, tmpdir):
 
     # Check that we can download the uploaded image
     tmpdir = Path(tmpdir)
-    error = None
-    for _ in range(10):
+    for _ in range(60):
         try:
             downloaded_files = c.images.download(
                 filename=tmpdir / "image", url=us["image_set"][0]
             )
             break
-        except HTTPStatusError as ex:
-            error = ex
-            sleep(0.1)
+        except HTTPStatusError:
+            sleep(0.5)
     else:
-        raise error
+        raise TimeoutError
 
     assert len(downloaded_files) == 1
 

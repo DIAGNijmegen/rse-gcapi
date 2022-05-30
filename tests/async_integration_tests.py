@@ -445,18 +445,16 @@ async def test_download_cases(local_grand_challenge, files, tmpdir):
 
         # Check that we can download the uploaded image
         tmpdir = Path(tmpdir)
-        error = None
-        for _ in range(10):
+        for _ in range(60):
             try:
                 downloaded_files = await c.images.download(
                     filename=tmpdir / "image", url=us["image_set"][0]
                 )
                 break
             except HTTPStatusError as ex:
-                error = ex
-                sleep(0.1)
+                sleep(0.5)
         else:
-            raise error
+            raise TimeoutError
 
         assert len(downloaded_files) == 1
 
@@ -905,3 +903,17 @@ async def test_create_display_sets_from_images(local_grand_challenge):
         )
         ds_pks = [x["pk"] async for x in display_sets]
         assert all([x in ds_pks for x in created])
+
+        # Check that the files are added to the display set
+        async def check_file(ds_pk):
+            for _ in range(60):
+                ds = await c.reader_studies.display_sets.detail(pk=ds_pk)
+                if len(ds["values"]) > 0:
+                    break
+                else:
+                    sleep(0.5)
+            else:
+                raise TimeoutError
+
+        for pk in created:
+            await check_file(pk)
