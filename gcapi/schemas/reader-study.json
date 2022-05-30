@@ -102,9 +102,6 @@
                 "description": {
                     "type": "string"
                 },
-                "is_valid": {
-                    "type": "boolean"
-                },
                 "questions": {
                     "type": "array",
                     "items": {
@@ -113,28 +110,12 @@
                             { "$ref": "#/definitions/question-annotation" }
                         ]
                     }
-                },
-                "hanging_list_images": {
-                    "oneOf": [
-                        {
-                            "type": "array",
-                            "items": {
-                                "type": "object",
-                                "additionalProperties": { "$ref": "#/definitions/api-link" }
-                            }
-                        },
-                        {
-                            "type": "null"
-                        }
-                    ]
                 }
             },
             "required": [
                 "title",
                 "description",
-                "is_valid",
-                "questions",
-                "hanging_list_images"
+                "questions"
             ],
             "additionalProperties": true
         }

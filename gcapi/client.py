@@ -578,7 +578,7 @@ class ClientBase(ApiDefinitions, ClientInterface):
                 uploads.append(
                     (
                         yield from self.__org_api_meta.uploads.upload_fileobj(
-                            fileobj=f, filename=file.name
+                            fileobj=f, filename=os.path.basename(file)
                         )
                     )
                 )
@@ -858,7 +858,7 @@ class ClientBase(ApiDefinitions, ClientInterface):
 
         return (
             yield from self.__org_api_meta.archive_items.partial_update(
-                pk=item["id"], **civs
+                pk=item["pk"], **civs
             )
         )
 

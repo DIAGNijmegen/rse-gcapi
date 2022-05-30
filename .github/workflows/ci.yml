@@ -58,12 +58,12 @@ jobs:
           aws-region: us-east-1
       - name: Pull the grand-challenge container images
         run: |
-          aws ecr-public get-login-password --region us-east-1 | docker login --username AWS --password-stdin public.ecr.aws/diag-nijmegen/grand-challenge/web
-          docker pull public.ecr.aws/diag-nijmegen/grand-challenge/web:latest
-          docker logout public.ecr.aws/diag-nijmegen/grand-challenge/web
-          aws ecr-public get-login-password --region us-east-1 | docker login --username AWS --password-stdin public.ecr.aws/diag-nijmegen/grand-challenge/http
-          docker pull public.ecr.aws/diag-nijmegen/grand-challenge/http:latest
-          docker logout public.ecr.aws/diag-nijmegen/grand-challenge/http
+          sudo apt-get update
+          sudo apt-get install -y retry
+          retry -t 5 -- /bin/bash -c 'aws ecr-public get-login-password --region us-east-1 | docker login --username AWS --password-stdin public.ecr.aws/diag-nijmegen/grand-challenge/web'
+          retry -t 5 -- docker pull public.ecr.aws/diag-nijmegen/grand-challenge/web:latest
+          retry -t 5 -- /bin/bash -c 'aws ecr-public get-login-password --region us-east-1 | docker login --username AWS --password-stdin public.ecr.aws/diag-nijmegen/grand-challenge/http'
+          retry -t 5 -- docker pull public.ecr.aws/diag-nijmegen/grand-challenge/http:latest
       - name: Add gc.localhost to /etc/hosts
         run: sudo echo "127.0.0.1 gc.localhost\n127.0.0.1 minio.localhost" | sudo tee -a /etc/hosts
       - name: Run tox

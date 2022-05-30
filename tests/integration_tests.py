@@ -104,6 +104,30 @@ def test_create_single_polygon_annotations(local_grand_challenge):
     )
 
 
+@pytest.mark.parametrize(
+    "files",
+    (
+        # Path based
+        [Path(__file__).parent / "testdata" / "image10x10x101.mha"],
+        # str based
+        [str(Path(__file__).parent / "testdata" / "image10x10x101.mha")],
+        # mixed str and Path
+        [
+            str(Path(__file__).parent / "testdata" / "image10x10x10.mhd"),
+            Path(__file__).parent / "testdata" / "image10x10x10.zraw",
+        ],
+    ),
+)
+def test_input_types_upload_cases(local_grand_challenge, files):
+    c = Client(
+        base_url=local_grand_challenge, verify=False, token=READERSTUDY_TOKEN
+    )
+    c.upload_cases(
+        reader_study="reader-study",
+        files=files,
+    )
+
+
 def test_raw_image_and_upload_session(local_grand_challenge):
     c = Client(base_url=local_grand_challenge, verify=False, token=ADMIN_TOKEN)
     assert c.raw_image_upload_sessions.page() == []
@@ -196,17 +220,17 @@ def test_upload_cases_to_archive(local_grand_challenge, files, interface):
         params={"archive": archive["pk"]}
     )
     # with the correct interface
-    image_pk_to_interface_slug_dict = {
+    image_url_to_interface_slug_dict = {
         value["image"]: value["interface"]["slug"]
         for item in archive_items
         for value in item["values"]
         if value["image"]
     }
     if interface:
-        assert image_pk_to_interface_slug_dict[image["api_url"]] == interface
+        assert image_url_to_interface_slug_dict[image["api_url"]] == interface
     else:
         assert (
-            image_pk_to_interface_slug_dict[image["api_url"]]
+            image_url_to_interface_slug_dict[image["api_url"]]
             == "generic-medical-image"
         )
 
@@ -230,6 +254,18 @@ def test_upload_cases_to_archive_item_without_interface(local_grand_challenge):
             files=[Path(__file__).parent / "testdata" / "image10x10x101.mha"],
         )
     assert "You need to define an interface for archive item uploads" in str(e)
+
+
+def test_page_meta_info(local_grand_challenge):
+    c = Client(
+        base_url=local_grand_challenge, verify=False, token=ARCHIVE_TOKEN
+    )
+    archives = c.archives.page(limit=123)
+
+    assert len(archives) == 1
+    assert archives.offset == 0
+    assert archives.limit == 123
+    assert archives.total_count == 1
 
 
 def test_upload_cases_to_archive_item_with_existing_interface(
@@ -270,14 +306,14 @@ def test_upload_cases_to_archive_item_with_existing_interface(
 
     # And that it was added to the archive item
     item = c.archive_items.detail(pk=item["pk"])
-    assert image["pk"] in [
-        civ["image"]["pk"] for civ in item["values"] if civ["image"]
+    assert image["api_url"] in [
+        civ["image"] for civ in item["values"] if civ["image"]
     ]
     # with the correct interface
     im_to_interface = {
-        civ["image"]["pk"]: civ["interface"]["slug"] for civ in item["values"]
+        civ["image"]: civ["interface"]["slug"] for civ in item["values"]
     }
-    assert im_to_interface[image["pk"]] == "generic-medical-image"
+    assert im_to_interface[image["api_url"]] == "generic-medical-image"
 
 
 def test_upload_cases_to_archive_item_with_new_interface(
@@ -561,12 +597,12 @@ def test_add_and_update_value_to_archive_item(local_grand_challenge):
     old_civ_count = len(items[-1]["values"])
 
     _ = c.update_archive_item(
-        archive_item_pk=items[-1]["id"],
+        archive_item_pk=items[-1]["pk"],
         values={"results-json-file": {"foo": 0.5}},
     )
 
     for _ in range(60):
-        item_updated = c.archive_items.detail(items[-1]["id"])
+        item_updated = c.archive_items.detail(items[-1]["pk"])
         if len(item_updated["values"]) == old_civ_count + 1:
             # results json interface value has been added to the item
             break
@@ -581,12 +617,12 @@ def test_add_and_update_value_to_archive_item(local_grand_challenge):
     updated_civ_count = len(item_updated["values"])
 
     _ = c.update_archive_item(
-        archive_item_pk=items[-1]["id"],
+        archive_item_pk=items[-1]["pk"],
         values={"results-json-file": {"foo": 0.8}},
     )
 
     for _ in range(60):
-        item_updated_again = c.archive_items.detail(items[-1]["id"])
+        item_updated_again = c.archive_items.detail(items[-1]["pk"])
         if json_civ not in item_updated_again["values"]:
             # results json interface value has been added to the item and
             # the previously added json civ is no longer attached
@@ -637,17 +673,17 @@ def test_update_interface_kind_of_archive_item_image_civ(
     assert (
         items[-1]["values"][0]["interface"]["slug"] == "generic-medical-image"
     )
-    im_pk = items[-1]["values"][0]["image"]["pk"]
-    image = c.images.detail(pk=im_pk)
+    im = items[-1]["values"][0]["image"]
+    image = c(url=im)
 
     # change interface slug from generic-medical-image to generic-overlay
     _ = c.update_archive_item(
-        archive_item_pk=items[-1]["id"],
+        archive_item_pk=items[-1]["pk"],
         values={"generic-overlay": image["api_url"]},
     )
 
     for _ in range(60):
-        item_updated = c.archive_items.detail(items[-1]["id"])
+        item_updated = c.archive_items.detail(items[-1]["pk"])
         if (
             item_updated["values"][-1]["interface"]["slug"]
             == "generic-overlay"
@@ -664,7 +700,7 @@ def test_update_interface_kind_of_archive_item_image_civ(
     assert "generic-medical-image" not in [
         value["interface"]["slug"] for value in item_updated["values"]
     ]
-    assert item_updated["values"][-1]["image"]["pk"] == im_pk
+    assert item_updated["values"][-1]["image"] == im
 
 
 def test_update_archive_item_with_non_existing_interface(
@@ -681,7 +717,7 @@ def test_update_archive_item_with_non_existing_interface(
     )
     with pytest.raises(ValueError) as e:
         _ = c.update_archive_item(
-            archive_item_pk=items[0]["id"], values={"new-interface": 5}
+            archive_item_pk=items[0]["pk"], values={"new-interface": 5}
         )
     assert "new-interface is not an existing interface" in str(e)
 
@@ -699,7 +735,7 @@ def test_update_archive_item_without_value(local_grand_challenge):
 
     with pytest.raises(ValueError) as e:
         _ = c.update_archive_item(
-            archive_item_pk=items[0]["id"],
+            archive_item_pk=items[0]["pk"],
             values={"generic-medical-image": None},
         )
     assert "You need to provide a value for generic-medical-image" in str(e)
