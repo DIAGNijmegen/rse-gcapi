@@ -451,7 +451,7 @@ async def test_download_cases(local_grand_challenge, files, tmpdir):
                     filename=tmpdir / "image", url=us["image_set"][0]
                 )
                 break
-            except HTTPStatusError as ex:
+            except HTTPStatusError:
                 sleep(0.5)
         else:
             raise TimeoutError
