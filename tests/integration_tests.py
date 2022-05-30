@@ -383,13 +383,22 @@ def test_download_cases(local_grand_challenge, files, tmpdir):
             sleep(0.5)
     else:
         raise TimeoutError
-    # give some time to make sure permissions are set
-    sleep(0.5)
+
     # Check that we can download the uploaded image
     tmpdir = Path(tmpdir)
-    downloaded_files = c.images.download(
-        filename=tmpdir / "image", url=us["image_set"][0]
-    )
+    error = None
+    for _ in range(10):
+        try:
+            downloaded_files = c.images.download(
+                filename=tmpdir / "image", url=us["image_set"][0]
+            )
+            break
+        except HTTPStatusError as ex:
+            error = ex
+            sleep(0.1)
+    else:
+        raise error
+
     assert len(downloaded_files) == 1
 
     # Check that the downloaded file is a mha file

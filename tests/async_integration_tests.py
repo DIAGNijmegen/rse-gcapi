@@ -427,10 +427,10 @@ async def test_upload_cases_to_archive_item_with_new_interface(
 @pytest.mark.anyio
 async def test_download_cases(local_grand_challenge, files, tmpdir):
     async with AsyncClient(
-        base_url=local_grand_challenge, verify=False, token=READERSTUDY_TOKEN
+        base_url=local_grand_challenge, verify=False, token=ARCHIVE_TOKEN
     ) as c:
         us = await c.upload_cases(
-            reader_study="reader-study",
+            archive="archive",
             files=[Path(__file__).parent / "testdata" / f for f in files],
         )
 
@@ -445,9 +445,19 @@ async def test_download_cases(local_grand_challenge, files, tmpdir):
 
         # Check that we can download the uploaded image
         tmpdir = Path(tmpdir)
-        downloaded_files = await c.images.download(
-            filename=tmpdir / "image", url=us["image_set"][0]
-        )
+        error = None
+        for _ in range(10):
+            try:
+                downloaded_files = await c.images.download(
+                    filename=tmpdir / "image", url=us["image_set"][0]
+                )
+                break
+            except HTTPStatusError as ex:
+                error = ex
+                sleep(0.1)
+        else:
+            raise error
+
         assert len(downloaded_files) == 1
 
         # Check that the downloaded file is a mha file
@@ -497,10 +507,10 @@ async def test_input_types_upload_cases(local_grand_challenge, files):
     async with AsyncClient(
         base_url=local_grand_challenge,
         verify=False,
-        token=READERSTUDY_TOKEN,
+        token=ARCHIVE_TOKEN,
     ) as c:
         await c.upload_cases(
-            reader_study="reader-study",
+            archive="archive",
             files=files,
         )
 
