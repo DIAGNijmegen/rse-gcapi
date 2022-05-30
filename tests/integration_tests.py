@@ -149,54 +149,6 @@ def test_chunked_uploads(local_grand_challenge):
 
 
 @pytest.mark.parametrize(
-    "files",
-    (["image10x10x101.mha"], ["image10x10x10.mhd", "image10x10x10.zraw"]),
-)
-def test_upload_cases_to_reader_study(local_grand_challenge, files):
-    c = Client(
-        base_url=local_grand_challenge, verify=False, token=READERSTUDY_TOKEN
-    )
-    # check that defining an interface does not work for reader study upload
-    with pytest.raises(ValueError) as e:
-        _ = c.upload_cases(
-            reader_study="reader-study",
-            interface="generic-medical-image",
-            files=[Path(__file__).parent / "testdata" / f for f in files],
-        )
-    assert (
-        "An interface can only be defined for archive, archive item or "
-        "display set uploads" in str(e)
-    )
-
-    us = c.upload_cases(
-        reader_study="reader-study",
-        files=[Path(__file__).parent / "testdata" / f for f in files],
-    )
-
-    for _ in range(60):
-        us = c.raw_image_upload_sessions.detail(us["pk"])
-        if us["status"] == "Succeeded":
-            break
-        else:
-            sleep(0.5)
-    else:
-        raise TimeoutError
-
-    # Check that only one image was created
-    assert len(us["image_set"]) == 1
-    image = c(url=us["image_set"][0])
-
-    # And that it was added to the reader study
-    rs = next(c.reader_studies.iterate_all(params={"slug": "reader-study"}))
-    rs_images = c.images.iterate_all(params={"reader_study": rs["pk"]})
-    assert image["pk"] in [im["pk"] for im in rs_images]
-
-    # And that we can download it
-    response = c(url=image["files"][0]["file"], follow_redirects=True)
-    assert response.status_code == 200
-
-
-@pytest.mark.parametrize(
     "files, interface",
     (
         (["image10x10x101.mha"], "generic-overlay"),
@@ -245,16 +197,16 @@ def test_upload_cases_to_archive(local_grand_challenge, files, interface):
     )
     # with the correct interface
     image_pk_to_interface_slug_dict = {
-        value["image"]["pk"]: value["interface"]["slug"]
+        value["image"]: value["interface"]["slug"]
         for item in archive_items
         for value in item["values"]
         if value["image"]
     }
     if interface:
-        assert image_pk_to_interface_slug_dict[image["pk"]] == interface
+        assert image_pk_to_interface_slug_dict[image["api_url"]] == interface
     else:
         assert (
-            image_pk_to_interface_slug_dict[image["pk"]]
+            image_pk_to_interface_slug_dict[image["api_url"]]
             == "generic-medical-image"
         )
 
@@ -274,7 +226,7 @@ def test_upload_cases_to_archive_item_without_interface(local_grand_challenge):
     # try upload without providing interface
     with pytest.raises(ValueError) as e:
         _ = c.upload_cases(
-            archive_item=item["id"],
+            archive_item=item["pk"],
             files=[Path(__file__).parent / "testdata" / "image10x10x101.mha"],
         )
     assert "You need to define an interface for archive item uploads" in str(e)
@@ -291,7 +243,7 @@ def test_upload_cases_to_archive_item_with_existing_interface(
     item = next(c.archive_items.iterate_all(params={"archive": archive["pk"]}))
 
     us = c.upload_cases(
-        archive_item=item["id"],
+        archive_item=item["pk"],
         interface="generic-medical-image",
         files=[Path(__file__).parent / "testdata" / "image10x10x101.mha"],
     )
@@ -317,7 +269,7 @@ def test_upload_cases_to_archive_item_with_existing_interface(
         raise TimeoutError
 
     # And that it was added to the archive item
-    item = c.archive_items.detail(pk=item["id"])
+    item = c.archive_items.detail(pk=item["pk"])
     assert image["pk"] in [
         civ["image"]["pk"] for civ in item["values"] if civ["image"]
     ]
@@ -339,7 +291,7 @@ def test_upload_cases_to_archive_item_with_new_interface(
     item = next(c.archive_items.iterate_all(params={"archive": archive["pk"]}))
 
     us = c.upload_cases(
-        archive_item=item["id"],
+        archive_item=item["pk"],
         interface="generic-overlay",
         files=[Path(__file__).parent / "testdata" / "image10x10x101.mha"],
     )
@@ -365,15 +317,15 @@ def test_upload_cases_to_archive_item_with_new_interface(
         raise TimeoutError
 
     # And that it was added to the archive item
-    item = c.archive_items.detail(pk=item["id"])
-    assert image["pk"] in [
-        civ["image"]["pk"] for civ in item["values"] if civ["image"]
+    item = c.archive_items.detail(pk=item["pk"])
+    assert image["api_url"] in [
+        civ["image"] for civ in item["values"] if civ["image"]
     ]
     # with the correct interface
     im_to_interface = {
-        civ["image"]["pk"]: civ["interface"]["slug"] for civ in item["values"]
+        civ["image"]: civ["interface"]["slug"] for civ in item["values"]
     }
-    assert im_to_interface[image["pk"]] == "generic-overlay"
+    assert im_to_interface[image["api_url"]] == "generic-overlay"
 
 
 @pytest.mark.parametrize("files", (["image10x10x101.mha"],))
@@ -516,7 +468,7 @@ def test_add_and_update_file_to_archive_item(local_grand_challenge):
 
     with pytest.raises(ValueError) as e:
         _ = c.update_archive_item(
-            archive_item_pk=items[-1]["id"],
+            archive_item_pk=items[-1]["pk"],
             values={
                 "predictions-csv-file": [
                     Path(__file__).parent / "testdata" / f
@@ -530,7 +482,7 @@ def test_add_and_update_file_to_archive_item(local_grand_challenge):
     )
 
     _ = c.update_archive_item(
-        archive_item_pk=items[-1]["id"],
+        archive_item_pk=items[-1]["pk"],
         values={
             "predictions-csv-file": [
                 Path(__file__).parent / "testdata" / "test.csv"
@@ -539,7 +491,7 @@ def test_add_and_update_file_to_archive_item(local_grand_challenge):
     )
 
     for _ in range(60):
-        item_updated = c.archive_items.detail(items[-1]["id"])
+        item_updated = c.archive_items.detail(items[-1]["pk"])
         if len(item_updated["values"]) == old_civ_count + 1:
             # csv interface value has been added to item
             break
@@ -555,7 +507,7 @@ def test_add_and_update_file_to_archive_item(local_grand_challenge):
     updated_civ_count = len(item_updated["values"])
     # a new pdf upload will overwrite the old pdf interface value
     _ = c.update_archive_item(
-        archive_item_pk=items[-1]["id"],
+        archive_item_pk=items[-1]["pk"],
         values={
             "predictions-csv-file": [
                 Path(__file__).parent / "testdata" / "test.csv"
@@ -564,7 +516,7 @@ def test_add_and_update_file_to_archive_item(local_grand_challenge):
     )
 
     for _ in range(60):
-        item_updated_again = c.archive_items.detail(items[-1]["id"])
+        item_updated_again = c.archive_items.detail(items[-1]["pk"])
         if csv_civ not in item_updated_again["values"]:
             # csv interface value has been added to item and the
             # previously added pdf civ is no longer attached to this archive item
