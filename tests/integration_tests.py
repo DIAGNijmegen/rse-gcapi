@@ -120,10 +120,10 @@ def test_create_single_polygon_annotations(local_grand_challenge):
 )
 def test_input_types_upload_cases(local_grand_challenge, files):
     c = Client(
-        base_url=local_grand_challenge, verify=False, token=READERSTUDY_TOKEN
+        base_url=local_grand_challenge, verify=False, token=ARCHIVE_TOKEN
     )
     c.upload_cases(
-        reader_study="reader-study",
+        archive="archive",
         files=files,
     )
 
@@ -367,11 +367,11 @@ def test_upload_cases_to_archive_item_with_new_interface(
 @pytest.mark.parametrize("files", (["image10x10x101.mha"],))
 def test_download_cases(local_grand_challenge, files, tmpdir):
     c = Client(
-        base_url=local_grand_challenge, verify=False, token=READERSTUDY_TOKEN
+        base_url=local_grand_challenge, verify=False, token=ARCHIVE_TOKEN
     )
 
     us = c.upload_cases(
-        reader_study="reader-study",
+        archive="archive",
         files=[Path(__file__).parent / "testdata" / f for f in files],
     )
 
@@ -383,7 +383,8 @@ def test_download_cases(local_grand_challenge, files, tmpdir):
             sleep(0.5)
     else:
         raise TimeoutError
-
+    # give some time to make sure permissions are set
+    sleep(0.5)
     # Check that we can download the uploaded image
     tmpdir = Path(tmpdir)
     downloaded_files = c.images.download(

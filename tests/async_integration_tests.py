@@ -171,58 +171,6 @@ async def test_chunked_uploads(local_grand_challenge):
                 )
 
 
-@pytest.mark.parametrize(
-    "files",
-    (["image10x10x101.mha"], ["image10x10x10.mhd", "image10x10x10.zraw"]),
-)
-@pytest.mark.anyio
-async def test_upload_cases_to_reader_study(local_grand_challenge, files):
-    async with AsyncClient(
-        base_url=local_grand_challenge, verify=False, token=READERSTUDY_TOKEN
-    ) as c:
-        with pytest.raises(ValueError) as e:
-            _ = await c.upload_cases(
-                reader_study="reader-study",
-                interface="generic-medical-image",
-                files=[Path(__file__).parent / "testdata" / f for f in files],
-            )
-        assert (
-            "An interface can only be defined for archive, archive item "
-            "or display set uploads" in str(e)
-        )
-
-        us = await c.upload_cases(
-            reader_study="reader-study",
-            files=[Path(__file__).parent / "testdata" / f for f in files],
-        )
-
-        for _ in range(60):
-            us = await c.raw_image_upload_sessions.detail(us["pk"])
-            if us["status"] == "Succeeded":
-                break
-            else:
-                sleep(0.5)
-        else:
-            raise TimeoutError
-
-        # Check that only one image was created
-        assert len(us["image_set"]) == 1
-        image = await c(url=us["image_set"][0])
-
-        # And that it was added to the reader study
-        rs = await (
-            c.reader_studies.iterate_all(params={"slug": "reader-study"})
-        ).__anext__()
-        rs_images = c.images.iterate_all(params={"reader_study": rs["pk"]})
-        assert image["pk"] in [im["pk"] async for im in rs_images]
-
-        # And that we can download it
-        response = await c(
-            url=image["files"][0]["file"], follow_redirects=True
-        )
-        assert response.status_code == 200
-
-
 @pytest.mark.anyio
 async def test_page_meta_info(local_grand_challenge):
     async with AsyncClient(
