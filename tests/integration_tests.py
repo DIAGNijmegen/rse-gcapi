@@ -122,10 +122,7 @@ def test_input_types_upload_cases(local_grand_challenge, files):
     c = Client(
         base_url=local_grand_challenge, verify=False, token=ARCHIVE_TOKEN
     )
-    c.upload_cases(
-        archive="archive",
-        files=files,
-    )
+    c.upload_cases(archive="archive", files=files)
 
 
 def test_raw_image_and_upload_session(local_grand_challenge):
@@ -786,8 +783,7 @@ def test_create_display_sets_from_images(local_grand_challenge):
     ]
 
     created = c.create_display_sets_from_images(
-        reader_study="reader-study",
-        display_sets=display_sets,
+        reader_study="reader-study", display_sets=display_sets
     )
 
     assert len(created) == 2

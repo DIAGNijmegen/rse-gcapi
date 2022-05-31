@@ -479,7 +479,8 @@ async def test_create_job_with_upload(local_grand_challenge, files):
                     algorithm="test-algorithm-evaluation-1",
                     inputs={
                         "generic-medical-image": [
-                            Path(__file__).parent / "testdata" / f for f in files
+                            Path(__file__).parent / "testdata" / f
+                            for f in files
                         ]
                     },
                 )
@@ -512,14 +513,9 @@ async def test_create_job_with_upload(local_grand_challenge, files):
 @pytest.mark.anyio
 async def test_input_types_upload_cases(local_grand_challenge, files):
     async with AsyncClient(
-        base_url=local_grand_challenge,
-        verify=False,
-        token=ARCHIVE_TOKEN,
+        base_url=local_grand_challenge, verify=False, token=ARCHIVE_TOKEN
     ) as c:
-        await c.upload_cases(
-            archive="archive",
-            files=files,
-        )
+        await c.upload_cases(archive="archive", files=files)
 
 
 @pytest.mark.anyio
@@ -898,8 +894,7 @@ async def test_create_display_sets_from_images(local_grand_challenge):
         base_url=local_grand_challenge, verify=False, token=READERSTUDY_TOKEN
     ) as c:
         created = await c.create_display_sets_from_images(
-            reader_study="reader-study",
-            display_sets=display_sets,
+            reader_study="reader-study", display_sets=display_sets
         )
 
         assert len(created) == 2
