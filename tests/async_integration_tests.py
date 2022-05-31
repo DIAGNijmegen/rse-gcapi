@@ -472,14 +472,23 @@ async def test_create_job_with_upload(local_grand_challenge, files):
         verify=False,
         token=DEMO_PARTICIPANT_TOKEN,
     ) as c:
-        job = await c.run_external_job(
-            algorithm="test-algorithm-evaluation-1",
-            inputs={
-                "generic-medical-image": [
-                    Path(__file__).parent / "testdata" / f for f in files
-                ]
-            },
-        )
+        # algorithm might not be ready yet
+        for _ in range(60):
+            try:
+                job = await c.run_external_job(
+                    algorithm="test-algorithm-evaluation-1",
+                    inputs={
+                        "generic-medical-image": [
+                            Path(__file__).parent / "testdata" / f for f in files
+                        ]
+                    },
+                )
+                break
+            except HTTPStatusError:
+                sleep(0.5)
+        else:
+            raise TimeoutError
+
         assert job["status"] == "Queued"
         assert len(job["inputs"]) == 1
         job = await c.algorithm_jobs.detail(job["pk"])
