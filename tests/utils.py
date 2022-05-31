@@ -1,5 +1,6 @@
-from httpx import HTTPStatusError
 from time import sleep
+
+from httpx import HTTPStatusError
 
 
 def recurse_call(func):
