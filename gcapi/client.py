@@ -594,14 +594,13 @@ class ClientBase(ApiDefinitions, ClientInterface):
         *,
         files: List[str],
         archive: str = None,
-        reader_study: str = None,
         answer: str = None,
         archive_item: str = None,
         display_set: str = None,
         interface: str = None,
     ):
         """
-        Uploads a set of files to an archive, archive item or reader study.
+        Uploads a set of files to an archive, archive item or display set.
         A new upload session will be created on grand challenge to import and
         standardise your file(s). This function will return this new upload
         session object, that you can query for the import status. If this
@@ -632,10 +631,10 @@ class ClientBase(ApiDefinitions, ClientInterface):
             The slug of the archive to use.
         archive_item
             The pk of the archive item to use.
-        reader_study
-            The slug of the reader study to use.
         answer
             The pk of the reader study answer to use.
+        display_set
+            The pk of the display set to use.
         interface
             The slug of the interface to use. Can only be defined for archive
             and archive item uploads.
@@ -647,9 +646,6 @@ class ClientBase(ApiDefinitions, ClientInterface):
 
         if len(files) == 0:
             raise ValueError("You must specify the files to upload")
-
-        if reader_study is not None:
-            upload_session_data["reader_study"] = reader_study
 
         if archive is not None:
             upload_session_data["archive"] = archive
@@ -912,10 +908,8 @@ class ClientBase(ApiDefinitions, ClientInterface):
                         f"https://grand-challenge.org/algorithms/interfaces/"
                     ) from e
 
-                self.upload_cases(
-                    display_set=ds["pk"],
-                    interface=interface,
-                    files=files,
+                yield from self._upload_files(
+                    display_set=ds["pk"], interface=interface, files=files
                 )
             res.append(ds["pk"])
         return res  # noqa: B901

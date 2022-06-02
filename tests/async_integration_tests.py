@@ -1,19 +1,40 @@
-import re
 from io import BytesIO
 from pathlib import Path
-from time import sleep
 
 import pytest
 from httpx import HTTPStatusError
 
 from gcapi import AsyncClient
 from gcapi.exceptions import MultipleObjectsReturned, ObjectNotFound
+from tests.utils import async_recurse_call
 
 RETINA_TOKEN = "f1f98a1733c05b12118785ffd995c250fe4d90da"
 ADMIN_TOKEN = "1b9436200001f2eaf57cd77db075cbb60a49a00a"
 READERSTUDY_TOKEN = "01614a77b1c0b4ecd402be50a8ff96188d5b011d"
 DEMO_PARTICIPANT_TOKEN = "00aa710f4dc5621a0cb64b0795fbba02e39d7700"
 ARCHIVE_TOKEN = "0d284528953157759d26c469297afcf6fd367f71"
+
+
+@async_recurse_call
+async def get_upload_session(client, upload_pk):
+    upl = await client.raw_image_upload_sessions.detail(upload_pk)
+    if upl["status"] != "Succeeded":
+        raise ValueError
+    return upl
+
+
+@async_recurse_call
+async def get_image(client, image_url):
+    return await client(url=image_url)
+
+
+@async_recurse_call
+async def get_archive_items(client, archive_pk, min_size):
+    i = client.archive_items.iterate_all(params={"archive": archive_pk})
+    il = [item async for item in i]
+    if len(il) <= min_size:
+        raise ValueError
+    return il
 
 
 @pytest.mark.parametrize(
@@ -171,58 +192,6 @@ async def test_chunked_uploads(local_grand_challenge):
                 )
 
 
-@pytest.mark.parametrize(
-    "files",
-    (["image10x10x101.mha"], ["image10x10x10.mhd", "image10x10x10.zraw"]),
-)
-@pytest.mark.anyio
-async def test_upload_cases_to_reader_study(local_grand_challenge, files):
-    async with AsyncClient(
-        base_url=local_grand_challenge, verify=False, token=READERSTUDY_TOKEN
-    ) as c:
-        with pytest.raises(ValueError) as e:
-            _ = await c.upload_cases(
-                reader_study="reader-study",
-                interface="generic-medical-image",
-                files=[Path(__file__).parent / "testdata" / f for f in files],
-            )
-        assert (
-            "An interface can only be defined for archive, archive item "
-            "or display set uploads" in str(e)
-        )
-
-        us = await c.upload_cases(
-            reader_study="reader-study",
-            files=[Path(__file__).parent / "testdata" / f for f in files],
-        )
-
-        for _ in range(60):
-            us = await c.raw_image_upload_sessions.detail(us["pk"])
-            if us["status"] == "Succeeded":
-                break
-            else:
-                sleep(0.5)
-        else:
-            raise TimeoutError
-
-        # Check that only one image was created
-        assert len(us["image_set"]) == 1
-        image = await c(url=us["image_set"][0])
-
-        # And that it was added to the reader study
-        rs = await (
-            c.reader_studies.iterate_all(params={"slug": "reader-study"})
-        ).__anext__()
-        rs_images = c.images.iterate_all(params={"reader_study": rs["pk"]})
-        assert image["pk"] in [im["pk"] async for im in rs_images]
-
-        # And that we can download it
-        response = await c(
-            url=image["files"][0]["file"], follow_redirects=True
-        )
-        assert response.status_code == 200
-
-
 @pytest.mark.anyio
 async def test_page_meta_info(local_grand_challenge):
     async with AsyncClient(
@@ -259,25 +228,11 @@ async def test_upload_cases_to_archive(
             files=[Path(__file__).parent / "testdata" / f for f in files],
         )
 
-        for _ in range(60):
-            us = await c.raw_image_upload_sessions.detail(us["pk"])
-            if us["status"] == "Succeeded":
-                break
-            else:
-                sleep(0.5)
-        else:
-            raise TimeoutError
+        us = await get_upload_session(c, us["pk"])
 
         # Check that only one image was created
         assert len(us["image_set"]) == 1
-        for _ in range(60):
-            try:
-                image = await c(url=us["image_set"][0])
-                break
-            except HTTPStatusError:
-                sleep(0.5)
-        else:
-            raise TimeoutError
+        image = await get_image(c, us["image_set"][0])
 
         # And that it was added to the archive
         archive = await (
@@ -349,6 +304,7 @@ async def test_upload_cases_to_archive_item_with_existing_interface(
     async with AsyncClient(
         base_url=local_grand_challenge, verify=False, token=ARCHIVE_TOKEN
     ) as c:
+
         # retrieve existing archive item pk
         archive = await (
             c.archives.iterate_all(params={"slug": "archive"})
@@ -361,17 +317,11 @@ async def test_upload_cases_to_archive_item_with_existing_interface(
             archive="archive",
             files=[Path(__file__).parent / "testdata" / "image10x10x101.mha"],
         )
+
         # retrieve existing archive item pk
-        for _ in range(60):
-            items = c.archive_items.iterate_all(
-                params={"archive": archive["pk"]}
-            )
-            items_list = [item async for item in items]
-            if len(items_list) > len(old_items_list):
-                # item has been added
-                break
-            else:
-                sleep(0.5)
+        items_list = await get_archive_items(
+            c, archive["pk"], len(old_items_list)
+        )
 
         us = await c.upload_cases(
             archive_item=items_list[-1]["pk"],
@@ -379,25 +329,11 @@ async def test_upload_cases_to_archive_item_with_existing_interface(
             files=[Path(__file__).parent / "testdata" / "image10x10x101.mha"],
         )
 
-        for _ in range(60):
-            us = await c.raw_image_upload_sessions.detail(us["pk"])
-            if us["status"] == "Succeeded":
-                break
-            else:
-                sleep(0.5)
-        else:
-            raise TimeoutError
+        us = await get_upload_session(c, us["pk"])
 
         # Check that only one image was created
         assert len(us["image_set"]) == 1
-        for _ in range(60):
-            try:
-                image = await c(url=us["image_set"][0])
-                break
-            except HTTPStatusError:
-                sleep(0.5)
-        else:
-            raise TimeoutError
+        image = await get_image(c, us["image_set"][0])
 
         # And that it was added to the archive item
         item = await c.archive_items.detail(pk=items_list[-1]["pk"])
@@ -416,6 +352,7 @@ async def test_upload_cases_to_archive_item_with_new_interface(
     async with AsyncClient(
         base_url=local_grand_challenge, verify=False, token=ARCHIVE_TOKEN
     ) as c:
+
         archive = await (
             c.archives.iterate_all(params={"slug": "archive"})
         ).__anext__()
@@ -427,17 +364,10 @@ async def test_upload_cases_to_archive_item_with_new_interface(
             archive="archive",
             files=[Path(__file__).parent / "testdata" / "image10x10x101.mha"],
         )
-        # retrieve existing archive item pk
-        for _ in range(60):
-            items = c.archive_items.iterate_all(
-                params={"archive": archive["pk"]}
-            )
-            items_list = [item async for item in items]
-            if len(items_list) > len(old_items_list):
-                # item has been added
-                break
-            else:
-                sleep(0.5)
+
+        items_list = await get_archive_items(
+            c, archive["pk"], len(old_items_list)
+        )
 
         us = await c.upload_cases(
             archive_item=items_list[-1]["pk"],
@@ -445,25 +375,11 @@ async def test_upload_cases_to_archive_item_with_new_interface(
             files=[Path(__file__).parent / "testdata" / "image10x10x101.mha"],
         )
 
-        for _ in range(60):
-            us = await c.raw_image_upload_sessions.detail(us["pk"])
-            if us["status"] == "Succeeded":
-                break
-            else:
-                sleep(0.5)
-        else:
-            raise TimeoutError
+        us = await get_upload_session(c, us["pk"])
 
         # Check that only one image was created
         assert len(us["image_set"]) == 1
-        for _ in range(60):
-            try:
-                image = await c(url=us["image_set"][0])
-                break
-            except HTTPStatusError:
-                sleep(0.5)
-        else:
-            raise TimeoutError
+        image = await get_image(c, us["image_set"][0])
 
         # And that it was added to the archive item
         item = await c.archive_items.detail(pk=items_list[-1]["pk"])
@@ -479,27 +395,26 @@ async def test_upload_cases_to_archive_item_with_new_interface(
 @pytest.mark.anyio
 async def test_download_cases(local_grand_challenge, files, tmpdir):
     async with AsyncClient(
-        base_url=local_grand_challenge, verify=False, token=READERSTUDY_TOKEN
+        base_url=local_grand_challenge, verify=False, token=ARCHIVE_TOKEN
     ) as c:
         us = await c.upload_cases(
-            reader_study="reader-study",
+            archive="archive",
             files=[Path(__file__).parent / "testdata" / f for f in files],
         )
 
-        for _ in range(60):
-            us = await c.raw_image_upload_sessions.detail(us["pk"])
-            if us["status"] == "Succeeded":
-                break
-            else:
-                sleep(0.5)
-        else:
-            raise TimeoutError
+        us = await get_upload_session(c, us["pk"])
 
         # Check that we can download the uploaded image
         tmpdir = Path(tmpdir)
-        downloaded_files = await c.images.download(
-            filename=tmpdir / "image", url=us["image_set"][0]
-        )
+
+        @async_recurse_call
+        async def get_download():
+            return await c.images.download(
+                filename=tmpdir / "image", url=us["image_set"][0]
+            )
+
+        downloaded_files = await get_download()
+
         assert len(downloaded_files) == 1
 
         # Check that the downloaded file is a mha file
@@ -516,14 +431,21 @@ async def test_create_job_with_upload(local_grand_challenge, files):
         verify=False,
         token=DEMO_PARTICIPANT_TOKEN,
     ) as c:
-        job = await c.run_external_job(
-            algorithm="test-algorithm-evaluation-1",
-            inputs={
-                "generic-medical-image": [
-                    Path(__file__).parent / "testdata" / f for f in files
-                ]
-            },
-        )
+
+        @async_recurse_call
+        async def run_job():
+            return await c.run_external_job(
+                algorithm="test-algorithm-evaluation-1",
+                inputs={
+                    "generic-medical-image": [
+                        Path(__file__).parent / "testdata" / f for f in files
+                    ]
+                },
+            )
+
+        # algorithm might not be ready yet
+        job = await run_job()
+
         assert job["status"] == "Queued"
         assert len(job["inputs"]) == 1
         job = await c.algorithm_jobs.detail(job["pk"])
@@ -547,14 +469,9 @@ async def test_create_job_with_upload(local_grand_challenge, files):
 @pytest.mark.anyio
 async def test_input_types_upload_cases(local_grand_challenge, files):
     async with AsyncClient(
-        base_url=local_grand_challenge,
-        verify=False,
-        token=READERSTUDY_TOKEN,
+        base_url=local_grand_challenge, verify=False, token=ARCHIVE_TOKEN
     ) as c:
-        await c.upload_cases(
-            reader_study="reader-study",
-            files=files,
-        )
+        await c.upload_cases(archive="archive", files=files)
 
 
 @pytest.mark.anyio
@@ -636,16 +553,9 @@ async def test_add_and_update_file_to_archive_item(local_grand_challenge):
         )
 
         # retrieve existing archive item pk
-        for _ in range(60):
-            items = c.archive_items.iterate_all(
-                params={"archive": archive["pk"]}
-            )
-            items_list = [item async for item in items]
-            if len(items_list) > len(old_items_list):
-                # item has been added
-                break
-            else:
-                sleep(0.5)
+        items_list = await get_archive_items(
+            c, archive["pk"], len(old_items_list)
+        )
 
         old_civ_count = len(items_list[-1]["values"])
 
@@ -673,15 +583,15 @@ async def test_add_and_update_file_to_archive_item(local_grand_challenge):
             },
         )
 
-        for _ in range(60):
-            item_updated = await c.archive_items.detail(items_list[-1]["pk"])
-            if len(item_updated["values"]) == old_civ_count + 1:
-                # csv interface value has been added to item
-                break
-            else:
-                sleep(0.5)
-        else:
-            raise TimeoutError
+        @async_recurse_call
+        async def get_archive_detail():
+            item = await c.archive_items.detail(items_list[-1]["pk"])
+            if len(item["values"]) != old_civ_count + 1:
+                # csv interface value has not been added to item yet
+                raise ValueError
+            return item
+
+        item_updated = await get_archive_detail()
 
         csv_civ = item_updated["values"][-1]
         assert csv_civ["interface"]["slug"] == "predictions-csv-file"
@@ -698,18 +608,15 @@ async def test_add_and_update_file_to_archive_item(local_grand_challenge):
             },
         )
 
-        for _ in range(60):
-            item_updated_again = await c.archive_items.detail(
-                items_list[-1]["pk"]
-            )
-            if csv_civ not in item_updated_again["values"]:
-                # csv interface value has been added to item and the
-                # previously added pdf civ is no longer attached to this archive item
-                break
-            else:
-                sleep(0.5)
-        else:
-            raise TimeoutError
+        @async_recurse_call
+        async def get_updated_again_archive_item():
+            item = await c.archive_items.detail(items_list[-1]["pk"])
+            if csv_civ in item["values"]:
+                # csv interface value has been added to item
+                raise ValueError
+            return item
+
+        item_updated_again = await get_updated_again_archive_item()
 
         assert len(item_updated_again["values"]) == updated_civ_count
         new_csv_civ = item_updated_again["values"][-1]
@@ -735,17 +642,9 @@ async def test_add_and_update_value_to_archive_item(local_grand_challenge):
         )
 
         # retrieve existing archive item pk
-        for _ in range(60):
-            items = c.archive_items.iterate_all(
-                params={"archive": archive["pk"]}
-            )
-            items_list = [item async for item in items]
-            if len(items_list) > len(old_items_list):
-                # item has been added
-                break
-            else:
-                sleep(0.5)
-
+        items_list = await get_archive_items(
+            c, archive["pk"], len(old_items_list)
+        )
         old_civ_count = len(items_list[-1]["values"])
 
         _ = await c.update_archive_item(
@@ -753,15 +652,15 @@ async def test_add_and_update_value_to_archive_item(local_grand_challenge):
             values={"results-json-file": {"foo": 0.5}},
         )
 
-        for _ in range(60):
-            item_updated = await c.archive_items.detail(items_list[-1]["pk"])
-            if len(item_updated["values"]) == old_civ_count + 1:
-                # results json interface value has been added to the item
-                break
-            else:
-                sleep(0.5)
-        else:
-            raise TimeoutError
+        @async_recurse_call
+        async def get_archive_detail():
+            item = await c.archive_items.detail(items_list[-1]["pk"])
+            if len(item["values"]) != old_civ_count + 1:
+                # csv interface value has been added to item
+                raise ValueError
+            return item
+
+        item_updated = await get_archive_detail()
 
         json_civ = item_updated["values"][-1]
         assert json_civ["interface"]["slug"] == "results-json-file"
@@ -773,19 +672,17 @@ async def test_add_and_update_value_to_archive_item(local_grand_challenge):
             values={"results-json-file": {"foo": 0.8}},
         )
 
-        for _ in range(60):
-            item_updated_again = await c.archive_items.detail(
-                items_list[-1]["pk"]
-            )
-            if json_civ not in item_updated_again["values"]:
+        @async_recurse_call
+        async def get_updated_archive_detail():
+            item = await c.archive_items.detail(items_list[-1]["pk"])
+            if json_civ in item["values"]:
                 # results json interface value has been added to the item and
                 # the previously added json civ is no longer attached
                 # to this archive item
-                break
-            else:
-                sleep(0.5)
-        else:
-            raise TimeoutError
+                raise ValueError
+            return item
+
+        item_updated_again = await get_updated_archive_detail()
 
         assert len(item_updated_again["values"]) == updated_civ_count
         new_json_civ = item_updated_again["values"][-1]
@@ -814,16 +711,9 @@ async def test_update_interface_kind_of_archive_item_image_civ(
         )
 
         # retrieve existing archive item pk
-        for _ in range(60):
-            items = c.archive_items.iterate_all(
-                params={"archive": archive["pk"]}
-            )
-            items_list = [item async for item in items]
-            if len(items_list) > len(old_items_list):
-                # item has been added
-                break
-            else:
-                sleep(0.5)
+        items_list = await get_archive_items(
+            c, archive["pk"], len(old_items_list)
+        )
 
         old_civ_count = len(items_list[-1]["values"])
 
@@ -832,7 +722,7 @@ async def test_update_interface_kind_of_archive_item_image_civ(
             == "generic-medical-image"
         )
         im = items_list[-1]["values"][0]["image"]
-        image = await c(url=im)
+        image = await get_image(c, im)
 
         # change interface slug from generic-medical-image to generic-overlay
         _ = await c.update_archive_item(
@@ -840,18 +730,15 @@ async def test_update_interface_kind_of_archive_item_image_civ(
             values={"generic-overlay": image["api_url"]},
         )
 
-        for _ in range(60):
-            item_updated = await c.archive_items.detail(items_list[-1]["pk"])
-            if (
-                item_updated["values"][-1]["interface"]["slug"]
-                == "generic-overlay"
-            ):
-                # interface type has been replaced
-                break
-            else:
-                sleep(0.5)
-        else:
-            raise TimeoutError
+        @async_recurse_call
+        async def get_updated_archive_detail():
+            item = await c.archive_items.detail(items_list[-1]["pk"])
+            if item["values"][-1]["interface"]["slug"] != "generic-overlay":
+                # interface type has not yet been replaced
+                raise ValueError
+            return item
+
+        item_updated = await get_updated_archive_detail()
 
         # still the same amount of civs
         assert len(item_updated["values"]) == old_civ_count
@@ -907,15 +794,6 @@ async def test_update_archive_item_without_value(local_grand_challenge):
 
 @pytest.mark.anyio
 async def test_create_display_sets_from_images(local_grand_challenge):
-    def parse_uuid(gcurl):
-        match = re.match(
-            ".*/?(?P<uuid>[^/]*[a-f0-9]{8}-?[a-f0-9]{4}-?[a-f0-9]{4}-?[a-f0-9]{4}-?[a-f0-9]{12})/?",
-            gcurl,
-        )
-        if not match:
-            raise ValueError("Could not find uuid")
-        return match.group("uuid")
-
     display_sets = [
         {
             "generic-medical-image": [
@@ -933,8 +811,7 @@ async def test_create_display_sets_from_images(local_grand_challenge):
         base_url=local_grand_challenge, verify=False, token=READERSTUDY_TOKEN
     ) as c:
         created = await c.create_display_sets_from_images(
-            reader_study="reader-study",
-            display_sets=display_sets,
+            reader_study="reader-study", display_sets=display_sets
         )
 
         assert len(created) == 2
@@ -947,3 +824,14 @@ async def test_create_display_sets_from_images(local_grand_challenge):
         )
         ds_pks = [x["pk"] async for x in display_sets]
         assert all([x in ds_pks for x in created])
+
+        # Check that the files are added to the display set
+        @async_recurse_call
+        async def check_file(ds_pk):
+            ds = await c.reader_studies.display_sets.detail(pk=ds_pk)
+            if len(ds["values"]) <= 0:
+                raise ValueError
+            return ds
+
+        for pk in created:
+            await check_file(pk)
