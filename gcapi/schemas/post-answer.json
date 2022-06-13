@@ -347,7 +347,6 @@
     "properties": {
         "question": {"$ref": "#/definitions/api-link"},
         "display_set": {"$ref": "#/definitions/api-link"},
-        "images": {"minItems": 1, "items": {"$ref": "#/definitions/api-link"}},
         "answer": {"$ref": "#/definitions/valid-answers"}
     },
     "required": ["question", "answer"]

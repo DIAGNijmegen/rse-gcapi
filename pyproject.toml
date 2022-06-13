@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "gcapi"
-version = "0.6.3"
+version = "0.7.0"
 description = "Python client for the grand-challenge.org REST API"
 authors = ["James Meakin <gcapi@jmsmkn.com>"]
 license = "Apache-2.0"
@@ -15,8 +15,8 @@ classifiers = [
 gcapi = "gcapi.cli:main"
 
 [tool.poetry.dependencies]
-python = "^3.6"
-httpx = "~0.20.0"
+python = ">=3.6.2,<4.0"
+httpx = "~0.22.0"
 Click = ">=6.0"
 jsonschema = { extras = ["format_nongpl"], version = ">=3.0" }
 

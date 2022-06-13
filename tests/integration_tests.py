@@ -1,19 +1,41 @@
-import re
 from io import BytesIO
 from pathlib import Path
-from time import sleep
 
 import pytest
 from httpx import HTTPStatusError
 
 from gcapi import Client
 from gcapi.exceptions import MultipleObjectsReturned, ObjectNotFound
+from tests.utils import recurse_call
 
 RETINA_TOKEN = "f1f98a1733c05b12118785ffd995c250fe4d90da"
 ADMIN_TOKEN = "1b9436200001f2eaf57cd77db075cbb60a49a00a"
 READERSTUDY_TOKEN = "01614a77b1c0b4ecd402be50a8ff96188d5b011d"
 DEMO_PARTICIPANT_TOKEN = "00aa710f4dc5621a0cb64b0795fbba02e39d7700"
 ARCHIVE_TOKEN = "0d284528953157759d26c469297afcf6fd367f71"
+
+
+@recurse_call
+def get_upload_session(client, upload_pk):
+    upl = client.raw_image_upload_sessions.detail(upload_pk)
+    if upl["status"] != "Succeeded":
+        raise ValueError
+    return upl
+
+
+@recurse_call
+def get_image(client, image_url):
+    return client(url=image_url)
+
+
+@recurse_call
+def get_archive_items(client, archive_pk, min_size):
+    items = list(
+        client.archive_items.iterate_all(params={"archive": archive_pk})
+    )
+    if len(items) <= min_size:
+        raise ValueError
+    return items
 
 
 @pytest.mark.parametrize(
@@ -104,6 +126,27 @@ def test_create_single_polygon_annotations(local_grand_challenge):
     )
 
 
+@pytest.mark.parametrize(
+    "files",
+    (
+        # Path based
+        [Path(__file__).parent / "testdata" / "image10x10x101.mha"],
+        # str based
+        [str(Path(__file__).parent / "testdata" / "image10x10x101.mha")],
+        # mixed str and Path
+        [
+            str(Path(__file__).parent / "testdata" / "image10x10x10.mhd"),
+            Path(__file__).parent / "testdata" / "image10x10x10.zraw",
+        ],
+    ),
+)
+def test_input_types_upload_cases(local_grand_challenge, files):
+    c = Client(
+        base_url=local_grand_challenge, verify=False, token=ARCHIVE_TOKEN
+    )
+    c.upload_cases(archive="archive", files=files)
+
+
 def test_raw_image_and_upload_session(local_grand_challenge):
     c = Client(base_url=local_grand_challenge, verify=False, token=ADMIN_TOKEN)
     assert c.raw_image_upload_sessions.page() == []
@@ -149,54 +192,6 @@ def test_chunked_uploads(local_grand_challenge):
 
 
 @pytest.mark.parametrize(
-    "files",
-    (["image10x10x101.mha"], ["image10x10x10.mhd", "image10x10x10.zraw"]),
-)
-def test_upload_cases_to_reader_study(local_grand_challenge, files):
-    c = Client(
-        base_url=local_grand_challenge, verify=False, token=READERSTUDY_TOKEN
-    )
-    # check that defining an interface does not work for reader study upload
-    with pytest.raises(ValueError) as e:
-        _ = c.upload_cases(
-            reader_study="reader-study",
-            interface="generic-medical-image",
-            files=[Path(__file__).parent / "testdata" / f for f in files],
-        )
-    assert (
-        "An interface can only be defined for archive, archive item or "
-        "display set uploads" in str(e)
-    )
-
-    us = c.upload_cases(
-        reader_study="reader-study",
-        files=[Path(__file__).parent / "testdata" / f for f in files],
-    )
-
-    for _ in range(60):
-        us = c.raw_image_upload_sessions.detail(us["pk"])
-        if us["status"] == "Succeeded":
-            break
-        else:
-            sleep(0.5)
-    else:
-        raise TimeoutError
-
-    # Check that only one image was created
-    assert len(us["image_set"]) == 1
-    image = c(url=us["image_set"][0])
-
-    # And that it was added to the reader study
-    rs = next(c.reader_studies.iterate_all(params={"slug": "reader-study"}))
-    rs_images = c.images.iterate_all(params={"reader_study": rs["pk"]})
-    assert image["pk"] in [im["pk"] for im in rs_images]
-
-    # And that we can download it
-    response = c(url=image["files"][0]["file"], follow_redirects=True)
-    assert response.status_code == 200
-
-
-@pytest.mark.parametrize(
     "files, interface",
     (
         (["image10x10x101.mha"], "generic-overlay"),
@@ -216,25 +211,12 @@ def test_upload_cases_to_archive(local_grand_challenge, files, interface):
         files=[Path(__file__).parent / "testdata" / f for f in files],
     )
 
-    for _ in range(60):
-        us = c.raw_image_upload_sessions.detail(us["pk"])
-        if us["status"] == "Succeeded":
-            break
-        else:
-            sleep(0.5)
-    else:
-        raise TimeoutError
+    us = get_upload_session(c, us["pk"])
 
     # Check that only one image was created
     assert len(us["image_set"]) == 1
-    for _ in range(60):
-        try:
-            image = c(url=us["image_set"][0])
-            break
-        except HTTPStatusError:
-            sleep(0.5)
-    else:
-        raise TimeoutError
+
+    image = get_image(c, us["image_set"][0])
 
     # And that it was added to the archive
     archive = next(c.archives.iterate_all(params={"slug": "archive"}))
@@ -244,17 +226,17 @@ def test_upload_cases_to_archive(local_grand_challenge, files, interface):
         params={"archive": archive["pk"]}
     )
     # with the correct interface
-    image_pk_to_interface_slug_dict = {
-        value["image"]["pk"]: value["interface"]["slug"]
+    image_url_to_interface_slug_dict = {
+        value["image"]: value["interface"]["slug"]
         for item in archive_items
         for value in item["values"]
         if value["image"]
     }
     if interface:
-        assert image_pk_to_interface_slug_dict[image["pk"]] == interface
+        assert image_url_to_interface_slug_dict[image["api_url"]] == interface
     else:
         assert (
-            image_pk_to_interface_slug_dict[image["pk"]]
+            image_url_to_interface_slug_dict[image["api_url"]]
             == "generic-medical-image"
         )
 
@@ -274,10 +256,22 @@ def test_upload_cases_to_archive_item_without_interface(local_grand_challenge):
     # try upload without providing interface
     with pytest.raises(ValueError) as e:
         _ = c.upload_cases(
-            archive_item=item["id"],
+            archive_item=item["pk"],
             files=[Path(__file__).parent / "testdata" / "image10x10x101.mha"],
         )
     assert "You need to define an interface for archive item uploads" in str(e)
+
+
+def test_page_meta_info(local_grand_challenge):
+    c = Client(
+        base_url=local_grand_challenge, verify=False, token=ARCHIVE_TOKEN
+    )
+    archives = c.archives.page(limit=123)
+
+    assert len(archives) == 1
+    assert archives.offset == 0
+    assert archives.limit == 123
+    assert archives.total_count == 1
 
 
 def test_upload_cases_to_archive_item_with_existing_interface(
@@ -291,41 +285,28 @@ def test_upload_cases_to_archive_item_with_existing_interface(
     item = next(c.archive_items.iterate_all(params={"archive": archive["pk"]}))
 
     us = c.upload_cases(
-        archive_item=item["id"],
+        archive_item=item["pk"],
         interface="generic-medical-image",
         files=[Path(__file__).parent / "testdata" / "image10x10x101.mha"],
     )
 
-    for _ in range(60):
-        us = c.raw_image_upload_sessions.detail(us["pk"])
-        if us["status"] == "Succeeded":
-            break
-        else:
-            sleep(0.5)
-    else:
-        raise TimeoutError
+    us = get_upload_session(c, us["pk"])
 
     # Check that only one image was created
     assert len(us["image_set"]) == 1
-    for _ in range(60):
-        try:
-            image = c(url=us["image_set"][0])
-            break
-        except HTTPStatusError:
-            sleep(0.5)
-    else:
-        raise TimeoutError
+
+    image = get_image(c, us["image_set"][0])
 
     # And that it was added to the archive item
-    item = c.archive_items.detail(pk=item["id"])
-    assert image["pk"] in [
-        civ["image"]["pk"] for civ in item["values"] if civ["image"]
+    item = c.archive_items.detail(pk=item["pk"])
+    assert image["api_url"] in [
+        civ["image"] for civ in item["values"] if civ["image"]
     ]
     # with the correct interface
     im_to_interface = {
-        civ["image"]["pk"]: civ["interface"]["slug"] for civ in item["values"]
+        civ["image"]: civ["interface"]["slug"] for civ in item["values"]
     }
-    assert im_to_interface[image["pk"]] == "generic-medical-image"
+    assert im_to_interface[image["api_url"]] == "generic-medical-image"
 
 
 def test_upload_cases_to_archive_item_with_new_interface(
@@ -339,68 +320,53 @@ def test_upload_cases_to_archive_item_with_new_interface(
     item = next(c.archive_items.iterate_all(params={"archive": archive["pk"]}))
 
     us = c.upload_cases(
-        archive_item=item["id"],
+        archive_item=item["pk"],
         interface="generic-overlay",
         files=[Path(__file__).parent / "testdata" / "image10x10x101.mha"],
     )
 
-    for _ in range(60):
-        us = c.raw_image_upload_sessions.detail(us["pk"])
-        if us["status"] == "Succeeded":
-            break
-        else:
-            sleep(0.5)
-    else:
-        raise TimeoutError
-
+    us = get_upload_session(c, us["pk"])
     # Check that only one image was created
     assert len(us["image_set"]) == 1
-    for _ in range(60):
-        try:
-            image = c(url=us["image_set"][0])
-            break
-        except HTTPStatusError:
-            sleep(0.5)
-    else:
-        raise TimeoutError
+
+    image = get_image(c, us["image_set"][0])
 
     # And that it was added to the archive item
-    item = c.archive_items.detail(pk=item["id"])
-    assert image["pk"] in [
-        civ["image"]["pk"] for civ in item["values"] if civ["image"]
+    item = c.archive_items.detail(pk=item["pk"])
+    assert image["api_url"] in [
+        civ["image"] for civ in item["values"] if civ["image"]
     ]
     # with the correct interface
     im_to_interface = {
-        civ["image"]["pk"]: civ["interface"]["slug"] for civ in item["values"]
+        civ["image"]: civ["interface"]["slug"] for civ in item["values"]
     }
-    assert im_to_interface[image["pk"]] == "generic-overlay"
+    assert im_to_interface[image["api_url"]] == "generic-overlay"
 
 
 @pytest.mark.parametrize("files", (["image10x10x101.mha"],))
 def test_download_cases(local_grand_challenge, files, tmpdir):
     c = Client(
-        base_url=local_grand_challenge, verify=False, token=READERSTUDY_TOKEN
+        base_url=local_grand_challenge, verify=False, token=ARCHIVE_TOKEN
     )
 
     us = c.upload_cases(
-        reader_study="reader-study",
+        archive="archive",
         files=[Path(__file__).parent / "testdata" / f for f in files],
     )
 
-    for _ in range(60):
-        us = c.raw_image_upload_sessions.detail(us["pk"])
-        if us["status"] == "Succeeded":
-            break
-        else:
-            sleep(0.5)
-    else:
-        raise TimeoutError
+    us = get_upload_session(c, us["pk"])
 
     # Check that we can download the uploaded image
     tmpdir = Path(tmpdir)
-    downloaded_files = c.images.download(
-        filename=tmpdir / "image", url=us["image_set"][0]
-    )
+
+    @recurse_call
+    def get_download():
+        return c.images.download(
+            filename=tmpdir / "image", url=us["image_set"][0]
+        )
+
+    downloaded_files = get_download()
+
     assert len(downloaded_files) == 1
 
     # Check that the downloaded file is a mha file
@@ -417,14 +383,20 @@ def test_create_job_with_upload(local_grand_challenge, files):
         token=DEMO_PARTICIPANT_TOKEN,
     )
 
-    job = c.run_external_job(
-        algorithm="test-algorithm-evaluation-1",
-        inputs={
-            "generic-medical-image": [
-                Path(__file__).parent / "testdata" / f for f in files
-            ]
-        },
-    )
+    @recurse_call
+    def run_job():
+        return c.run_external_job(
+            algorithm="test-algorithm-evaluation-1",
+            inputs={
+                "generic-medical-image": [
+                    Path(__file__).parent / "testdata" / f for f in files
+                ]
+            },
+        )
+
+    # algorithm might not be ready yet
+    job = run_job()
+
     assert job["status"] == "Queued"
     assert len(job["inputs"]) == 1
     job = c.algorithm_jobs.detail(job["pk"])
@@ -502,21 +474,13 @@ def test_add_and_update_file_to_archive_item(local_grand_challenge):
     )
 
     # retrieve existing archive item pk
-    for _ in range(60):
-        items = list(
-            c.archive_items.iterate_all(params={"archive": archive["pk"]})
-        )
-        if len(items) > len(old_items_list):
-            # item has been added
-            break
-        else:
-            sleep(0.5)
+    items = get_archive_items(c, archive["pk"], len(old_items_list))
 
     old_civ_count = len(items[-1]["values"])
 
     with pytest.raises(ValueError) as e:
         _ = c.update_archive_item(
-            archive_item_pk=items[-1]["id"],
+            archive_item_pk=items[-1]["pk"],
             values={
                 "predictions-csv-file": [
                     Path(__file__).parent / "testdata" / f
@@ -530,7 +494,7 @@ def test_add_and_update_file_to_archive_item(local_grand_challenge):
     )
 
     _ = c.update_archive_item(
-        archive_item_pk=items[-1]["id"],
+        archive_item_pk=items[-1]["pk"],
         values={
             "predictions-csv-file": [
                 Path(__file__).parent / "testdata" / "test.csv"
@@ -538,15 +502,15 @@ def test_add_and_update_file_to_archive_item(local_grand_challenge):
         },
     )
 
-    for _ in range(60):
-        item_updated = c.archive_items.detail(items[-1]["id"])
-        if len(item_updated["values"]) == old_civ_count + 1:
-            # csv interface value has been added to item
-            break
-        else:
-            sleep(0.5)
-    else:
-        raise TimeoutError
+    @recurse_call
+    def get_updated_archive_item():
+        archive_item = c.archive_items.detail(items[-1]["pk"])
+        if len(archive_item["values"]) != old_civ_count + 1:
+            # item has not been added
+            raise ValueError
+        return archive_item
+
+    item_updated = get_updated_archive_item()
 
     csv_civ = item_updated["values"][-1]
     assert csv_civ["interface"]["slug"] == "predictions-csv-file"
@@ -555,7 +519,7 @@ def test_add_and_update_file_to_archive_item(local_grand_challenge):
     updated_civ_count = len(item_updated["values"])
     # a new pdf upload will overwrite the old pdf interface value
     _ = c.update_archive_item(
-        archive_item_pk=items[-1]["id"],
+        archive_item_pk=items[-1]["pk"],
         values={
             "predictions-csv-file": [
                 Path(__file__).parent / "testdata" / "test.csv"
@@ -563,16 +527,15 @@ def test_add_and_update_file_to_archive_item(local_grand_challenge):
         },
     )
 
-    for _ in range(60):
-        item_updated_again = c.archive_items.detail(items[-1]["id"])
-        if csv_civ not in item_updated_again["values"]:
-            # csv interface value has been added to item and the
-            # previously added pdf civ is no longer attached to this archive item
-            break
-        else:
-            sleep(0.5)
-    else:
-        raise TimeoutError
+    @recurse_call
+    def get_updated_again_archive_item():
+        archive_item = c.archive_items.detail(items[-1]["pk"])
+        if csv_civ in archive_item["values"]:
+            # item has not been added
+            raise ValueError
+        return archive_item
+
+    item_updated_again = get_updated_again_archive_item()
 
     assert len(item_updated_again["values"]) == updated_civ_count
     new_csv_civ = item_updated_again["values"][-1]
@@ -596,32 +559,23 @@ def test_add_and_update_value_to_archive_item(local_grand_challenge):
     )
 
     # retrieve existing archive item pk
-    for _ in range(60):
-        items = list(
-            c.archive_items.iterate_all(params={"archive": archive["pk"]})
-        )
-        if len(items) > len(old_items_list):
-            # item has been added
-            break
-        else:
-            sleep(0.5)
-
+    items = get_archive_items(c, archive["pk"], len(old_items_list))
     old_civ_count = len(items[-1]["values"])
 
     _ = c.update_archive_item(
-        archive_item_pk=items[-1]["id"],
+        archive_item_pk=items[-1]["pk"],
         values={"results-json-file": {"foo": 0.5}},
     )
 
-    for _ in range(60):
-        item_updated = c.archive_items.detail(items[-1]["id"])
-        if len(item_updated["values"]) == old_civ_count + 1:
-            # results json interface value has been added to the item
-            break
-        else:
-            sleep(0.5)
-    else:
-        raise TimeoutError
+    @recurse_call
+    def get_archive_item_detail():
+        i = c.archive_items.detail(items[-1]["pk"])
+        if len(i["values"]) != old_civ_count + 1:
+            # item has been added
+            raise ValueError
+        return i
+
+    item_updated = get_archive_item_detail()
 
     json_civ = item_updated["values"][-1]
     assert json_civ["interface"]["slug"] == "results-json-file"
@@ -629,21 +583,19 @@ def test_add_and_update_value_to_archive_item(local_grand_challenge):
     updated_civ_count = len(item_updated["values"])
 
     _ = c.update_archive_item(
-        archive_item_pk=items[-1]["id"],
+        archive_item_pk=items[-1]["pk"],
         values={"results-json-file": {"foo": 0.8}},
     )
 
-    for _ in range(60):
-        item_updated_again = c.archive_items.detail(items[-1]["id"])
-        if json_civ not in item_updated_again["values"]:
-            # results json interface value has been added to the item and
-            # the previously added json civ is no longer attached
-            # to this archive item
-            break
-        else:
-            sleep(0.5)
-    else:
-        raise TimeoutError
+    @recurse_call
+    def get_updated_archive_item_detail():
+        i = c.archive_items.detail(items[-1]["pk"])
+        if json_civ in i["values"]:
+            # item has not been added yet
+            raise ValueError
+        return i
+
+    item_updated_again = get_updated_archive_item_detail()
 
     assert len(item_updated_again["values"]) == updated_civ_count
     new_json_civ = item_updated_again["values"][-1]
@@ -670,49 +622,37 @@ def test_update_interface_kind_of_archive_item_image_civ(
     )
 
     # retrieve existing archive item pk
-    for _ in range(60):
-        items = list(
-            c.archive_items.iterate_all(params={"archive": archive["pk"]})
-        )
-        if len(items) > len(old_items_list):
-            # item has been added
-            break
-        else:
-            sleep(0.5)
-
+    items = get_archive_items(c, archive["pk"], len(old_items_list))
     old_civ_count = len(items[-1]["values"])
 
     assert (
         items[-1]["values"][0]["interface"]["slug"] == "generic-medical-image"
     )
-    im_pk = items[-1]["values"][0]["image"]["pk"]
-    image = c.images.detail(pk=im_pk)
+    im = items[-1]["values"][0]["image"]
+    image = get_image(c, im)
 
     # change interface slug from generic-medical-image to generic-overlay
     _ = c.update_archive_item(
-        archive_item_pk=items[-1]["id"],
+        archive_item_pk=items[-1]["pk"],
         values={"generic-overlay": image["api_url"]},
     )
 
-    for _ in range(60):
-        item_updated = c.archive_items.detail(items[-1]["id"])
-        if (
-            item_updated["values"][-1]["interface"]["slug"]
-            == "generic-overlay"
-        ):
-            # interface type has been replaced
-            break
-        else:
-            sleep(0.5)
-    else:
-        raise TimeoutError
+    @recurse_call
+    def get_updated_archive_items():
+        i = c.archive_items.detail(items[-1]["pk"])
+        if i["values"][-1]["interface"]["slug"] != "generic-overlay":
+            # item has not been added yet
+            raise ValueError
+        return i
+
+    item_updated = get_updated_archive_items()
 
     # still the same amount of civs
     assert len(item_updated["values"]) == old_civ_count
     assert "generic-medical-image" not in [
         value["interface"]["slug"] for value in item_updated["values"]
     ]
-    assert item_updated["values"][-1]["image"]["pk"] == im_pk
+    assert item_updated["values"][-1]["image"] == im
 
 
 def test_update_archive_item_with_non_existing_interface(
@@ -729,7 +669,7 @@ def test_update_archive_item_with_non_existing_interface(
     )
     with pytest.raises(ValueError) as e:
         _ = c.update_archive_item(
-            archive_item_pk=items[0]["id"], values={"new-interface": 5}
+            archive_item_pk=items[0]["pk"], values={"new-interface": 5}
         )
     assert "new-interface is not an existing interface" in str(e)
 
@@ -747,22 +687,13 @@ def test_update_archive_item_without_value(local_grand_challenge):
 
     with pytest.raises(ValueError) as e:
         _ = c.update_archive_item(
-            archive_item_pk=items[0]["id"],
+            archive_item_pk=items[0]["pk"],
             values={"generic-medical-image": None},
         )
     assert "You need to provide a value for generic-medical-image" in str(e)
 
 
 def test_create_display_sets_from_images(local_grand_challenge):
-    def parse_uuid(gcurl):
-        match = re.match(
-            ".*/?(?P<uuid>[^/]*[a-f0-9]{8}-?[a-f0-9]{4}-?[a-f0-9]{4}-?[a-f0-9]{4}-?[a-f0-9]{12})/?",
-            gcurl,
-        )
-        if not match:
-            raise ValueError("Could not find uuid")
-        return match.group("uuid")
-
     c = Client(
         base_url=local_grand_challenge, verify=False, token=READERSTUDY_TOKEN
     )
@@ -781,8 +712,7 @@ def test_create_display_sets_from_images(local_grand_challenge):
     ]
 
     created = c.create_display_sets_from_images(
-        reader_study="reader-study",
-        display_sets=display_sets,
+        reader_study="reader-study", display_sets=display_sets
     )
 
     assert len(created) == 2

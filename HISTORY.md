@@ -1,5 +1,11 @@
 # History
 
+## 0.7.0 (2022-05-02)
+
+  - `page()` now returns a `PageResponse(list)` object rather than a `list`, which adds the attributes `offset`, `limit` and `total_count`
+  - Fix uploading files from `str` paths
+  - Remove deprecated keys from reader study API
+  - Updates `httpx` to `0.22`
 
 ## 0.6.3 (2022-03-24)
 
