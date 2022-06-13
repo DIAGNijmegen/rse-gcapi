@@ -45,15 +45,28 @@ def local_grand_challenge() -> Generator[str, None, None]:
                 "scripts/development_fixtures.py",
                 "scripts/algorithm_evaluation_fixtures.py",
                 "scripts/image10x10x10.mha",
+                "scripts/minio.py",
                 "app/tests/resources/gc_demo_algorithm/copy_io.py",
                 "app/tests/resources/gc_demo_algorithm/Dockerfile",
             ]:
                 get_grand_challenge_file(Path(f), Path(tmp_path))
 
             try:
-                check_call(["make", "development_fixtures"], cwd=tmp_path)
                 check_call(
-                    ["make", "algorithm_evaluation_fixtures"], cwd=tmp_path
+                    [
+                        "bash",
+                        "-c",
+                        "echo DOCKER_GID=`getent group docker | cut -d: -f3` > .env",  # noqa: B950
+                    ],
+                    cwd=tmp_path,
+                )
+                check_call(
+                    ["make", "development_fixtures"],
+                    cwd=tmp_path,
+                )
+                check_call(
+                    ["make", "algorithm_evaluation_fixtures"],
+                    cwd=tmp_path,
                 )
                 check_call(
                     [
@@ -67,7 +80,8 @@ def local_grand_challenge() -> Generator[str, None, None]:
                     cwd=tmp_path,
                 )
                 check_call(
-                    ["docker-compose-wait", "-w", "-t", "5m"], cwd=tmp_path
+                    ["docker-compose-wait", "-w", "-t", "5m"],
+                    cwd=tmp_path,
                 )
 
                 # Give the system some time to import the algorithm image
@@ -90,6 +104,8 @@ def get_grand_challenge_file(repo_path: Path, output_directory: Path) -> None:
 
     if str(repo_path) == "docker-compose.yml":
         content = rewrite_docker_compose(r.content)
+    elif str(repo_path) == "Makefile":
+        content = rewrite_makefile(r.content)
     else:
         content = r.content
 
@@ -122,4 +138,22 @@ def rewrite_docker_compose(content: bytes) -> bytes:
         "command"
     ] = "gunicorn -b 0.0.0.0 -k uvicorn.workers.UvicornWorker config.asgi:application"
 
+    for service in ["celery_worker", "celery_worker_evaluation"]:
+        # Strip watchfiles command from celery
+        # as this is not included in the base container
+        command = spec["services"][service]["command"]
+        command = command.replace('watchfiles "', "")
+        command = command.replace('" /app', "")
+        spec["services"][service]["command"] = command
+
     return yaml.safe_dump(spec).encode("utf-8")
+
+
+def rewrite_makefile(content: bytes) -> bytes:
+    # Using `docker compose` with version 2.4.1+azure-1 does not seem to work
+    # It works locally with version `2.5.1`, so for now go back to docker-compose
+    # If this is fixed docker-compose-wait can be removed and the `--wait`
+    # option added to the "up" action above
+    makefile = content.decode("utf-8")
+    makefile = makefile.replace("docker compose", "docker-compose")
+    return makefile.encode("utf-8")
