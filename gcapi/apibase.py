@@ -42,7 +42,7 @@ class ClientInterface:
 class Common:
     _client: Optional[ClientInterface] = None
     base_path = ""
-    validation_schemas: Optional[Dict[str, jsonschema.Draft7Validator]] = None
+    schema: Optional[jsonschema.Draft7Validator] = None
 
     yield_request = CallCapture()
 
@@ -51,9 +51,6 @@ class APIBase(Common):
     sub_apis: Dict[str, Type["APIBase"]] = {}
 
     def __init__(self, client):
-        if self.validation_schemas is None:
-            self.validation_schemas = {}
-
         if isinstance(self, ModifiableMixin):
             ModifiableMixin.__init__(self)
 
@@ -76,9 +73,8 @@ class APIBase(Common):
         ValidationError:
             Raised in case the value verification failed.
         """
-        schema = self.validation_schemas.get("GET")
-        if schema is not None:
-            schema.validate(value)
+        if self.schema is not None:
+            self.schema.validate(value)
 
     def list(self, params=None):
         result = yield self.yield_request(
@@ -151,12 +147,9 @@ class APIBase(Common):
 
 
 class ModifiableMixin(Common):
-    def _process_request_arguments(self, method, data):
+    def _process_request_arguments(self, data):
         if data is None:
             data = {}
-        schema = self.validation_schemas.get(method)
-        if schema:
-            schema.validate(data)
         return data
 
     def _execute_request(self, method, data, pk):
@@ -168,7 +161,7 @@ class ModifiableMixin(Common):
         return (yield self.yield_request(method=method, path=url, json=data))
 
     def perform_request(self, method, data=None, pk=False):
-        data = self._process_request_arguments(method, data)
+        data = self._process_request_arguments(data)
         return (yield from self._execute_request(method, data, pk))
 
     def create(self, **kwargs):

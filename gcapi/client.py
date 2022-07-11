@@ -163,21 +163,18 @@ class ReaderStudyQuestionsAPI(APIBase):
 
 class ReaderStudyMineAnswersAPI(ModifiableMixin, APIBase):
     base_path = "reader-studies/answers/mine/"
-    validation_schemas = {"GET": import_json_schema("answer.json")}
+    schema = import_json_schema("answer.json")
 
 
 class ReaderStudyAnswersAPI(ModifiableMixin, APIBase):
     base_path = "reader-studies/answers/"
-
-    validation_schemas = {
-        "GET": import_json_schema("answer.json"),
-    }
+    schema = import_json_schema("answer.json")
 
     sub_apis = {"mine": ReaderStudyMineAnswersAPI}
 
     mine = None  # type: ReaderStudyMineAnswersAPI
 
-    def _process_request_arguments(self, method, data):
+    def _process_request_arguments(self, data):
         key_and_url = {
             "question": ReaderStudyQuestionsAPI.base_path,
             "display_set": ReaderStudyDisplaySetsAPI.base_path,
@@ -188,7 +185,7 @@ class ReaderStudyAnswersAPI(ModifiableMixin, APIBase):
                     self._client.base_url.join(api).join(data[key] + "/")
                 )
 
-        return ModifiableMixin._process_request_arguments(self, method, data)
+        return ModifiableMixin._process_request_arguments(self, data)
 
 
 class ReaderStudyDisplaySetsAPI(ModifiableMixin, APIBase):
@@ -197,7 +194,7 @@ class ReaderStudyDisplaySetsAPI(ModifiableMixin, APIBase):
 
 class ReaderStudiesAPI(APIBase):
     base_path = "reader-studies/"
-    validation_schemas = {"GET": import_json_schema("reader-study.json")}
+    schema = import_json_schema("reader-study.json")
 
     sub_apis = {
         "answers": ReaderStudyAnswersAPI,
@@ -250,10 +247,7 @@ class ComponentInterfacesAPI(APIBase):
 
 class RetinaLandmarkAnnotationSetsAPI(ModifiableMixin, APIBase):
     base_path = "retina/landmark-annotation/"
-
-    validation_schemas = {
-        "GET": import_json_schema("landmark-annotation.json"),
-    }
+    schema = import_json_schema("landmark-annotation.json")
 
     def for_image(self, pk):
         result = yield self.yield_request(
@@ -266,23 +260,17 @@ class RetinaLandmarkAnnotationSetsAPI(ModifiableMixin, APIBase):
 
 class RetinaPolygonAnnotationSetsAPI(ModifiableMixin, APIBase):
     base_path = "retina/polygon-annotation-set/"
-    validation_schemas = {
-        "GET": import_json_schema("polygon-annotation.json"),
-    }
+    schema = import_json_schema("polygon-annotation.json")
 
 
 class RetinaSinglePolygonAnnotationsAPI(ModifiableMixin, APIBase):
     base_path = "retina/single-polygon-annotation/"
-    validation_schemas = {
-        "GET": import_json_schema("single-polygon-annotation.json"),
-    }
+    schema = import_json_schema("single-polygon-annotation.json")
 
 
 class RetinaETDRSGridAnnotationsAPI(ModifiableMixin, APIBase):
     base_path = "retina/etdrs-grid-annotation/"
-    validation_schemas = {
-        "GET": import_json_schema("etdrs-annotation.json"),
-    }
+    schema = import_json_schema("etdrs-annotation.json")
 
 
 class UploadsAPI(APIBase):
