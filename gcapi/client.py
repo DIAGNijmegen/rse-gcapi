@@ -171,7 +171,6 @@ class ReaderStudyAnswersAPI(ModifiableMixin, APIBase):
 
     validation_schemas = {
         "GET": import_json_schema("answer.json"),
-        "POST": import_json_schema("post-answer.json"),
     }
 
     sub_apis = {"mine": ReaderStudyMineAnswersAPI}
@@ -254,7 +253,6 @@ class RetinaLandmarkAnnotationSetsAPI(ModifiableMixin, APIBase):
 
     validation_schemas = {
         "GET": import_json_schema("landmark-annotation.json"),
-        "POST": import_json_schema("post-landmark-annotation.json"),
     }
 
     def for_image(self, pk):
@@ -270,7 +268,6 @@ class RetinaPolygonAnnotationSetsAPI(ModifiableMixin, APIBase):
     base_path = "retina/polygon-annotation-set/"
     validation_schemas = {
         "GET": import_json_schema("polygon-annotation.json"),
-        "POST": import_json_schema("post-polygon-annotation.json"),
     }
 
 
@@ -278,7 +275,6 @@ class RetinaSinglePolygonAnnotationsAPI(ModifiableMixin, APIBase):
     base_path = "retina/single-polygon-annotation/"
     validation_schemas = {
         "GET": import_json_schema("single-polygon-annotation.json"),
-        "POST": import_json_schema("post-single-polygon-annotation.json"),
     }
 
 
@@ -286,7 +282,6 @@ class RetinaETDRSGridAnnotationsAPI(ModifiableMixin, APIBase):
     base_path = "retina/etdrs-grid-annotation/"
     validation_schemas = {
         "GET": import_json_schema("etdrs-annotation.json"),
-        "POST": import_json_schema("post-etdrs-annotation.json"),
     }
 
 
