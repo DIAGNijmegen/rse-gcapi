@@ -77,6 +77,8 @@
                                 "Multiple polygons",
                                 "Line",
                                 "Multiple lines",
+                                "Angle",
+                                "Multiple angles",
                                 "Mask"
                             ]
                         },
