@@ -131,6 +131,31 @@
             },
             "required": ["seed_points", "path_point_lists"]
         },
+        "angle-object": {
+            "type": "object",
+            "properties": {
+                "name": {"type": "string"},
+                "type": {"enum": ["Angle"]},
+                "lines": {
+                    "type": "array",
+                    "items": {
+                        "type": "array",
+                        "items": {
+                            "type": "array",
+                            "items": {"type": "number"},
+                            "minItems": 3,
+                            "maxItems": 3
+                        },
+                        "minItems": 2,
+                        "maxItems": 2
+                    },
+                    "minItems": 2,
+                    "maxItems": 2
+                },
+                "probability": {"type": "number", "minimum": 0, "maximum": 1}
+            },
+            "required": ["lines"]
+        },
         "2DBB": {
             "type": "object",
             "properties": {
@@ -323,6 +348,45 @@
             },
             "required": ["type", "version", "lines"]
         },
+        "ANGL": {
+            "type": "object",
+            "properties": {
+                "name": {"type": "string"},
+                "type": {"enum": ["Angle"]},
+                "lines": {
+                    "type": "array",
+                    "items": {
+                        "type": "array",
+                        "items": {
+                            "type": "array",
+                            "items": {"type": "number"},
+                            "minItems": 3,
+                            "maxItems": 3
+                        },
+                        "minItems": 2,
+                        "maxItems": 2
+                    },
+                    "minItems": 2,
+                    "maxItems": 2
+                },
+                "version": {"$ref": "#/definitions/version"},
+                "probability": {"type": "number", "minimum": 0, "maximum": 1}
+            },
+            "required": ["lines", "version"]
+        },
+        "MANG": {
+            "type": "object",
+            "properties": {
+                "type": {"enum": ["Multiple angles"]},
+                "name": {"type": "string"},
+                "angles": {
+                    "type": "array",
+                    "items": {"$ref": "#/definitions/angle-object"}
+                },
+                "version": {"$ref": "#/definitions/version"}
+            },
+            "required": ["type", "version", "angles"]
+        },
         "CHOI": {"type": "number"},
         "MCHO": {"type": "array", "items": {"type": "number"}},
         "MASK": {
@@ -350,6 +414,8 @@
                 {"$ref": "#/definitions/MCHO"},
                 {"$ref": "#/definitions/LINE"},
                 {"$ref": "#/definitions/MLIN"},
+                {"$ref": "#/definitions/ANGL"},
+                {"$ref": "#/definitions/MANG"},
                 {"$ref": "#/definitions/MASK"}
             ]
         }

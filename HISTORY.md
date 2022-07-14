@@ -1,5 +1,10 @@
 # History
 
+## 0.8.0 (2022-07-14)
+
+  - Dropped reader study answer POST data validation
+  - Added support for angle answer types
+
 ## 0.7.0 (2022-05-02)
 
   - `page()` now returns a `PageResponse(list)` object rather than a `list`, which adds the attributes `offset`, `limit` and `total_count`
