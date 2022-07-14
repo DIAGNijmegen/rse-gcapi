@@ -792,29 +792,43 @@ async def test_update_archive_item_without_value(local_grand_challenge):
         )
 
 
+@pytest.mark.parametrize(
+    "display_sets",
+    (
+        [
+            {
+                "generic-medical-image": [
+                    Path(__file__).parent / "testdata" / "image10x10x101.mha"
+                ]
+            },
+            {
+                "generic-overlay": [
+                    Path(__file__).parent / "testdata" / "image10x10x101.mha"
+                ]
+            },
+        ],
+        [
+            {
+                "predictions-csv-file": [
+                    Path(__file__).parent / "testdata" / "test.csv"
+                ]
+            },
+        ],
+        [{"results-json-file": {"foo": "bar"}}],
+    ),
+)
 @pytest.mark.anyio
-async def test_create_display_sets_from_images(local_grand_challenge):
-    display_sets = [
-        {
-            "generic-medical-image": [
-                Path(__file__).parent / "testdata" / "image10x10x101.mha"
-            ]
-        },
-        {
-            "generic-overlay": [
-                Path(__file__).parent / "testdata" / "image10x10x101.mha"
-            ]
-        },
-    ]
-
+async def test_create_display_sets_from_images(
+    display_sets, local_grand_challenge
+):
     async with AsyncClient(
         base_url=local_grand_challenge, verify=False, token=READERSTUDY_TOKEN
     ) as c:
-        created = await c.create_display_sets_from_images(
+        created = await c.create_display_sets_from_values(
             reader_study="reader-study", display_sets=display_sets
         )
 
-        assert len(created) == 2
+        assert len(created) == len(display_sets)
 
         reader_study = await c.reader_studies.iterate_all(
             params={"slug": "reader-study"}
@@ -835,3 +849,102 @@ async def test_create_display_sets_from_images(local_grand_challenge):
 
         for pk in created:
             await check_file(pk)
+
+
+@pytest.mark.anyio
+async def test_create_display_sets_from_invalid_interface(
+    local_grand_challenge,
+):
+    display_sets = [
+        {
+            "very-specific-medical-image": [
+                Path(__file__).parent / "testdata" / "image10x10x101.mha"
+            ]
+        },
+    ]
+
+    async with AsyncClient(
+        base_url=local_grand_challenge, verify=False, token=READERSTUDY_TOKEN
+    ) as c:
+
+        with pytest.raises(ValueError) as e:
+            await c.create_display_sets_from_values(
+                reader_study="reader-study", display_sets=display_sets
+            )
+
+        assert str(e.value) == (
+            "very-specific-medical-image is not an existing interface. "
+            "Please provide one from this list: "
+            "https://grand-challenge.org/components/interfaces/reader-studies/"
+        )
+
+
+@pytest.mark.anyio
+async def test_create_display_sets_from_image_invalid_path(
+    local_grand_challenge,
+):
+    file_path = Path(__file__).parent / "testdata" / "image10x10x1011.mha"
+    display_sets = [
+        {"generic-medical-image": [file_path]},
+    ]
+
+    async with AsyncClient(
+        base_url=local_grand_challenge, verify=False, token=READERSTUDY_TOKEN
+    ) as c:
+
+        with pytest.raises(ValueError) as e:
+            await c.create_display_sets_from_values(
+                reader_study="reader-study", display_sets=display_sets
+            )
+
+        assert str(e.value) == (
+            f"Invalid file paths: {{'generic-medical-image': ['{file_path}']}}"
+        )
+
+
+@pytest.mark.anyio
+async def test_create_display_sets_from_image_invalid_value(
+    local_grand_challenge,
+):
+    display_sets = [
+        {"generic-medical-image": "not a list"},
+    ]
+
+    async with AsyncClient(
+        base_url=local_grand_challenge, verify=False, token=READERSTUDY_TOKEN
+    ) as c:
+
+        with pytest.raises(ValueError) as e:
+            await c.create_display_sets_from_values(
+                reader_study="reader-study", display_sets=display_sets
+            )
+
+        assert str(e.value) == (
+            "Values for generic-medical-image (image) should be a list of file paths."
+        )
+
+
+@pytest.mark.anyio
+async def test_create_display_sets_from_multiple_files(local_grand_challenge):
+    files = [
+        Path(__file__).parent / "testdata" / f
+        for f in ["test.csv", "test.csv"]
+    ]
+
+    display_sets = [
+        {"predictions-csv-file": files},
+    ]
+
+    async with AsyncClient(
+        base_url=local_grand_challenge, verify=False, token=READERSTUDY_TOKEN
+    ) as c:
+
+        with pytest.raises(ValueError) as e:
+            await c.create_display_sets_from_values(
+                reader_study="reader-study", display_sets=display_sets
+            )
+
+        assert str(e.value) == (
+            "You can only upload one single file to interface "
+            "predictions-csv-file (file)."
+        )
