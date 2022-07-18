@@ -847,19 +847,28 @@ class ClientBase(ApiDefinitions, ClientInterface):
             )
         )
 
-    def _validate_display_set_values(self, values):
+    def _fetch_interface(self, slug):
+        try:
+            interface = yield from self.__org_api_meta.interfaces.detail(
+                slug=slug
+            )
+            return interface
+        except ObjectNotFound as e:
+            raise ValueError(
+                f"{slug} is not an existing interface. "
+                f"Please provide one from this list: "
+                f"https://grand-challenge.org/components/interfaces/reader-studies/"
+            ) from e
+        return interface
+
+    def _validate_display_set_values(self, values, interfaces):
         invalid_file_paths = {}
         for slug, value in values:
-            try:
-                interface = yield from self.__org_api_meta.interfaces.detail(
-                    slug=slug
-                )
-            except ObjectNotFound as e:
-                raise ValueError(
-                    f"{slug} is not an existing interface. "
-                    f"Please provide one from this list: "
-                    f"https://grand-challenge.org/components/interfaces/reader-studies/"
-                ) from e
+            if interfaces.get(slug):
+                interface = interfaces[slug]
+            else:
+                interface = yield from self._fetch_interface(slug)
+                interfaces[slug] = interface
             super_kind = interface["super_kind"].casefold()
             if super_kind != "value":
                 if not isinstance(value, list):
@@ -881,6 +890,8 @@ class ClientBase(ApiDefinitions, ClientInterface):
         if invalid_file_paths:
             raise ValueError(f"Invalid file paths: {invalid_file_paths}")
 
+        return interfaces
+
     def create_display_sets_from_values(
         self, *, reader_study: str, display_sets: List[Dict[str, Any]]
     ):
@@ -901,7 +912,7 @@ class ClientBase(ApiDefinitions, ClientInterface):
         Where the file paths are local paths to the files making up a
         single image. For file type interface the file path can only
         contain a single file. For json type interfaces any value that
-        is valid for the interface can be passed.
+        is valid for the interface can be passed.`
 
         Parameters
         ----------
@@ -913,8 +924,12 @@ class ClientBase(ApiDefinitions, ClientInterface):
         The pks of the newly created display sets.
         """
         res = []
+        interfaces: Dict[str, Dict] = {}
         for display_set in display_sets:
-            yield from self._validate_display_set_values(display_set.items())
+            new_interfaces = yield from self._validate_display_set_values(
+                display_set.items(), interfaces
+            )
+            interfaces.update(new_interfaces)
 
         for display_set in display_sets:
             ds = yield from self.__org_api_meta.reader_studies.display_sets.create(
@@ -922,18 +937,7 @@ class ClientBase(ApiDefinitions, ClientInterface):
             )
             values = []
             for slug, value in display_set.items():
-                try:
-                    interface = (
-                        yield from self.__org_api_meta.interfaces.detail(
-                            slug=slug
-                        )
-                    )
-                except ObjectNotFound as e:
-                    raise ValueError(
-                        f"{interface} is not an existing interface. "
-                        f"Please provide one from this list: "
-                        f"https://grand-challenge.org/algorithms/interfaces/"
-                    ) from e
+                interface = interfaces[slug]
                 data = {"interface": slug}
                 super_kind = interface["super_kind"].casefold()
                 if super_kind == "image":
