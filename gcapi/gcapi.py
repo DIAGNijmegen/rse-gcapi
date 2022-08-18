@@ -137,8 +137,8 @@ class Client(httpx.Client, WrapApiInterfaces, ClientBase):
             *args, **kwargs
         )
 
-    def create_display_sets_from_values(self, *args, **kwargs):
-        return self._wrap_function(super().create_display_sets_from_values)(
+    def add_cases_to_reader_study(self, *args, **kwargs):
+        return self._wrap_function(super().add_cases_to_reader_study)(
             *args, **kwargs
         )
 
@@ -191,7 +191,7 @@ class AsyncClient(httpx.AsyncClient, WrapApiInterfaces, ClientBase):
             *args, **kwargs
         )
 
-    async def create_display_sets_from_values(self, *args, **kwargs):
-        return await self._wrap_function(
-            super().create_display_sets_from_values
-        )(*args, **kwargs)
+    async def add_cases_to_reader_study(self, *args, **kwargs):
+        return await self._wrap_function(super().add_cases_to_reader_study)(
+            *args, **kwargs
+        )

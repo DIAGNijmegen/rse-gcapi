@@ -892,7 +892,7 @@ class ClientBase(ApiDefinitions, ClientInterface):
 
         return interfaces
 
-    def create_display_sets_from_values(
+    def add_cases_to_reader_study(
         self, *, reader_study: str, display_sets: List[Dict[str, Any]]
     ):
         """

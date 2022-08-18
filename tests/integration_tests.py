@@ -718,12 +718,12 @@ def test_update_archive_item_without_value(local_grand_challenge):
         [{"results-json-file": {"foo": "bar"}}],
     ),
 )
-def test_create_display_sets_from_values(display_sets, local_grand_challenge):
+def test_add_cases_to_reader_study(display_sets, local_grand_challenge):
     c = Client(
         base_url=local_grand_challenge, verify=False, token=READERSTUDY_TOKEN
     )
 
-    created = c.create_display_sets_from_values(
+    created = c.add_cases_to_reader_study(
         reader_study="reader-study", display_sets=display_sets
     )
 
@@ -751,7 +751,7 @@ def test_create_display_sets_from_values(display_sets, local_grand_challenge):
         check_file(pk)
 
 
-def test_create_display_sets_from_invalid_interface(local_grand_challenge):
+def test_add_cases_to_reader_study_invalid_interface(local_grand_challenge):
     c = Client(
         base_url=local_grand_challenge, verify=False, token=READERSTUDY_TOKEN
     )
@@ -765,7 +765,7 @@ def test_create_display_sets_from_invalid_interface(local_grand_challenge):
     ]
 
     with pytest.raises(ValueError) as e:
-        c.create_display_sets_from_values(
+        c.add_cases_to_reader_study(
             reader_study="reader-study", display_sets=display_sets
         )
 
@@ -776,7 +776,7 @@ def test_create_display_sets_from_invalid_interface(local_grand_challenge):
     )
 
 
-def test_create_display_sets_from_image_invalid_path(local_grand_challenge):
+def test_add_cases_to_reader_study_invalid_path(local_grand_challenge):
     c = Client(
         base_url=local_grand_challenge, verify=False, token=READERSTUDY_TOKEN
     )
@@ -787,7 +787,7 @@ def test_create_display_sets_from_image_invalid_path(local_grand_challenge):
     ]
 
     with pytest.raises(ValueError) as e:
-        c.create_display_sets_from_values(
+        c.add_cases_to_reader_study(
             reader_study="reader-study", display_sets=display_sets
         )
 
@@ -796,7 +796,7 @@ def test_create_display_sets_from_image_invalid_path(local_grand_challenge):
     )
 
 
-def test_create_display_sets_from_image_invalid_value(local_grand_challenge):
+def test_add_cases_to_reader_study_invalid_value(local_grand_challenge):
     c = Client(
         base_url=local_grand_challenge, verify=False, token=READERSTUDY_TOKEN
     )
@@ -806,7 +806,7 @@ def test_create_display_sets_from_image_invalid_value(local_grand_challenge):
     ]
 
     with pytest.raises(ValueError) as e:
-        c.create_display_sets_from_values(
+        c.add_cases_to_reader_study(
             reader_study="reader-study", display_sets=display_sets
         )
 
@@ -815,7 +815,7 @@ def test_create_display_sets_from_image_invalid_value(local_grand_challenge):
     )
 
 
-def test_create_display_sets_from_multiple_files(local_grand_challenge):
+def test_add_cases_to_reader_study_multiple_files(local_grand_challenge):
     c = Client(
         base_url=local_grand_challenge, verify=False, token=READERSTUDY_TOKEN
     )
@@ -830,7 +830,7 @@ def test_create_display_sets_from_multiple_files(local_grand_challenge):
     ]
 
     with pytest.raises(ValueError) as e:
-        c.create_display_sets_from_values(
+        c.add_cases_to_reader_study(
             reader_study="reader-study", display_sets=display_sets
         )
 

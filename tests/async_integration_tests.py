@@ -818,13 +818,11 @@ async def test_update_archive_item_without_value(local_grand_challenge):
     ),
 )
 @pytest.mark.anyio
-async def test_create_display_sets_from_images(
-    display_sets, local_grand_challenge
-):
+async def test_add_cases_to_reader_study(display_sets, local_grand_challenge):
     async with AsyncClient(
         base_url=local_grand_challenge, verify=False, token=READERSTUDY_TOKEN
     ) as c:
-        created = await c.create_display_sets_from_values(
+        created = await c.add_cases_to_reader_study(
             reader_study="reader-study", display_sets=display_sets
         )
 
@@ -852,7 +850,7 @@ async def test_create_display_sets_from_images(
 
 
 @pytest.mark.anyio
-async def test_create_display_sets_from_invalid_interface(
+async def test_add_cases_to_reader_study_invalid_interface(
     local_grand_challenge,
 ):
     display_sets = [
@@ -868,7 +866,7 @@ async def test_create_display_sets_from_invalid_interface(
     ) as c:
 
         with pytest.raises(ValueError) as e:
-            await c.create_display_sets_from_values(
+            await c.add_cases_to_reader_study(
                 reader_study="reader-study", display_sets=display_sets
             )
 
@@ -880,7 +878,7 @@ async def test_create_display_sets_from_invalid_interface(
 
 
 @pytest.mark.anyio
-async def test_create_display_sets_from_image_invalid_path(
+async def test_add_cases_to_reader_study_invalid_path(
     local_grand_challenge,
 ):
     file_path = Path(__file__).parent / "testdata" / "image10x10x1011.mha"
@@ -893,7 +891,7 @@ async def test_create_display_sets_from_image_invalid_path(
     ) as c:
 
         with pytest.raises(ValueError) as e:
-            await c.create_display_sets_from_values(
+            await c.add_cases_to_reader_study(
                 reader_study="reader-study", display_sets=display_sets
             )
 
@@ -903,7 +901,7 @@ async def test_create_display_sets_from_image_invalid_path(
 
 
 @pytest.mark.anyio
-async def test_create_display_sets_from_image_invalid_value(
+async def test_add_cases_to_reader_study_invalid_value(
     local_grand_challenge,
 ):
     display_sets = [
@@ -915,7 +913,7 @@ async def test_create_display_sets_from_image_invalid_value(
     ) as c:
 
         with pytest.raises(ValueError) as e:
-            await c.create_display_sets_from_values(
+            await c.add_cases_to_reader_study(
                 reader_study="reader-study", display_sets=display_sets
             )
 
@@ -925,7 +923,7 @@ async def test_create_display_sets_from_image_invalid_value(
 
 
 @pytest.mark.anyio
-async def test_create_display_sets_from_multiple_files(local_grand_challenge):
+async def test_add_cases_to_reader_study_multiple_files(local_grand_challenge):
     files = [
         Path(__file__).parent / "testdata" / f
         for f in ["test.csv", "test.csv"]
@@ -940,7 +938,7 @@ async def test_create_display_sets_from_multiple_files(local_grand_challenge):
     ) as c:
 
         with pytest.raises(ValueError) as e:
-            await c.create_display_sets_from_values(
+            await c.add_cases_to_reader_study(
                 reader_study="reader-study", display_sets=display_sets
             )
 
