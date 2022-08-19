@@ -554,7 +554,7 @@ class ClientBase(ApiDefinitions, ClientInterface):
         else:
             return response
 
-    def _upload_files(self, *, files, **kwargs):
+    def _upload_image_files(self, *, files, **kwargs):
         uploads = []
         for file in files:
             with open(file, "rb") as f:
@@ -571,6 +571,13 @@ class ClientBase(ApiDefinitions, ClientInterface):
                 uploads=[u["api_url"] for u in uploads], **kwargs
             )
         )
+
+    def _upload_file(self, value):
+        with open(value[0], "rb") as f:
+            upload = yield from self.__org_api_meta.uploads.upload_fileobj(
+                fileobj=f, filename=value[0].name
+            )
+        return upload
 
     def upload_cases(  # noqa: C901
         self,
@@ -667,7 +674,7 @@ class ClientBase(ApiDefinitions, ClientInterface):
                 "You need to define an interface for display set uploads."
             )
 
-        raw_image_upload_session = yield from self._upload_files(
+        raw_image_upload_session = yield from self._upload_image_files(
             files=files, **upload_session_data
         )
 
@@ -733,8 +740,8 @@ class ClientBase(ApiDefinitions, ClientInterface):
             i = {"interface": ci["slug"]}
             if ci["super_kind"].lower() == "image":
                 if isinstance(value, list):
-                    raw_image_upload_session = yield from self._upload_files(
-                        files=value
+                    raw_image_upload_session = (
+                        yield from self._upload_image_files(files=value)
                     )
                     i["upload_session"] = raw_image_upload_session["api_url"]
                 elif isinstance(value, str):
@@ -816,8 +823,8 @@ class ClientBase(ApiDefinitions, ClientInterface):
 
             if ci["super_kind"].lower() == "image":
                 if isinstance(value, list):
-                    raw_image_upload_session = yield from self._upload_files(
-                        files=value
+                    raw_image_upload_session = (
+                        yield from self._upload_image_files(files=value)
                     )
                     i["upload_session"] = raw_image_upload_session["api_url"]
                 elif isinstance(value, str):
@@ -828,12 +835,7 @@ class ClientBase(ApiDefinitions, ClientInterface):
                         f"You can only upload one single file "
                         f"to a {ci['slug']} interface."
                     )
-                with open(value[0], "rb") as f:
-                    upload = (
-                        yield from self.__org_api_meta.uploads.upload_fileobj(
-                            fileobj=f, filename=value[0].name
-                        )
-                    )
+                upload = yield from self._upload_file(value)
                 i["user_upload"] = upload["api_url"]
             else:
                 i["value"] = value
@@ -845,25 +847,72 @@ class ClientBase(ApiDefinitions, ClientInterface):
             )
         )
 
-    def create_display_sets_from_images(
-        self, *, reader_study: str, display_sets: List[Dict[str, list]]
+    def _fetch_interface(self, slug):
+        try:
+            interface = yield from self.__org_api_meta.interfaces.detail(
+                slug=slug
+            )
+            return interface
+        except ObjectNotFound as e:
+            raise ValueError(
+                f"{slug} is not an existing interface. "
+                f"Please provide one from this list: "
+                f"https://grand-challenge.org/components/interfaces/reader-studies/"
+            ) from e
+        return interface
+
+    def _validate_display_set_values(self, values, interfaces):
+        invalid_file_paths = {}
+        for slug, value in values:
+            if interfaces.get(slug):
+                interface = interfaces[slug]
+            else:
+                interface = yield from self._fetch_interface(slug)
+                interfaces[slug] = interface
+            super_kind = interface["super_kind"].casefold()
+            if super_kind != "value":
+                if not isinstance(value, list):
+                    raise ValueError(
+                        f"Values for {slug} ({super_kind}) "
+                        "should be a list of file paths."
+                    )
+                if super_kind != "image" and len(value) > 1:
+                    raise ValueError(
+                        f"You can only upload one single file "
+                        f"to interface {slug} ({super_kind})."
+                    )
+                for file_path in value:
+                    if not Path(file_path).exists():
+                        invalid_file_paths[slug] = invalid_file_paths.get(
+                            slug, []
+                        )
+                        invalid_file_paths[slug].append(str(file_path))
+        if invalid_file_paths:
+            raise ValueError(f"Invalid file paths: {invalid_file_paths}")
+
+        return interfaces
+
+    def add_cases_to_reader_study(
+        self, *, reader_study: str, display_sets: List[Dict[str, Any]]
     ):
         """
         This function takes a reader study slug and a list of diplay sets
-        and created the provided display sets and adds them to the reader
+        and creates the provided display sets and adds them to the reader
         study. The format for the list of display sets is as follows:
         [
             {
                 "slug_0": ["filepath_0", ...]
                 ...
-                "slug_n": ["filepath_n", ...]
+                "slug_n": {"json": "value"}
 
             },
             ...
         ]
 
         Where the file paths are local paths to the files making up a
-        single image.
+        single image. For file type interface the file path can only
+        contain a single file. For json type interfaces any value that
+        is valid for the interface can be passed.`
 
         Parameters
         ----------
@@ -872,27 +921,38 @@ class ClientBase(ApiDefinitions, ClientInterface):
 
         Returns
         -------
-        The pks of the newly created display sets.S
+        The pks of the newly created display sets.
         """
         res = []
+        interfaces: Dict[str, Dict] = {}
+        for display_set in display_sets:
+            new_interfaces = yield from self._validate_display_set_values(
+                display_set.items(), interfaces
+            )
+            interfaces.update(new_interfaces)
+
         for display_set in display_sets:
             ds = yield from self.__org_api_meta.reader_studies.display_sets.create(
                 reader_study=reader_study
             )
-            for interface, files in display_set.items():
-                try:
-                    yield from self.__org_api_meta.interfaces.detail(
-                        slug=interface
+            values = []
+            for slug, value in display_set.items():
+                interface = interfaces[slug]
+                data = {"interface": slug}
+                super_kind = interface["super_kind"].casefold()
+                if super_kind == "image":
+                    yield from self._upload_image_files(
+                        display_set=ds["pk"], interface=slug, files=value
                     )
-                except ObjectNotFound as e:
-                    raise ValueError(
-                        f"{interface} is not an existing interface. "
-                        f"Please provide one from this list: "
-                        f"https://grand-challenge.org/algorithms/interfaces/"
-                    ) from e
+                elif super_kind == "file":
+                    upload = yield from self._upload_file(value)
+                    data["user_upload"] = upload["api_url"]
+                else:
+                    data["value"] = value
+                values.append(data)
+            yield from self.__org_api_meta.reader_studies.display_sets.partial_update(
+                pk=ds["pk"], values=values
+            )
 
-                yield from self._upload_files(
-                    display_set=ds["pk"], interface=interface, files=files
-                )
             res.append(ds["pk"])
         return res  # noqa: B901

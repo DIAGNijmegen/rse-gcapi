@@ -693,29 +693,41 @@ def test_update_archive_item_without_value(local_grand_challenge):
     assert "You need to provide a value for generic-medical-image" in str(e)
 
 
-def test_create_display_sets_from_images(local_grand_challenge):
+@pytest.mark.parametrize(
+    "display_sets",
+    (
+        [
+            {
+                "generic-medical-image": [
+                    Path(__file__).parent / "testdata" / "image10x10x101.mha"
+                ]
+            },
+            {
+                "generic-overlay": [
+                    Path(__file__).parent / "testdata" / "image10x10x101.mha"
+                ]
+            },
+        ],
+        [
+            {
+                "predictions-csv-file": [
+                    Path(__file__).parent / "testdata" / "test.csv"
+                ]
+            },
+        ],
+        [{"results-json-file": {"foo": "bar"}}],
+    ),
+)
+def test_add_cases_to_reader_study(display_sets, local_grand_challenge):
     c = Client(
         base_url=local_grand_challenge, verify=False, token=READERSTUDY_TOKEN
     )
 
-    display_sets = [
-        {
-            "generic-medical-image": [
-                Path(__file__).parent / "testdata" / "image10x10x101.mha"
-            ]
-        },
-        {
-            "generic-overlay": [
-                Path(__file__).parent / "testdata" / "image10x10x101.mha"
-            ]
-        },
-    ]
-
-    created = c.create_display_sets_from_images(
+    created = c.add_cases_to_reader_study(
         reader_study="reader-study", display_sets=display_sets
     )
 
-    assert len(created) == 2
+    assert len(created) == len(display_sets)
 
     reader_study = next(
         c.reader_studies.iterate_all(params={"slug": "reader-study"})
@@ -727,3 +739,102 @@ def test_create_display_sets_from_images(local_grand_challenge):
     )
 
     assert all([x in [y["pk"] for y in display_sets] for x in created])
+
+    @recurse_call
+    def check_file(ds_pk):
+        ds = c.reader_studies.display_sets.detail(pk=ds_pk)
+        if len(ds["values"]) <= 0:
+            raise ValueError
+        return ds
+
+    for pk in created:
+        check_file(pk)
+
+
+def test_add_cases_to_reader_study_invalid_interface(local_grand_challenge):
+    c = Client(
+        base_url=local_grand_challenge, verify=False, token=READERSTUDY_TOKEN
+    )
+
+    display_sets = [
+        {
+            "very-specific-medical-image": [
+                Path(__file__).parent / "testdata" / "image10x10x101.mha"
+            ]
+        },
+    ]
+
+    with pytest.raises(ValueError) as e:
+        c.add_cases_to_reader_study(
+            reader_study="reader-study", display_sets=display_sets
+        )
+
+    assert str(e.value) == (
+        "very-specific-medical-image is not an existing interface. "
+        "Please provide one from this list: "
+        "https://grand-challenge.org/components/interfaces/reader-studies/"
+    )
+
+
+def test_add_cases_to_reader_study_invalid_path(local_grand_challenge):
+    c = Client(
+        base_url=local_grand_challenge, verify=False, token=READERSTUDY_TOKEN
+    )
+
+    file_path = Path(__file__).parent / "testdata" / "image10x10x1011.mha"
+    display_sets = [
+        {"generic-medical-image": [file_path]},
+    ]
+
+    with pytest.raises(ValueError) as e:
+        c.add_cases_to_reader_study(
+            reader_study="reader-study", display_sets=display_sets
+        )
+
+    assert str(e.value) == (
+        f"Invalid file paths: {{'generic-medical-image': ['{file_path}']}}"
+    )
+
+
+def test_add_cases_to_reader_study_invalid_value(local_grand_challenge):
+    c = Client(
+        base_url=local_grand_challenge, verify=False, token=READERSTUDY_TOKEN
+    )
+
+    display_sets = [
+        {"generic-medical-image": "not a list"},
+    ]
+
+    with pytest.raises(ValueError) as e:
+        c.add_cases_to_reader_study(
+            reader_study="reader-study", display_sets=display_sets
+        )
+
+    assert str(e.value) == (
+        "Values for generic-medical-image (image) should be a list of file paths."
+    )
+
+
+def test_add_cases_to_reader_study_multiple_files(local_grand_challenge):
+    c = Client(
+        base_url=local_grand_challenge, verify=False, token=READERSTUDY_TOKEN
+    )
+
+    files = [
+        Path(__file__).parent / "testdata" / f
+        for f in ["test.csv", "test.csv"]
+    ]
+
+    display_sets = [
+        {"predictions-csv-file": files},
+    ]
+
+    with pytest.raises(ValueError) as e:
+        c.add_cases_to_reader_study(
+            reader_study="reader-study", display_sets=display_sets
+        )
+
+    assert str(e.value) == (
+        "You can only upload one single file to interface "
+        "predictions-csv-file (file)."
+    )
