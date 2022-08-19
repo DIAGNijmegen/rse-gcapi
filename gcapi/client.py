@@ -948,15 +948,7 @@ class ClientBase(ApiDefinitions, ClientInterface):
                     upload = yield from self._upload_file(value)
                     data["user_upload"] = upload["api_url"]
                 else:
-                    if (
-                        isinstance(value, list)
-                        and len(value) == 1
-                        and Path(value[0].exists())
-                    ):
-                        upload = yield from self._upload_file(value)
-                        data["user_upload"] = upload["api_url"]
-                    else:
-                        data["value"] = value
+                    data["value"] = value
                 values.append(data)
             yield from self.__org_api_meta.reader_studies.display_sets.partial_update(
                 pk=ds["pk"], values=values
