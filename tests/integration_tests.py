@@ -401,7 +401,6 @@ def test_create_job_with_upload(
 
     @recurse_call
     def run_job():
-        pytest.set_trace()
         return c.run_external_job(
             algorithm=algorithm,
             inputs={
