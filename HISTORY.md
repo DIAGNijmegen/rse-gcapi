@@ -1,5 +1,11 @@
 # History
 
+## 0.9.0 (2022-08-22)
+
+  - Removed `create_display_sets_from_images` utitlity function in favor of `add_cases_to_reader_study`
+  - Added support for all interface types in `add_cases_to_reader_study`
+
+
 ## 0.8.0 (2022-07-14)
 
   - Dropped reader study answer POST data validation
