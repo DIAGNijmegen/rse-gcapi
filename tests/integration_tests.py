@@ -385,8 +385,8 @@ def test_download_cases(local_grand_challenge, files, tmpdir):
         ),
         (
             "test-algorithm-evaluation-2",
-            "predictions-csv-file",
-            ["test.csv"],
+            "json-file",
+            ["test.json"],
         ),
     ),
 )
