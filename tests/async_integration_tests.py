@@ -423,9 +423,25 @@ async def test_download_cases(local_grand_challenge, files, tmpdir):
         assert line == "ObjectType = Image"
 
 
-@pytest.mark.parametrize("files", (["image10x10x101.mha"],))
+@pytest.mark.parametrize(
+    "algorithm,interface,files",
+    (
+        (
+            "test-algorithm-evaluation-1",
+            "generic-medical-image",
+            ["image10x10x101.mha"],
+        ),
+        (
+            "test-algorithm-evaluation-2",
+            "json-file",
+            ["test.json"],
+        ),
+    ),
+)
 @pytest.mark.anyio
-async def test_create_job_with_upload(local_grand_challenge, files):
+async def test_create_job_with_upload(
+    local_grand_challenge, algorithm, interface, files
+):
     async with AsyncClient(
         base_url=local_grand_challenge,
         verify=False,
@@ -435,9 +451,9 @@ async def test_create_job_with_upload(local_grand_challenge, files):
         @async_recurse_call
         async def run_job():
             return await c.run_external_job(
-                algorithm="test-algorithm-evaluation-1",
+                algorithm=algorithm,
                 inputs={
-                    "generic-medical-image": [
+                    interface: [
                         Path(__file__).parent / "testdata" / f for f in files
                     ]
                 },

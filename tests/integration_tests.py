@@ -375,8 +375,24 @@ def test_download_cases(local_grand_challenge, files, tmpdir):
     assert line == "ObjectType = Image"
 
 
-@pytest.mark.parametrize("files", (["image10x10x101.mha"],))
-def test_create_job_with_upload(local_grand_challenge, files):
+@pytest.mark.parametrize(
+    "algorithm,interface,files",
+    (
+        (
+            "test-algorithm-evaluation-1",
+            "generic-medical-image",
+            ["image10x10x101.mha"],
+        ),
+        (
+            "test-algorithm-evaluation-2",
+            "json-file",
+            ["test.json"],
+        ),
+    ),
+)
+def test_create_job_with_upload(
+    local_grand_challenge, algorithm, interface, files
+):
     c = Client(
         base_url=local_grand_challenge,
         verify=False,
@@ -386,9 +402,9 @@ def test_create_job_with_upload(local_grand_challenge, files):
     @recurse_call
     def run_job():
         return c.run_external_job(
-            algorithm="test-algorithm-evaluation-1",
+            algorithm=algorithm,
             inputs={
-                "generic-medical-image": [
+                interface: [
                     Path(__file__).parent / "testdata" / f for f in files
                 ]
             },

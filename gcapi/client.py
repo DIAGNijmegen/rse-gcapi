@@ -746,6 +746,13 @@ class ClientBase(ApiDefinitions, ClientInterface):
                     i["upload_session"] = raw_image_upload_session["api_url"]
                 elif isinstance(value, str):
                     i["image"] = value
+            elif ci["super_kind"].lower() == "file":
+                if len(value) != 1:
+                    raise ValueError(
+                        f"Only a single file can be provided for {ci['title']}."
+                    )
+                upload = yield from self._upload_file(value)
+                i["user_upload"] = upload["api_url"]
             else:
                 i["value"] = value
             job["inputs"].append(i)
