@@ -163,12 +163,10 @@ class ReaderStudyQuestionsAPI(APIBase):
 
 class ReaderStudyMineAnswersAPI(ModifiableMixin, APIBase):
     base_path = "reader-studies/answers/mine/"
-    schema = import_json_schema("answer.json")
 
 
 class ReaderStudyAnswersAPI(ModifiableMixin, APIBase):
     base_path = "reader-studies/answers/"
-    schema = import_json_schema("answer.json")
 
     sub_apis = {"mine": ReaderStudyMineAnswersAPI}
 
@@ -194,7 +192,6 @@ class ReaderStudyDisplaySetsAPI(ModifiableMixin, APIBase):
 
 class ReaderStudiesAPI(APIBase):
     base_path = "reader-studies/"
-    schema = import_json_schema("reader-study.json")
 
     sub_apis = {
         "answers": ReaderStudyAnswersAPI,
