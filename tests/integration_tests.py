@@ -379,12 +379,12 @@ def test_download_cases(local_grand_challenge, files, tmpdir):
     "algorithm,interface,files",
     (
         (
-            "test-algorithm-evaluation-1",
+            "test-algorithm-evaluation-image-1",
             "generic-medical-image",
             ["image10x10x101.mha"],
         ),
         (
-            "test-algorithm-evaluation-2",
+            "test-algorithm-evaluation-file-1",
             "json-file",
             ["test.json"],
         ),
@@ -426,7 +426,7 @@ def test_get_algorithm_by_slug(local_grand_challenge):
         token=DEMO_PARTICIPANT_TOKEN,
     )
 
-    by_slug = c.algorithms.detail(slug="test-algorithm-evaluation-1")
+    by_slug = c.algorithms.detail(slug="test-algorithm-evaluation-image-1")
     by_pk = c.algorithms.detail(pk=by_slug["pk"])
 
     assert by_pk == by_slug
