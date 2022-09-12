@@ -18,7 +18,6 @@ gcapi = "gcapi.cli:main"
 python = ">=3.6.2,<4.0"
 httpx = "~0.22.0"
 Click = ">=6.0"
-jsonschema = { extras = ["format_nongpl"], version = ">=3.0" }
 
 [tool.poetry.dev-dependencies]
 pytest = "*"

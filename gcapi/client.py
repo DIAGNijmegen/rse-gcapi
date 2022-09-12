@@ -3,7 +3,6 @@ import os
 import re
 import uuid
 from io import BytesIO
-from json import load
 from pathlib import Path
 from random import randint
 from time import sleep
@@ -11,7 +10,6 @@ from typing import TYPE_CHECKING, Any, Dict, Generator, List, Union
 from urllib.parse import urljoin
 
 import httpx
-import jsonschema
 from httpx import URL, HTTPStatusError, Timeout
 
 from gcapi.apibase import APIBase, ClientInterface, ModifiableMixin
@@ -28,67 +26,6 @@ def is_uuid(s):
         return False
     else:
         return True
-
-
-def accept_tuples_as_arrays(org):
-    return org.redefine(
-        "array",
-        lambda checker, instance: isinstance(instance, tuple)
-        or org.is_type(instance, "array"),
-    )
-
-
-Draft7ValidatorWithTupleSupport = jsonschema.validators.extend(
-    jsonschema.Draft7Validator,
-    type_checker=accept_tuples_as_arrays(
-        jsonschema.Draft7Validator.TYPE_CHECKER
-    ),
-)
-
-
-def import_json_schema(filename):
-    """
-    Loads a json schema from the module's subdirectory "schemas".
-
-    This is not *really* an import but the naming indicates that an ImportError
-    is raised in case the json schema cannot be loaded. This should also only
-    be called while the module is loaded, not at a later stage, because import
-    errors should be raised straight away.
-
-    Parameters
-    ----------
-    filename: str
-        The jsonschema file to be loaded. The filename is relative to the
-        "schemas" directory.
-
-    Returns
-    -------
-    Draft7Validator
-        The jsonschema validation object
-
-    Raises
-    ------
-    ImportError
-        Raised if the json schema cannot be loaded.
-    """
-    filename = os.path.join(
-        os.path.dirname(os.path.abspath(__file__)), "schemas", filename
-    )
-
-    try:
-        with open(filename) as f:
-            jsn = load(f)
-        return Draft7ValidatorWithTupleSupport(
-            jsn, format_checker=jsonschema.draft7_format_checker
-        )
-    except (OSError, ValueError) as e:
-        # I want missing/failing json imports to be an import error because that
-        # is what they should indicate: a "broken" library
-        raise ImportError(
-            "Json schema '{file}' cannot be loaded: {error}".format(
-                file=filename, error=e
-            )
-        ) from e
 
 
 class ImagesAPI(APIBase):
@@ -115,7 +52,6 @@ class ImagesAPI(APIBase):
                 image = yield from self.detail(pk=pk)
             elif url is not None:
                 image = yield self.yield_request(method="GET", url=url)
-                self.verify_against_schema(image)
             else:
                 image = yield from self.detail(**params)
 
@@ -163,12 +99,10 @@ class ReaderStudyQuestionsAPI(APIBase):
 
 class ReaderStudyMineAnswersAPI(ModifiableMixin, APIBase):
     base_path = "reader-studies/answers/mine/"
-    schema = import_json_schema("answer.json")
 
 
 class ReaderStudyAnswersAPI(ModifiableMixin, APIBase):
     base_path = "reader-studies/answers/"
-    schema = import_json_schema("answer.json")
 
     sub_apis = {"mine": ReaderStudyMineAnswersAPI}
 
@@ -194,7 +128,6 @@ class ReaderStudyDisplaySetsAPI(ModifiableMixin, APIBase):
 
 class ReaderStudiesAPI(APIBase):
     base_path = "reader-studies/"
-    schema = import_json_schema("reader-study.json")
 
     sub_apis = {
         "answers": ReaderStudyAnswersAPI,
@@ -247,30 +180,24 @@ class ComponentInterfacesAPI(APIBase):
 
 class RetinaLandmarkAnnotationSetsAPI(ModifiableMixin, APIBase):
     base_path = "retina/landmark-annotation/"
-    schema = import_json_schema("landmark-annotation.json")
 
     def for_image(self, pk):
         result = yield self.yield_request(
             method="GET", path=self.base_path, params={"image_id": pk}
         )
-        for i in result:
-            self.verify_against_schema(i)
         return result
 
 
 class RetinaPolygonAnnotationSetsAPI(ModifiableMixin, APIBase):
     base_path = "retina/polygon-annotation-set/"
-    schema = import_json_schema("polygon-annotation.json")
 
 
 class RetinaSinglePolygonAnnotationsAPI(ModifiableMixin, APIBase):
     base_path = "retina/single-polygon-annotation/"
-    schema = import_json_schema("single-polygon-annotation.json")
 
 
 class RetinaETDRSGridAnnotationsAPI(ModifiableMixin, APIBase):
     base_path = "retina/etdrs-grid-annotation/"
-    schema = import_json_schema("etdrs-annotation.json")
 
 
 class UploadsAPI(APIBase):
