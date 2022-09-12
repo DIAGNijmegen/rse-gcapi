@@ -5,6 +5,7 @@ import uuid
 from io import BytesIO
 from json import load
 from pathlib import Path
+from pathlib import Path
 from random import randint
 from time import sleep
 from typing import TYPE_CHECKING, Any, Dict, Generator, List, Union
@@ -27,6 +28,7 @@ def is_uuid(s):
         return False
     else:
         return True
+
 
 class ImagesAPI(APIBase):
     base_path = "cases/images/"
