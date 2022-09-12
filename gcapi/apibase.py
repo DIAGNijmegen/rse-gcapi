@@ -1,7 +1,6 @@
 from typing import Any, Dict, Generator, Optional, Type
 from urllib.parse import urljoin
 
-import jsonschema
 from httpx import URL, HTTPStatusError
 from httpx._types import URLTypes
 
@@ -42,7 +41,6 @@ class ClientInterface:
 class Common:
     _client: Optional[ClientInterface] = None
     base_path = ""
-    schema: Optional[jsonschema.Draft7Validator] = None
 
     yield_request = CallCapture()
 
@@ -59,29 +57,10 @@ class APIBase(Common):
         for k, api in list(self.sub_apis.items()):
             setattr(self, k, api(self._client))
 
-    def verify_against_schema(self, value):
-        """
-        Verify the given value against the configured jsonschema.
-
-        Parameters
-        ----------
-        value: Any
-            Some parsed json-value to verify.
-
-        Raises
-        ------
-        ValidationError:
-            Raised in case the value verification failed.
-        """
-        if self.schema is not None:
-            self.schema.validate(value)
-
     def list(self, params=None):
         result = yield self.yield_request(
             method="GET", path=self.base_path, params=params
         )
-        for i in result:
-            self.verify_against_schema(i)
         return result
 
     def page(self, offset=0, limit=100, params=None):
@@ -92,15 +71,12 @@ class APIBase(Common):
         response = yield self.yield_request(
             method="GET", path=self.base_path, params=params
         )
-        results = PageResult(
+        return PageResult(
             offset=offset,
             limit=limit,
             total_count=response["count"],
             results=response["results"],
         )
-        for i in results:
-            self.verify_against_schema(i)
-        return results
 
     @mark_generator
     def iterate_all(self, params=None):
@@ -131,8 +107,6 @@ class APIBase(Common):
                     raise ObjectNotFound from e
                 else:
                     raise e
-
-            self.verify_against_schema(result)
         else:
             results = yield from self.page(params=params)
             results = list(results)
