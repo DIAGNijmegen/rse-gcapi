@@ -3,7 +3,6 @@ import os
 import re
 import uuid
 from io import BytesIO
-from json import load
 from pathlib import Path
 from random import randint
 from time import sleep
@@ -11,7 +10,6 @@ from typing import TYPE_CHECKING, Any, Dict, Generator, List, Union
 from urllib.parse import urljoin
 
 import httpx
-import jsonschema
 from httpx import URL, HTTPStatusError, Timeout
 
 from gcapi.apibase import APIBase, ClientInterface, ModifiableMixin
@@ -28,67 +26,6 @@ def is_uuid(s):
         return False
     else:
         return True
-
-
-def accept_tuples_as_arrays(org):
-    return org.redefine(
-        "array",
-        lambda checker, instance: isinstance(instance, tuple)
-        or org.is_type(instance, "array"),
-    )
-
-
-Draft7ValidatorWithTupleSupport = jsonschema.validators.extend(
-    jsonschema.Draft7Validator,
-    type_checker=accept_tuples_as_arrays(
-        jsonschema.Draft7Validator.TYPE_CHECKER
-    ),
-)
-
-
-def import_json_schema(filename):
-    """
-    Loads a json schema from the module's subdirectory "schemas".
-
-    This is not *really* an import but the naming indicates that an ImportError
-    is raised in case the json schema cannot be loaded. This should also only
-    be called while the module is loaded, not at a later stage, because import
-    errors should be raised straight away.
-
-    Parameters
-    ----------
-    filename: str
-        The jsonschema file to be loaded. The filename is relative to the
-        "schemas" directory.
-
-    Returns
-    -------
-    Draft7Validator
-        The jsonschema validation object
-
-    Raises
-    ------
-    ImportError
-        Raised if the json schema cannot be loaded.
-    """
-    filename = os.path.join(
-        os.path.dirname(os.path.abspath(__file__)), "schemas", filename
-    )
-
-    try:
-        with open(filename) as f:
-            jsn = load(f)
-        return Draft7ValidatorWithTupleSupport(
-            jsn, format_checker=jsonschema.draft7_format_checker
-        )
-    except (OSError, ValueError) as e:
-        # I want missing/failing json imports to be an import error because that
-        # is what they should indicate: a "broken" library
-        raise ImportError(
-            "Json schema '{file}' cannot be loaded: {error}".format(
-                file=filename, error=e
-            )
-        ) from e
 
 
 class ImagesAPI(APIBase):
@@ -115,7 +52,6 @@ class ImagesAPI(APIBase):
                 image = yield from self.detail(pk=pk)
             elif url is not None:
                 image = yield self.yield_request(method="GET", url=url)
-                self.verify_against_schema(image)
             else:
                 image = yield from self.detail(**params)
 
@@ -163,12 +99,10 @@ class ReaderStudyQuestionsAPI(APIBase):
 
 class ReaderStudyMineAnswersAPI(ModifiableMixin, APIBase):
     base_path = "reader-studies/answers/mine/"
-    schema = import_json_schema("answer.json")
 
 
 class ReaderStudyAnswersAPI(ModifiableMixin, APIBase):
     base_path = "reader-studies/answers/"
-    schema = import_json_schema("answer.json")
 
     sub_apis = {"mine": ReaderStudyMineAnswersAPI}
 
@@ -194,7 +128,6 @@ class ReaderStudyDisplaySetsAPI(ModifiableMixin, APIBase):
 
 class ReaderStudiesAPI(APIBase):
     base_path = "reader-studies/"
-    schema = import_json_schema("reader-study.json")
 
     sub_apis = {
         "answers": ReaderStudyAnswersAPI,
@@ -247,30 +180,24 @@ class ComponentInterfacesAPI(APIBase):
 
 class RetinaLandmarkAnnotationSetsAPI(ModifiableMixin, APIBase):
     base_path = "retina/landmark-annotation/"
-    schema = import_json_schema("landmark-annotation.json")
 
     def for_image(self, pk):
         result = yield self.yield_request(
             method="GET", path=self.base_path, params={"image_id": pk}
         )
-        for i in result:
-            self.verify_against_schema(i)
         return result
 
 
 class RetinaPolygonAnnotationSetsAPI(ModifiableMixin, APIBase):
     base_path = "retina/polygon-annotation-set/"
-    schema = import_json_schema("polygon-annotation.json")
 
 
 class RetinaSinglePolygonAnnotationsAPI(ModifiableMixin, APIBase):
     base_path = "retina/single-polygon-annotation/"
-    schema = import_json_schema("single-polygon-annotation.json")
 
 
 class RetinaETDRSGridAnnotationsAPI(ModifiableMixin, APIBase):
     base_path = "retina/etdrs-grid-annotation/"
-    schema = import_json_schema("etdrs-annotation.json")
 
 
 class UploadsAPI(APIBase):
@@ -554,7 +481,7 @@ class ClientBase(ApiDefinitions, ClientInterface):
         else:
             return response
 
-    def _upload_files(self, *, files, **kwargs):
+    def _upload_image_files(self, *, files, **kwargs):
         uploads = []
         for file in files:
             with open(file, "rb") as f:
@@ -571,6 +498,13 @@ class ClientBase(ApiDefinitions, ClientInterface):
                 uploads=[u["api_url"] for u in uploads], **kwargs
             )
         )
+
+    def _upload_file(self, value):
+        with open(value[0], "rb") as f:
+            upload = yield from self.__org_api_meta.uploads.upload_fileobj(
+                fileobj=f, filename=value[0].name
+            )
+        return upload
 
     def upload_cases(  # noqa: C901
         self,
@@ -667,7 +601,7 @@ class ClientBase(ApiDefinitions, ClientInterface):
                 "You need to define an interface for display set uploads."
             )
 
-        raw_image_upload_session = yield from self._upload_files(
+        raw_image_upload_session = yield from self._upload_image_files(
             files=files, **upload_session_data
         )
 
@@ -733,12 +667,19 @@ class ClientBase(ApiDefinitions, ClientInterface):
             i = {"interface": ci["slug"]}
             if ci["super_kind"].lower() == "image":
                 if isinstance(value, list):
-                    raw_image_upload_session = yield from self._upload_files(
-                        files=value
+                    raw_image_upload_session = (
+                        yield from self._upload_image_files(files=value)
                     )
                     i["upload_session"] = raw_image_upload_session["api_url"]
                 elif isinstance(value, str):
                     i["image"] = value
+            elif ci["super_kind"].lower() == "file":
+                if len(value) != 1:
+                    raise ValueError(
+                        f"Only a single file can be provided for {ci['title']}."
+                    )
+                upload = yield from self._upload_file(value)
+                i["user_upload"] = upload["api_url"]
             else:
                 i["value"] = value
             job["inputs"].append(i)
@@ -816,8 +757,8 @@ class ClientBase(ApiDefinitions, ClientInterface):
 
             if ci["super_kind"].lower() == "image":
                 if isinstance(value, list):
-                    raw_image_upload_session = yield from self._upload_files(
-                        files=value
+                    raw_image_upload_session = (
+                        yield from self._upload_image_files(files=value)
                     )
                     i["upload_session"] = raw_image_upload_session["api_url"]
                 elif isinstance(value, str):
@@ -828,12 +769,7 @@ class ClientBase(ApiDefinitions, ClientInterface):
                         f"You can only upload one single file "
                         f"to a {ci['slug']} interface."
                     )
-                with open(value[0], "rb") as f:
-                    upload = (
-                        yield from self.__org_api_meta.uploads.upload_fileobj(
-                            fileobj=f, filename=value[0].name
-                        )
-                    )
+                upload = yield from self._upload_file(value)
                 i["user_upload"] = upload["api_url"]
             else:
                 i["value"] = value
@@ -845,25 +781,72 @@ class ClientBase(ApiDefinitions, ClientInterface):
             )
         )
 
-    def create_display_sets_from_images(
-        self, *, reader_study: str, display_sets: List[Dict[str, list]]
+    def _fetch_interface(self, slug):
+        try:
+            interface = yield from self.__org_api_meta.interfaces.detail(
+                slug=slug
+            )
+            return interface
+        except ObjectNotFound as e:
+            raise ValueError(
+                f"{slug} is not an existing interface. "
+                f"Please provide one from this list: "
+                f"https://grand-challenge.org/components/interfaces/reader-studies/"
+            ) from e
+        return interface
+
+    def _validate_display_set_values(self, values, interfaces):
+        invalid_file_paths = {}
+        for slug, value in values:
+            if interfaces.get(slug):
+                interface = interfaces[slug]
+            else:
+                interface = yield from self._fetch_interface(slug)
+                interfaces[slug] = interface
+            super_kind = interface["super_kind"].casefold()
+            if super_kind != "value":
+                if not isinstance(value, list):
+                    raise ValueError(
+                        f"Values for {slug} ({super_kind}) "
+                        "should be a list of file paths."
+                    )
+                if super_kind != "image" and len(value) > 1:
+                    raise ValueError(
+                        f"You can only upload one single file "
+                        f"to interface {slug} ({super_kind})."
+                    )
+                for file_path in value:
+                    if not Path(file_path).exists():
+                        invalid_file_paths[slug] = invalid_file_paths.get(
+                            slug, []
+                        )
+                        invalid_file_paths[slug].append(str(file_path))
+        if invalid_file_paths:
+            raise ValueError(f"Invalid file paths: {invalid_file_paths}")
+
+        return interfaces
+
+    def add_cases_to_reader_study(
+        self, *, reader_study: str, display_sets: List[Dict[str, Any]]
     ):
         """
         This function takes a reader study slug and a list of diplay sets
-        and created the provided display sets and adds them to the reader
+        and creates the provided display sets and adds them to the reader
         study. The format for the list of display sets is as follows:
         [
             {
                 "slug_0": ["filepath_0", ...]
                 ...
-                "slug_n": ["filepath_n", ...]
+                "slug_n": {"json": "value"}
 
             },
             ...
         ]
 
         Where the file paths are local paths to the files making up a
-        single image.
+        single image. For file type interface the file path can only
+        contain a single file. For json type interfaces any value that
+        is valid for the interface can be passed.`
 
         Parameters
         ----------
@@ -872,27 +855,38 @@ class ClientBase(ApiDefinitions, ClientInterface):
 
         Returns
         -------
-        The pks of the newly created display sets.S
+        The pks of the newly created display sets.
         """
         res = []
+        interfaces: Dict[str, Dict] = {}
+        for display_set in display_sets:
+            new_interfaces = yield from self._validate_display_set_values(
+                display_set.items(), interfaces
+            )
+            interfaces.update(new_interfaces)
+
         for display_set in display_sets:
             ds = yield from self.__org_api_meta.reader_studies.display_sets.create(
                 reader_study=reader_study
             )
-            for interface, files in display_set.items():
-                try:
-                    yield from self.__org_api_meta.interfaces.detail(
-                        slug=interface
+            values = []
+            for slug, value in display_set.items():
+                interface = interfaces[slug]
+                data = {"interface": slug}
+                super_kind = interface["super_kind"].casefold()
+                if super_kind == "image":
+                    yield from self._upload_image_files(
+                        display_set=ds["pk"], interface=slug, files=value
                     )
-                except ObjectNotFound as e:
-                    raise ValueError(
-                        f"{interface} is not an existing interface. "
-                        f"Please provide one from this list: "
-                        f"https://grand-challenge.org/algorithms/interfaces/"
-                    ) from e
+                elif super_kind == "file":
+                    upload = yield from self._upload_file(value)
+                    data["user_upload"] = upload["api_url"]
+                else:
+                    data["value"] = value
+                values.append(data)
+            yield from self.__org_api_meta.reader_studies.display_sets.partial_update(
+                pk=ds["pk"], values=values
+            )
 
-                yield from self._upload_files(
-                    display_set=ds["pk"], interface=interface, files=files
-                )
             res.append(ds["pk"])
         return res  # noqa: B901
