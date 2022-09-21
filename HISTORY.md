@@ -1,5 +1,10 @@
 # History
 
+## 0.10.0 (2022-09-21)
+
+  - Removed client-side json validation, which is instead handled by Grand Challenge
+  - Algorithm jobs can be created with inputs that have an interface with superkind file
+
 ## 0.9.0 (2022-08-22)
 
   - Removed `create_display_sets_from_images` utitlity function in favor of `add_cases_to_reader_study`
