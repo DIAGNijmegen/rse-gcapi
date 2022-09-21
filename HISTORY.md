@@ -2,7 +2,7 @@
 
 ## 0.10.0 (2022-09-21)
 
-  - Removed json validation, will be handled bij Grand Challenge
+  - Removed client-side json validation, which is instead handled by Grand Challenge
   - Algorithm jobs can be created with inputs that have an interface with superkind file
 
 ## 0.9.0 (2022-08-22)
