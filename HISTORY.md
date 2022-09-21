@@ -1,7 +1,7 @@
 # History
 
 ## 0.10.0 (2022-09-21)
-  
+
   - Removed json validation, will be handled bij Grand Challenge
   - Algorithm jobs can be created with inputs that have an interface with superkind file
 
