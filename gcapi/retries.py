@@ -2,6 +2,10 @@ import abc
 
 
 class RetryStrategy(abc.ABC):
-    def get_interval_ms(self, response):
-        """Returns the number of ms to pause before the next retry given the latest response"""
+    def get_interval(self, response):
+        """
+        Returns the number of seconds to pause before the next retry, based on the latest response.
+
+        Optionally, if None is returned no retry is to be performed.
+        """
         pass

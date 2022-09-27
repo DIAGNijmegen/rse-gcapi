@@ -1,7 +1,11 @@
 import contextlib
 from time import sleep
 
-from httpx import HTTPStatusError, BaseTransport, AsyncBaseTransport
+from httpx import (
+    HTTPStatusError,
+    AsyncHTTPTransport,
+    HTTPTransport,
+)
 
 
 def recurse_call(func):
@@ -35,13 +39,14 @@ def async_recurse_call(func):
 
 
 @contextlib.contextmanager
-def mock_base_transport_responses(
-    transport, mock_responses, asynchronous=False
-):
-    mock_responses = iter(mock_responses)
-    shadow_base_class = (
-        BaseTransport if not asynchronous else AsyncBaseTransport
-    )
+def mock_transport_responses(transport, responses):
+    """
+    Mocks the responses in the provided HTTPX transport by shadowing the request handlers
+    just before the HTTPTransport or AsyncHTTPTransport in the transport's MRO.
+
+    Returns a class from which some metadata about the mocking can be read (such as number of requests).
+    """
+    responses = iter(responses)
 
     class ResponseMetaData:
         num_requests = 0
@@ -51,7 +56,7 @@ def mock_base_transport_responses(
         def handle_request(request, *_, **__):
             try:
                 ResponseMetaData.num_requests += 1
-                response = mock_responses.__next__()
+                response = responses.__next__()
                 response.request = request
                 return response
             except StopIteration:
@@ -62,7 +67,7 @@ def mock_base_transport_responses(
 
     bases = []
     for cls in transport.__class__.mro():
-        if cls is shadow_base_class:
+        if cls in [HTTPTransport, AsyncHTTPTransport]:
             bases.append(MockTransport)
         bases.append(cls)
     old_class = transport.__class__
