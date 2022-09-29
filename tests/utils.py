@@ -1,11 +1,7 @@
 import contextlib
 from time import sleep
 
-from httpx import (
-    HTTPStatusError,
-    AsyncHTTPTransport,
-    HTTPTransport,
-)
+from httpx import AsyncHTTPTransport, HTTPStatusError, HTTPTransport
 
 
 def recurse_call(func):
@@ -41,10 +37,12 @@ def async_recurse_call(func):
 @contextlib.contextmanager
 def mock_transport_responses(transport, responses):
     """
-    Mocks the responses in the provided HTTPX transport by shadowing the request handlers
-    just before the HTTPTransport or AsyncHTTPTransport in the transport's MRO.
+    Mocks the responses in the provided HTTPX transport by
+    shadowing the request handlers just before the HTTPTransport
+    or AsyncHTTPTransport in the transport's MRO.
 
-    Returns a class from which some metadata about the mocking can be read (such as number of requests).
+    Returns a class from which some metadata about the mocking can
+    be read (such as number of requests).
     """
     responses = iter(responses)
 
@@ -59,8 +57,8 @@ def mock_transport_responses(transport, responses):
                 response = responses.__next__()
                 response.request = request
                 return response
-            except StopIteration:
-                raise RuntimeError("Ran out of mock responses")
+            except StopIteration as e:
+                raise RuntimeError("Ran out of mock responses") from e
 
         async def handle_async_request(self, *args, **kwargs):
             return self.handle_request(*args, **kwargs)

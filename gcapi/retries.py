@@ -29,8 +29,7 @@ class SelectiveBackoffStrategy(BaseRetryStrategy):
     Retries responses with 403 and 404 once and several transient
     server errors (i.e. 5xx) with an exponential backoff.
 
-    Each response code has its own backoff counter
-
+    Each response code has its own backoff counter.
     """
 
     def __init__(self, backoff_factor, maximum_number_of_retries):
