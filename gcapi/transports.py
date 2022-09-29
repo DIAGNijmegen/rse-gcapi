@@ -68,11 +68,7 @@ class RetryTransport(BaseRetryTransport, httpx.HTTPTransport):
         self, request: httpx.Request, *args, **kwargs
     ) -> httpx.Response:
         retry_strategy = None
-        retry_delay: Optional[Seconds] = 0
         while True:
-            if retry_delay:
-                sleep(retry_delay)
-
             response = super().handle_request(request, *args, **kwargs)
 
             if response.is_success or not self.retry_strategy:
@@ -89,7 +85,7 @@ class RetryTransport(BaseRetryTransport, httpx.HTTPTransport):
             else:
                 # Close any connections kept open for this request
                 response.close()
-                continue
+                sleep(retry_delay)
 
         return response
 
@@ -102,11 +98,7 @@ class AsyncRetryTransport(BaseRetryTransport, httpx.AsyncHTTPTransport):
         self, request: httpx.Request, *args, **kwargs
     ) -> httpx.Response:
         retry_strategy = None
-        retry_delay: Optional[Seconds] = 0
         while True:
-            if retry_delay:
-                await asyncio.sleep(retry_delay)
-
             response = await super().handle_async_request(
                 request, *args, **kwargs
             )
@@ -124,6 +116,6 @@ class AsyncRetryTransport(BaseRetryTransport, httpx.AsyncHTTPTransport):
             else:
                 # Close any connections kept open for this request
                 await response.aclose()
-                continue
+                await asyncio.sleep(retry_delay)
 
         return response
