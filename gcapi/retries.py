@@ -1,8 +1,14 @@
+from functools import wraps
+from typing import Dict, Optional
+
+import httpx
 from httpx import codes
+
+Seconds = float
 
 
 class BaseRetryStrategy:
-    def get_delay(self, latest_response):
+    def get_delay(self, latest_response: httpx.Response) -> Optional[Seconds]:
         """
         Returns the number of seconds to pause before the next retry,
         based on the latest response.
@@ -28,30 +34,31 @@ class SelectiveBackoffStrategy(BaseRetryStrategy):
     """
 
     def __init__(self, backoff_factor, maximum_number_of_retries):
-        self.backoff_factor = backoff_factor
-        self.maximum_number_of_retries = maximum_number_of_retries
-        self.earlier_number_of_retries = dict()
+        self.backoff_factor: float = backoff_factor
+        self.maximum_number_of_retries: int = maximum_number_of_retries
+        self.earlier_number_of_retries: Dict[int, int] = dict()
 
-    def __call__(self):
+    def __call__(self) -> BaseRetryStrategy:
         return self.__class__(
             backoff_factor=self.backoff_factor,
             maximum_number_of_retries=self.maximum_number_of_retries,
         )
 
-    def get_delay(self, latest_response):
+    @wraps(BaseRetryStrategy.get_delay)
+    def get_delay(self, latest_response: httpx.Response) -> Optional[Seconds]:
         for handling_codes, strategy in self.strategies.items():
             if latest_response.status_code in handling_codes:
                 return strategy(self, latest_response.status_code)
         return NO_RETRY
 
-    def _single_retry(self, code: int):
+    def _single_retry(self, code):
         if code in self.earlier_number_of_retries:
             return NO_RETRY
         else:
             self.earlier_number_of_retries[code] = 1
             return RETRY_NOW
 
-    def _backoff_retries(self, code: int):
+    def _backoff_retries(self, code):
         num_retries = self.earlier_number_of_retries.get(code, 0)
         if num_retries >= self.maximum_number_of_retries:
             return NO_RETRY

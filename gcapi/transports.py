@@ -1,32 +1,43 @@
 import asyncio
 import logging
+from functools import wraps
 from time import sleep
+from typing import Callable, Optional, Tuple
 
 import httpx
-from httpx import AsyncHTTPTransport, HTTPTransport
 
 from gcapi.retries import BaseRetryStrategy
 
 logger = logging.getLogger(__name__)
 
+Seconds = float
+
 
 class BaseRetryTransport:
-    def __init__(self, retry_strategy, *args, **kwargs):
+    def __init__(
+        self,
+        retry_strategy: Optional[Callable[..., BaseRetryStrategy]],
+        *args,
+        **kwargs,
+    ):
         super().__init__(*args, **kwargs)
         self.retry_strategy = retry_strategy
-
         if self.retry_strategy:
             obj = self.retry_strategy()
             if not isinstance(obj, BaseRetryStrategy):
-                raise ValueError(
+                raise RuntimeError(
                     "Provided retries strategy should be None "
                     "or when called produce an instance of BaseRetry"
                 )
 
-    def _handle_retry(self, retry_strategy, response):
-        request = response.request
+    def _handle_retry(
+        self, retry_strategy, response
+    ) -> Tuple[BaseRetryStrategy, Optional[Seconds]]:
+        request: httpx.Request = response.request
+
         if retry_strategy is None:
-            retry_strategy = self.retry_strategy()
+            retry_strategy = self.retry_strategy()  # type: ignore
+
         retry_delay = retry_strategy.get_delay(response)
         if retry_delay is not None:
             error_phrase = httpx.codes.get_reason_phrase(response.status_code)
@@ -35,10 +46,11 @@ class BaseRetryTransport:
                 f"{response.status_code} status ('{error_phrase}'): "
                 f"retrying with {retry_delay}s delay"
             )
+
         return retry_strategy, retry_delay
 
 
-class RetryTransport(BaseRetryTransport, HTTPTransport):
+class RetryTransport(BaseRetryTransport, httpx.HTTPTransport):
     """
     Transport that retries unsuccessful requests. Delays between retries are
     governed by a retry strategy.
@@ -50,9 +62,12 @@ class RetryTransport(BaseRetryTransport, HTTPTransport):
     The retry object should be an instance of BaseRetries.
     """
 
-    def handle_request(self, request, *args, **kwargs):
+    @wraps(httpx.HTTPTransport.handle_request)
+    def handle_request(
+        self, request: httpx.Request, *args, **kwargs
+    ) -> httpx.Response:
         retry_strategy = None
-        retry_delay = 0
+        retry_delay: Optional[Seconds] = 0
         while True:
             if retry_delay:
                 sleep(retry_delay)
@@ -77,12 +92,15 @@ class RetryTransport(BaseRetryTransport, HTTPTransport):
         return response
 
 
-class AsyncRetryTransport(BaseRetryTransport, AsyncHTTPTransport):
+class AsyncRetryTransport(BaseRetryTransport, httpx.AsyncHTTPTransport):
     """Same as the RetryTransport but adapted for asynchronous clients"""
 
-    async def handle_async_request(self, request, *args, **kwargs):
+    @wraps(httpx.AsyncHTTPTransport.handle_async_request)
+    async def handle_async_request(
+        self, request: httpx.Request, *args, **kwargs
+    ) -> httpx.Response:
         retry_strategy = None
-        retry_delay = 0
+        retry_delay: Optional[Seconds] = 0
         while True:
             if retry_delay:
                 await asyncio.sleep(retry_delay)
