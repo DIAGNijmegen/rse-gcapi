@@ -2,10 +2,10 @@ import pytest
 
 from gcapi.transports import AsyncRetryTransport
 from tests.test_transports import (
-    MOCK_RESPONSES,
     MOCK_REQUEST,
-    NoRetries,
+    MOCK_RESPONSES,
     EndlessRetries,
+    NoRetries,
 )
 from tests.utils import mock_transport_responses
 
@@ -13,12 +13,12 @@ from tests.utils import mock_transport_responses
 @pytest.mark.anyio
 async def test_invalid_retries():
     with pytest.raises(ValueError):
-        AsyncRetryTransport(retries=object)
+        AsyncRetryTransport(retry_strategy=object)
 
 
 @pytest.mark.anyio
 async def test_null_retries():
-    transport = AsyncRetryTransport(retries=None)
+    transport = AsyncRetryTransport(retry_strategy=None)
 
     with mock_transport_responses(transport, MOCK_RESPONSES) as mock_info:
         response = await transport.handle_async_request(request=MOCK_REQUEST)
@@ -28,7 +28,7 @@ async def test_null_retries():
 
 @pytest.mark.anyio
 async def test_no_retry_strategy():
-    transport = AsyncRetryTransport(retries=NoRetries)
+    transport = AsyncRetryTransport(retry_strategy=NoRetries)
 
     with mock_transport_responses(transport, MOCK_RESPONSES) as mock_info:
         response = await transport.handle_async_request(request=MOCK_REQUEST)
@@ -38,7 +38,7 @@ async def test_no_retry_strategy():
 
 @pytest.mark.anyio
 async def test_infinite_retry_strategy():
-    transport = AsyncRetryTransport(retries=EndlessRetries)
+    transport = AsyncRetryTransport(retry_strategy=EndlessRetries)
 
     with mock_transport_responses(transport, MOCK_RESPONSES) as mock_info:
         response = await transport.handle_async_request(request=MOCK_REQUEST)

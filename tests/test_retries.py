@@ -1,0 +1,70 @@
+import pytest
+from httpx import Response, codes
+
+from gcapi.retries import SelectiveBackoffStrategy
+
+NO_RETRIES = [None]
+SINGLE_RETRY = [0, None]
+
+
+@pytest.mark.parametrize(
+    "responses,delays",
+    [
+        ([Response(codes.OK)], NO_RETRIES),
+        ([Response(codes.UNAUTHORIZED)], NO_RETRIES),
+        (  # No retry server errors
+            [
+                Response(e)
+                for e in (
+                    codes.NOT_IMPLEMENTED,
+                    codes.HTTP_VERSION_NOT_SUPPORTED,
+                    codes.VARIANT_ALSO_NEGOTIATES,
+                    codes.LOOP_DETECTED,
+                    codes.NOT_EXTENDED,
+                    codes.NETWORK_AUTHENTICATION_REQUIRED,
+                )
+            ],
+            NO_RETRIES,
+        ),
+        (
+            [Response(codes.FORBIDDEN)] * 2,
+            SINGLE_RETRY,
+        ),
+        (
+            [Response(codes.NOT_FOUND)] * 2,
+            SINGLE_RETRY,
+        ),
+        *(  # Backoff responses
+            (
+                [Response(e)] * 10,
+                [0.1, 0.2, 0.4, 0.8, 1.60, 3.20, 6.40, 12.8, None, None],
+            )
+            for e in (
+                codes.INTERNAL_SERVER_ERROR,
+                codes.BAD_GATEWAY,
+                codes.SERVICE_UNAVAILABLE,
+                codes.GATEWAY_TIMEOUT,
+                codes.INSUFFICIENT_STORAGE,
+            )
+        ),
+        (  # Mixed responses
+            [
+                Response(codes.FORBIDDEN),
+                Response(codes.INTERNAL_SERVER_ERROR),
+                Response(codes.INTERNAL_SERVER_ERROR),
+                Response(codes.BAD_GATEWAY),
+                Response(codes.BAD_GATEWAY),
+                Response(codes.NOT_FOUND),
+                Response(codes.FORBIDDEN),
+            ],
+            [0, 0.1, 0.2, 0.1, 0.2, 0, None],
+        ),
+    ],
+)
+def test_selective_backoff_strategy(responses, delays):
+    generator = SelectiveBackoffStrategy(
+        backoff_factor=0.1, maximum_number_of_retries=8
+    )
+    strategy = generator()
+    for response, expected_delay in zip(responses, delays):
+        assert strategy.get_delay(response) == expected_delay

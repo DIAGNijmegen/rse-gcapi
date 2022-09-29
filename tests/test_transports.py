@@ -1,7 +1,7 @@
 import httpx
 import pytest
 
-from gcapi.retries import BaseRetries
+from gcapi.retries import BaseRetryStrategy
 from gcapi.transports import RetryTransport
 from tests.utils import mock_transport_responses
 
@@ -13,13 +13,13 @@ MOCK_RESPONSES = [
 ]
 
 
-class NoRetries(BaseRetries):
+class NoRetries(BaseRetryStrategy):
     @staticmethod
     def get_delay(*_, **__):
         return None
 
 
-class EndlessRetries(BaseRetries):
+class EndlessRetries(BaseRetryStrategy):
     @staticmethod
     def get_delay(*_, **__):
         return 0
@@ -27,11 +27,11 @@ class EndlessRetries(BaseRetries):
 
 def test_invalid_retries():
     with pytest.raises(ValueError):
-        RetryTransport(retries=object)
+        RetryTransport(retry_strategy=object)
 
 
 def test_null_retries():
-    transport = RetryTransport(retries=None)
+    transport = RetryTransport(retry_strategy=None)
 
     with mock_transport_responses(transport, MOCK_RESPONSES) as mock_info:
         response = transport.handle_request(request=MOCK_REQUEST)
@@ -40,7 +40,7 @@ def test_null_retries():
 
 
 def test_no_retry_strategy():
-    transport = RetryTransport(retries=NoRetries)
+    transport = RetryTransport(retry_strategy=NoRetries)
 
     with mock_transport_responses(transport, MOCK_RESPONSES) as mock_info:
         response = transport.handle_request(request=MOCK_REQUEST)
@@ -49,7 +49,7 @@ def test_no_retry_strategy():
 
 
 def test_infinite_retry_strategy():
-    transport = RetryTransport(retries=EndlessRetries)
+    transport = RetryTransport(retry_strategy=EndlessRetries)
 
     with mock_transport_responses(transport, MOCK_RESPONSES) as mock_info:
         response = transport.handle_request(request=MOCK_REQUEST)

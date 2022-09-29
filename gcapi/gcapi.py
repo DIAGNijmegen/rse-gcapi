@@ -16,7 +16,7 @@ import httpx
 from .apibase import APIBase
 from .client import ClientBase
 from .sync_async_hybrid_support import CapturedCall, is_generator
-from .transports import RetryTransport, AsyncRetryTransport
+from .transports import AsyncRetryTransport, RetryTransport
 
 logger = logging.getLogger(__name__)
 

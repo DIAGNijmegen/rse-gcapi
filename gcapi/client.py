@@ -6,7 +6,16 @@ from io import BytesIO
 from pathlib import Path
 from random import randint
 from time import sleep
-from typing import TYPE_CHECKING, Any, Dict, Generator, List, Union
+from typing import (
+    TYPE_CHECKING,
+    Any,
+    Callable,
+    Dict,
+    Generator,
+    List,
+    Optional,
+    Union,
+)
 from urllib.parse import urljoin
 
 import httpx
@@ -14,6 +23,7 @@ from httpx import URL, HTTPStatusError, Timeout
 
 from gcapi.apibase import APIBase, ClientInterface, ModifiableMixin
 from gcapi.exceptions import ObjectNotFound
+from gcapi.retries import BaseRetryStrategy, SelectiveBackoffStrategy
 from gcapi.sync_async_hybrid_support import CapturedCall, mark_generator
 
 logger = logging.getLogger(__name__)
@@ -388,21 +398,25 @@ class ClientBase(ApiDefinitions, ClientInterface):
 
     def __init__(
         self,
-        init_base_cls,
-        transport_cls,
+        init_base_cls: Union[httpx.Client, httpx.AsyncClient],
+        transport_cls: Union[httpx.HTTPTransport, httpx.AsyncHTTPTransport],
         token: str = "",
         base_url: str = "https://grand-challenge.org/api/v1/",
         verify: bool = True,
         timeout: float = 60.0,
-        retries=None,
+        retry_strategy: Optional[Callable[[], BaseRetryStrategy]] = None,
     ):
+        retry_strategy = retry_strategy or SelectiveBackoffStrategy(
+            backoff_factor=0.1,
+            maximum_number_of_retries=8,  # ~25.5 seconds total backoff
+        )
         init_base_cls.__init__(
             self,
             verify=verify,
             timeout=Timeout(timeout=timeout),
             transport=transport_cls(
                 verify=verify,
-                retries=retries,
+                retry_strategy=retry_strategy,
             ),
         )
         self.headers.update({"Accept": "application/json"})

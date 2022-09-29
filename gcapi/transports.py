@@ -1,48 +1,78 @@
+import asyncio
+import logging
 from time import sleep
 
-import anyio
-from httpx import HTTPTransport, AsyncHTTPTransport
+import httpx
+from httpx import AsyncHTTPTransport, HTTPTransport
 
-from gcapi.retries import BaseRetries
+from gcapi.retries import BaseRetryStrategy
+
+logger = logging.getLogger(__name__)
 
 
 class BaseRetryTransport:
-    def __init__(self, retries, *args, **kwargs):
+    def __init__(self, retry_strategy, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        self.retry_strategy_cls = retries
+        self.retry_strategy = retry_strategy
 
-        if self.retry_strategy_cls:
-            obj = self.retry_strategy_cls()
-            if not isinstance(obj, BaseRetries):
+        if self.retry_strategy:
+            obj = self.retry_strategy()
+            if not isinstance(obj, BaseRetryStrategy):
                 raise ValueError(
-                    "Provided retries strategy should be None or when called produce an instance of BaseRetry"
+                    "Provided retries strategy should be None "
+                    "or when called produce an instance of BaseRetry"
                 )
+
+    def _handle_retry(self, retry_strategy, response):
+        request = response.request
+        if retry_strategy is None:
+            retry_strategy = self.retry_strategy()
+        retry_delay = retry_strategy.get_delay(response)
+        if retry_delay is not None:
+            error_phrase = httpx.codes.get_reason_phrase(response.status_code)
+            logger.error(
+                f"{request.method} request to {request.url} failed with "
+                f"{response.status_code} status ('{error_phrase}'): "
+                f"retrying with {retry_delay}s delay"
+            )
+        return retry_strategy, retry_delay
 
 
 class RetryTransport(BaseRetryTransport, HTTPTransport):
     """
-    Transport that retries unsuccessful requests. Delays between retries are governed by a retry strategy.
-    Once a request fails, a retries-strategy object is created from the provided retries class.
-    This object is then queried to provide the delay in seconds (via 'get_delay(response)').
+    Transport that retries unsuccessful requests. Delays between retries are
+    governed by a retry strategy.
+
+    Once a request fails, a retries-strategy object is created from the provided
+    retries class. This object is then queried to provide the delay in seconds
+    via 'get_delay(response)'.
 
     The retry object should be an instance of BaseRetries.
     """
 
-    def handle_request(self, *args, **kwargs):
+    def handle_request(self, request, *args, **kwargs):
         retry_strategy = None
         retry_delay = 0
-        while retry_delay is not None:
+        while True:
             if retry_delay:
                 sleep(retry_delay)
 
-            response = super().handle_request(*args, **kwargs)
+            response = super().handle_request(request, *args, **kwargs)
+            response.request = request
 
-            if response.is_success or not self.retry_strategy_cls:
+            if response.is_success or not self.retry_strategy:
                 break
 
-            if retry_strategy is None:
-                retry_strategy = self.retry_strategy_cls()
-            retry_delay = retry_strategy.get_delay(response)
+            retry_strategy, retry_delay = self._handle_retry(
+                retry_strategy, response
+            )
+
+            if retry_delay is None:
+                break
+            else:
+                # Close any connections kept open for this request
+                response.close()
+                continue
 
         return response
 
@@ -50,20 +80,29 @@ class RetryTransport(BaseRetryTransport, HTTPTransport):
 class AsyncRetryTransport(BaseRetryTransport, AsyncHTTPTransport):
     """Same as the RetryTransport but adapted for asynchronous clients"""
 
-    async def handle_async_request(self, *args, **kwargs):
+    async def handle_async_request(self, request, *args, **kwargs):
         retry_strategy = None
         retry_delay = 0
-        while retry_delay is not None:
+        while True:
             if retry_delay:
-                await anyio.sleep(retry_delay)
+                await asyncio.sleep(retry_delay)
 
-            response = await super().handle_async_request(*args, **kwargs)
+            response = await super().handle_async_request(
+                request, *args, **kwargs
+            )
+            response.request = request
 
-            if response.is_success or not self.retry_strategy_cls:
+            if response.is_success or not self.retry_strategy:
                 break
 
-            if retry_strategy is None:
-                retry_strategy = self.retry_strategy_cls()
-            retry_delay = retry_strategy.get_delay(response)
+            retry_strategy, retry_delay = self._handle_retry(
+                retry_strategy, response
+            )
+            if retry_delay is None:
+                break
+            else:
+                # Close any connections kept open for this request
+                await response.aclose()
+                continue
 
         return response
