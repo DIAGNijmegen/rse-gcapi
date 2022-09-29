@@ -26,7 +26,7 @@ class EndlessRetries(BaseRetryStrategy):
 
 
 def test_invalid_retries():
-    with pytest.raises(ValueError):
+    with pytest.raises(RuntimeError):
         RetryTransport(retry_strategy=object)
 
 
