@@ -1,7 +1,7 @@
 import httpx
 import pytest
 
-from gcapi.retries import RetryStrategy
+from gcapi.retries import BaseRetries
 from gcapi.transports import RetryTransport
 from tests.utils import mock_transport_responses
 
@@ -13,15 +13,15 @@ MOCK_RESPONSES = [
 ]
 
 
-class NoRetries(RetryStrategy):
+class NoRetries(BaseRetries):
     @staticmethod
-    def get_interval(*_, **__):
+    def get_delay(*_, **__):
         return None
 
 
-class EndlessRetries(RetryStrategy):
+class EndlessRetries(BaseRetries):
     @staticmethod
-    def get_interval(*_, **__):
+    def get_delay(*_, **__):
         return 0
 
 

@@ -389,15 +389,22 @@ class ClientBase(ApiDefinitions, ClientInterface):
     def __init__(
         self,
         init_base_cls,
+        transport_cls,
         token: str = "",
         base_url: str = "https://grand-challenge.org/api/v1/",
         verify: bool = True,
         timeout: float = 60.0,
+        retries=None,
     ):
         init_base_cls.__init__(
-            self, verify=verify, timeout=Timeout(timeout=timeout)
+            self,
+            verify=verify,
+            timeout=Timeout(timeout=timeout),
+            transport=transport_cls(
+                verify=verify,
+                retries=retries,
+            ),
         )
-
         self.headers.update({"Accept": "application/json"})
         self._auth_header = _generate_auth_header(token=token)
 

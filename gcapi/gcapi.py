@@ -16,6 +16,7 @@ import httpx
 from .apibase import APIBase
 from .client import ClientBase
 from .sync_async_hybrid_support import CapturedCall, is_generator
+from .transports import RetryTransport, AsyncRetryTransport
 
 logger = logging.getLogger(__name__)
 
@@ -120,7 +121,9 @@ class Client(httpx.Client, WrapApiInterfaces, ClientBase):
         return result
 
     def __init__(self, *args, **kwargs):
-        ClientBase.__init__(self, httpx.Client, *args, **kwargs)
+        ClientBase.__init__(
+            self, httpx.Client, RetryTransport, *args, **kwargs
+        )
         self._wrap_client_base_interfaces()
 
     def __call__(self, *args, **kwargs):
@@ -172,7 +175,9 @@ class AsyncClient(httpx.AsyncClient, WrapApiInterfaces, ClientBase):
         return result
 
     def __init__(self, *args, **kwargs):
-        ClientBase.__init__(self, httpx.AsyncClient, *args, **kwargs)
+        ClientBase.__init__(
+            self, httpx.AsyncClient, AsyncRetryTransport, *args, **kwargs
+        )
         self._wrap_client_base_interfaces()
 
     async def __call__(self, *args, **kwargs):
