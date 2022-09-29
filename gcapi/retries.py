@@ -21,13 +21,12 @@ class BaseRetryStrategy:
 
 
 NO_RETRY = None
-RETRY_NOW = 0
 
 
 class SelectiveBackoffStrategy(BaseRetryStrategy):
     """
-    Retries responses with 403 and 404 once and several transient
-    server errors (i.e. 5xx) with an exponential backoff.
+    Retries responses with codes of transient server errors (i.e. 5xx)
+    with an exponential backoff.
 
     Each response code has its own backoff counter.
     """
@@ -45,17 +44,16 @@ class SelectiveBackoffStrategy(BaseRetryStrategy):
 
     @wraps(BaseRetryStrategy.get_delay)
     def get_delay(self, latest_response: httpx.Response) -> Optional[Seconds]:
-        for handling_codes, strategy in self.strategies.items():
-            if latest_response.status_code in handling_codes:
-                return strategy(self, latest_response.status_code)
-        return NO_RETRY
-
-    def _single_retry(self, code):
-        if code in self.earlier_number_of_retries:
-            return NO_RETRY
+        if latest_response.status_code in (
+            codes.INTERNAL_SERVER_ERROR,
+            codes.BAD_GATEWAY,
+            codes.SERVICE_UNAVAILABLE,
+            codes.GATEWAY_TIMEOUT,
+            codes.INSUFFICIENT_STORAGE,
+        ):
+            return self._backoff_retries(latest_response.status_code)
         else:
-            self.earlier_number_of_retries[code] = 1
-            return RETRY_NOW
+            return NO_RETRY
 
     def _backoff_retries(self, code):
         num_retries = self.earlier_number_of_retries.get(code, 0)
@@ -64,14 +62,3 @@ class SelectiveBackoffStrategy(BaseRetryStrategy):
         else:
             self.earlier_number_of_retries[code] = num_retries + 1
             return self.backoff_factor * (2**num_retries)
-
-    strategies = {
-        (codes.FORBIDDEN, codes.NOT_FOUND): _single_retry,
-        (
-            codes.INTERNAL_SERVER_ERROR,
-            codes.BAD_GATEWAY,
-            codes.SERVICE_UNAVAILABLE,
-            codes.GATEWAY_TIMEOUT,
-            codes.INSUFFICIENT_STORAGE,
-        ): _backoff_retries,
-    }

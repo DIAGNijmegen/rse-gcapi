@@ -4,7 +4,6 @@ from httpx import Response, codes
 from gcapi.retries import SelectiveBackoffStrategy
 
 NO_RETRIES = [None]
-SINGLE_RETRY = [0, None]
 
 
 @pytest.mark.parametrize(
@@ -26,14 +25,6 @@ SINGLE_RETRY = [0, None]
             ],
             NO_RETRIES,
         ),
-        (
-            [Response(codes.FORBIDDEN)] * 2,
-            SINGLE_RETRY,
-        ),
-        (
-            [Response(codes.NOT_FOUND)] * 2,
-            SINGLE_RETRY,
-        ),
         *(  # Backoff responses
             (
                 [Response(e)] * 10,
@@ -49,15 +40,14 @@ SINGLE_RETRY = [0, None]
         ),
         (  # Mixed responses
             [
-                Response(codes.FORBIDDEN),
                 Response(codes.INTERNAL_SERVER_ERROR),
                 Response(codes.INTERNAL_SERVER_ERROR),
                 Response(codes.BAD_GATEWAY),
                 Response(codes.BAD_GATEWAY),
-                Response(codes.NOT_FOUND),
-                Response(codes.FORBIDDEN),
+                Response(codes.GATEWAY_TIMEOUT),
+                Response(codes.GATEWAY_TIMEOUT),
             ],
-            [0, 0.1, 0.2, 0.1, 0.2, 0, None],
+            [0.1, 0.2] * 3,
         ),
     ],
 )
