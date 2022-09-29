@@ -12,7 +12,7 @@ from tests.utils import mock_transport_responses
 
 @pytest.mark.anyio
 async def test_invalid_retries():
-    with pytest.raises(ValueError):
+    with pytest.raises(RuntimeError):
         AsyncRetryTransport(retry_strategy=object)
 
 
