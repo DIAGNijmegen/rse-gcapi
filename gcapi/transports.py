@@ -1,6 +1,5 @@
 import asyncio
 import logging
-from functools import wraps
 from time import sleep
 from typing import Callable, Optional, Tuple
 
@@ -63,7 +62,6 @@ class RetryTransport(BaseRetryTransport, httpx.HTTPTransport):
     The retry object should be an instance of BaseRetries.
     """
 
-    @wraps(httpx.HTTPTransport.handle_request)
     def handle_request(
         self, request: httpx.Request, *args, **kwargs
     ) -> httpx.Response:
@@ -93,7 +91,6 @@ class RetryTransport(BaseRetryTransport, httpx.HTTPTransport):
 class AsyncRetryTransport(BaseRetryTransport, httpx.AsyncHTTPTransport):
     """Same as the RetryTransport but adapted for asynchronous clients"""
 
-    @wraps(httpx.AsyncHTTPTransport.handle_async_request)
     async def handle_async_request(
         self, request: httpx.Request, *args, **kwargs
     ) -> httpx.Response:

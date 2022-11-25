@@ -1,4 +1,3 @@
-from functools import wraps
 from typing import Dict, Optional
 
 import httpx
@@ -42,7 +41,6 @@ class SelectiveBackoffStrategy(BaseRetryStrategy):
             maximum_number_of_retries=self.maximum_number_of_retries,
         )
 
-    @wraps(BaseRetryStrategy.get_delay)
     def get_delay(self, latest_response: httpx.Response) -> Optional[Seconds]:
         if latest_response.status_code in (
             codes.INTERNAL_SERVER_ERROR,
