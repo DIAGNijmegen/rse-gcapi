@@ -899,12 +899,14 @@ class ClientBase(ApiDefinitions, ClientInterface):
                     yield from self._upload_image_files(
                         display_set=ds["pk"], interface=slug, files=value
                     )
+                    data = {}
                 elif super_kind == "file":
                     upload = yield from self._upload_file(value)
                     data["user_upload"] = upload["api_url"]
                 else:
                     data["value"] = value
-                values.append(data)
+                if data:
+                    values.append(data)
             yield from self.__org_api_meta.reader_studies.display_sets.partial_update(
                 pk=ds["pk"], values=values
             )
