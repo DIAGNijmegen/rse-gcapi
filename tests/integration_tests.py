@@ -24,8 +24,8 @@ def get_upload_session(client, upload_pk):
 
 
 @recurse_call
-def get_image(client, image_url):
-    return client(url=image_url)
+def get_file(client, image_url):
+    return client(url=image_url, follow_redirects=True)
 
 
 @recurse_call
@@ -216,7 +216,7 @@ def test_upload_cases_to_archive(local_grand_challenge, files, interface):
     # Check that only one image was created
     assert len(us["image_set"]) == 1
 
-    image = get_image(c, us["image_set"][0])
+    image = get_file(c, us["image_set"][0])
 
     # And that it was added to the archive
     archive = next(c.archives.iterate_all(params={"slug": "archive"}))
@@ -295,7 +295,7 @@ def test_upload_cases_to_archive_item_with_existing_interface(
     # Check that only one image was created
     assert len(us["image_set"]) == 1
 
-    image = get_image(c, us["image_set"][0])
+    image = get_file(c, us["image_set"][0])
 
     # And that it was added to the archive item
     item = c.archive_items.detail(pk=item["pk"])
@@ -329,7 +329,7 @@ def test_upload_cases_to_archive_item_with_new_interface(
     # Check that only one image was created
     assert len(us["image_set"]) == 1
 
-    image = get_image(c, us["image_set"][0])
+    image = get_file(c, us["image_set"][0])
 
     # And that it was added to the archive item
     item = c.archive_items.detail(pk=item["pk"])
@@ -645,7 +645,7 @@ def test_update_interface_kind_of_archive_item_image_civ(
         items[-1]["values"][0]["interface"]["slug"] == "generic-medical-image"
     )
     im = items[-1]["values"][0]["image"]
-    image = get_image(c, im)
+    image = get_file(c, im)
 
     # change interface slug from generic-medical-image to generic-overlay
     _ = c.update_archive_item(
@@ -716,22 +716,72 @@ def test_update_archive_item_without_value(local_grand_challenge):
             {
                 "generic-medical-image": [
                     Path(__file__).parent / "testdata" / "image10x10x101.mha"
-                ]
-            },
-            {
+                ],
                 "generic-overlay": [
-                    Path(__file__).parent / "testdata" / "image10x10x101.mha"
-                ]
-            },
-        ],
-        [
-            {
+                    Path(__file__).parent / "testdata" / "image10x10x10.mhd",
+                    Path(__file__).parent / "testdata" / "image10x10x10.zraw",
+                ],
+                "annotation": {
+                    "name": "forearm",
+                    "type": "2D bounding box",
+                    "corners": [
+                        [20, 88, 0.5],
+                        [83, 88, 0.5],
+                        [83, 175, 0.5],
+                        [20, 175, 0.5],
+                    ],
+                    "version": {"major": 1, "minor": 0},
+                },
                 "predictions-csv-file": [
                     Path(__file__).parent / "testdata" / "test.csv"
-                ]
+                ],
+            },
+            {
+                "generic-medical-image": [
+                    Path(__file__).parent / "testdata" / "image10x10x101.mha"
+                ],
+                "annotation": {
+                    "name": "forearm",
+                    "type": "2D bounding box",
+                    "corners": [
+                        [20, 88, 0.5],
+                        [83, 88, 0.5],
+                        [83, 175, 0.5],
+                        [20, 175, 0.5],
+                    ],
+                    "version": {"major": 1, "minor": 0},
+                },
+            },
+            {
+                "annotation": {
+                    "name": "forearm",
+                    "type": "2D bounding box",
+                    "corners": [
+                        [20, 88, 0.5],
+                        [83, 88, 0.5],
+                        [83, 175, 0.5],
+                        [20, 175, 0.5],
+                    ],
+                    "version": {"major": 1, "minor": 0},
+                },
+                "predictions-csv-file": [
+                    Path(__file__).parent / "testdata" / "test.csv"
+                ],
+            },
+            {
+                "annotation": {
+                    "name": "forearm",
+                    "type": "2D bounding box",
+                    "corners": [
+                        [20, 88, 0.5],
+                        [83, 88, 0.5],
+                        [83, 175, 0.5],
+                        [20, 175, 0.5],
+                    ],
+                    "version": {"major": 1, "minor": 0},
+                },
             },
         ],
-        [{"results-json-file": {"foo": "bar"}}],
     ),
 )
 def test_add_cases_to_reader_study(display_sets, local_grand_challenge):
@@ -739,32 +789,60 @@ def test_add_cases_to_reader_study(display_sets, local_grand_challenge):
         base_url=local_grand_challenge, verify=False, token=READERSTUDY_TOKEN
     )
 
-    created = c.add_cases_to_reader_study(
+    added_display_sets = c.add_cases_to_reader_study(
         reader_study="reader-study", display_sets=display_sets
     )
 
-    assert len(created) == len(display_sets)
+    assert len(added_display_sets) == len(display_sets)
 
     reader_study = next(
         c.reader_studies.iterate_all(params={"slug": "reader-study"})
     )
-    display_sets = list(
+    all_display_sets = list(
         c.reader_studies.display_sets.iterate_all(
             params={"reader_study": reader_study["pk"]}
         )
     )
 
-    assert all([x in [y["pk"] for y in display_sets] for x in created])
+    assert all(
+        [x in [y["pk"] for y in all_display_sets] for x in added_display_sets]
+    )
 
     @recurse_call
-    def check_file(ds_pk):
-        ds = c.reader_studies.display_sets.detail(pk=ds_pk)
-        if len(ds["values"]) <= 0:
-            raise ValueError
-        return ds
+    def check_image(interface_value, expected_name):
+        image = get_file(c, interface_value["image"])
+        assert image["name"] == expected_name
 
-    for pk in created:
-        check_file(pk)
+    def check_annotation(interface_value, expected):
+        assert interface_value["value"] == expected
+
+    @recurse_call
+    def check_file(interface_value, expected_name):
+        response = get_file(c, interface_value["file"])
+        assert response.url.path.endswith(expected_name)
+
+    for display_set_pk, display_set in zip(added_display_sets, display_sets):
+        ds = c.reader_studies.display_sets.detail(pk=display_set_pk)
+        # make take a while for the images to be added
+        while len(ds["values"]) != len(display_set):
+            ds = c.reader_studies.display_sets.detail(pk=display_set_pk)
+
+        for interface, value in display_set.items():
+            civ = [
+                civ
+                for civ in ds["values"]
+                if civ["interface"]["slug"] == interface
+            ][0]
+
+            if civ["interface"]["super_kind"] == "Image":
+                file_name = value[0].name
+                check_image(civ, file_name)
+            elif civ["interface"]["kind"] == "2D bounding box":
+                check_annotation(civ, value)
+                pass
+            elif civ["interface"]["super_kind"] == "File":
+                file_name = value[0].name
+                check_file(civ, file_name)
 
 
 def test_add_cases_to_reader_study_invalid_interface(local_grand_challenge):

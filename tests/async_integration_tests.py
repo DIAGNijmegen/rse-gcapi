@@ -25,7 +25,7 @@ async def get_upload_session(client, upload_pk):
 
 @async_recurse_call
 async def get_file(client, url):
-    return await client(url=url)
+    return await client(url=url, follow_redirects=True)
 
 
 @async_recurse_call
@@ -912,8 +912,8 @@ async def test_add_cases_to_reader_study(display_sets, local_grand_challenge):
 
         @async_recurse_call
         async def check_file(interface_value, expected_name):
-            file = await get_file(c, interface_value["file"])
-            assert file["name"] == expected_name
+            response = await get_file(c, interface_value["file"])
+            assert response.url.path.endswith(expected_name)
 
         # Check for each display set that the values are added
         for display_set_pk, display_set in zip(
