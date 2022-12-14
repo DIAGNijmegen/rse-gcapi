@@ -24,8 +24,8 @@ async def get_upload_session(client, upload_pk):
 
 
 @async_recurse_call
-async def get_image(client, image_url):
-    return await client(url=image_url)
+async def get_file(client, url):
+    return await client(url=url, follow_redirects=True)
 
 
 @async_recurse_call
@@ -232,7 +232,7 @@ async def test_upload_cases_to_archive(
 
         # Check that only one image was created
         assert len(us["image_set"]) == 1
-        image = await get_image(c, us["image_set"][0])
+        image = await get_file(c, us["image_set"][0])
 
         # And that it was added to the archive
         archive = await (
@@ -333,7 +333,7 @@ async def test_upload_cases_to_archive_item_with_existing_interface(
 
         # Check that only one image was created
         assert len(us["image_set"]) == 1
-        image = await get_image(c, us["image_set"][0])
+        image = await get_file(c, us["image_set"][0])
 
         # And that it was added to the archive item
         item = await c.archive_items.detail(pk=items_list[-1]["pk"])
@@ -379,7 +379,7 @@ async def test_upload_cases_to_archive_item_with_new_interface(
 
         # Check that only one image was created
         assert len(us["image_set"]) == 1
-        image = await get_image(c, us["image_set"][0])
+        image = await get_file(c, us["image_set"][0])
 
         # And that it was added to the archive item
         item = await c.archive_items.detail(pk=items_list[-1]["pk"])
@@ -431,11 +431,7 @@ async def test_download_cases(local_grand_challenge, files, tmpdir):
             "generic-medical-image",
             ["image10x10x101.mha"],
         ),
-        (
-            "test-algorithm-evaluation-file-1",
-            "json-file",
-            ["test.json"],
-        ),
+        ("test-algorithm-evaluation-file-1", "json-file", ["test.json"]),
     ),
 )
 @pytest.mark.anyio
@@ -740,7 +736,7 @@ async def test_update_interface_kind_of_archive_item_image_civ(
             == "generic-medical-image"
         )
         im = items_list[-1]["values"][0]["image"]
-        image = await get_image(c, im)
+        image = await get_file(c, im)
 
         # change interface slug from generic-medical-image to generic-overlay
         _ = await c.update_archive_item(
@@ -817,22 +813,72 @@ async def test_update_archive_item_without_value(local_grand_challenge):
             {
                 "generic-medical-image": [
                     Path(__file__).parent / "testdata" / "image10x10x101.mha"
-                ]
-            },
-            {
+                ],
                 "generic-overlay": [
-                    Path(__file__).parent / "testdata" / "image10x10x101.mha"
-                ]
-            },
-        ],
-        [
-            {
+                    Path(__file__).parent / "testdata" / "image10x10x10.mhd",
+                    Path(__file__).parent / "testdata" / "image10x10x10.zraw",
+                ],
+                "annotation": {
+                    "name": "forearm",
+                    "type": "2D bounding box",
+                    "corners": [
+                        [20, 88, 0.5],
+                        [83, 88, 0.5],
+                        [83, 175, 0.5],
+                        [20, 175, 0.5],
+                    ],
+                    "version": {"major": 1, "minor": 0},
+                },
                 "predictions-csv-file": [
                     Path(__file__).parent / "testdata" / "test.csv"
-                ]
+                ],
+            },
+            {
+                "generic-medical-image": [
+                    Path(__file__).parent / "testdata" / "image10x10x101.mha"
+                ],
+                "annotation": {
+                    "name": "forearm",
+                    "type": "2D bounding box",
+                    "corners": [
+                        [20, 88, 0.5],
+                        [83, 88, 0.5],
+                        [83, 175, 0.5],
+                        [20, 175, 0.5],
+                    ],
+                    "version": {"major": 1, "minor": 0},
+                },
+            },
+            {
+                "annotation": {
+                    "name": "forearm",
+                    "type": "2D bounding box",
+                    "corners": [
+                        [20, 88, 0.5],
+                        [83, 88, 0.5],
+                        [83, 175, 0.5],
+                        [20, 175, 0.5],
+                    ],
+                    "version": {"major": 1, "minor": 0},
+                },
+                "predictions-csv-file": [
+                    Path(__file__).parent / "testdata" / "test.csv"
+                ],
+            },
+            {
+                "annotation": {
+                    "name": "forearm",
+                    "type": "2D bounding box",
+                    "corners": [
+                        [20, 88, 0.5],
+                        [83, 88, 0.5],
+                        [83, 175, 0.5],
+                        [20, 175, 0.5],
+                    ],
+                    "version": {"major": 1, "minor": 0},
+                },
             },
         ],
-        [{"results-json-file": {"foo": "bar"}}],
     ),
 )
 @pytest.mark.anyio
@@ -840,31 +886,62 @@ async def test_add_cases_to_reader_study(display_sets, local_grand_challenge):
     async with AsyncClient(
         base_url=local_grand_challenge, verify=False, token=READERSTUDY_TOKEN
     ) as c:
-        created = await c.add_cases_to_reader_study(
+
+        added_display_sets = await c.add_cases_to_reader_study(
             reader_study="reader-study", display_sets=display_sets
         )
 
-        assert len(created) == len(display_sets)
+        assert len(added_display_sets) == len(display_sets)
 
         reader_study = await c.reader_studies.iterate_all(
             params={"slug": "reader-study"}
         ).__anext__()
-        display_sets = c.reader_studies.display_sets.iterate_all(
+        all_display_sets = c.reader_studies.display_sets.iterate_all(
             params={"reader_study": reader_study["pk"]}
         )
-        ds_pks = [x["pk"] async for x in display_sets]
-        assert all([x in ds_pks for x in created])
+        all_display_sets = {x["pk"]: x async for x in all_display_sets}
+        assert all([x in all_display_sets for x in added_display_sets])
 
-        # Check that the files are added to the display set
         @async_recurse_call
-        async def check_file(ds_pk):
-            ds = await c.reader_studies.display_sets.detail(pk=ds_pk)
-            if len(ds["values"]) <= 0:
-                raise ValueError
-            return ds
+        async def check_image(interface_value, expected_name):
+            image = await get_file(c, interface_value["image"])
+            assert image["name"] == expected_name
 
-        for pk in created:
-            await check_file(pk)
+        def check_annotation(interface_value, expected):
+            assert interface_value["value"] == expected
+
+        @async_recurse_call
+        async def check_file(interface_value, expected_name):
+            response = await get_file(c, interface_value["file"])
+            assert response.url.path.endswith(expected_name)
+
+        # Check for each display set that the values are added
+        for display_set_pk, display_set in zip(
+            added_display_sets, display_sets
+        ):
+            ds = await c.reader_studies.display_sets.detail(pk=display_set_pk)
+            # make take a while for the images to be added
+            while len(ds["values"]) != len(display_set):
+                ds = await c.reader_studies.display_sets.detail(
+                    pk=display_set_pk
+                )
+
+            for interface, value in display_set.items():
+                civ = [
+                    civ
+                    for civ in ds["values"]
+                    if civ["interface"]["slug"] == interface
+                ][0]
+
+                if civ["interface"]["super_kind"] == "Image":
+                    file_name = value[0].name
+                    await check_image(civ, file_name)
+                elif civ["interface"]["kind"] == "2D bounding box":
+                    check_annotation(civ, value)
+                    pass
+                elif civ["interface"]["super_kind"] == "File":
+                    file_name = value[0].name
+                    await check_file(civ, file_name)
 
 
 @pytest.mark.anyio
@@ -876,7 +953,7 @@ async def test_add_cases_to_reader_study_invalid_interface(
             "very-specific-medical-image": [
                 Path(__file__).parent / "testdata" / "image10x10x101.mha"
             ]
-        },
+        }
     ]
 
     async with AsyncClient(
@@ -900,9 +977,7 @@ async def test_add_cases_to_reader_study_invalid_path(
     local_grand_challenge,
 ):
     file_path = Path(__file__).parent / "testdata" / "image10x10x1011.mha"
-    display_sets = [
-        {"generic-medical-image": [file_path]},
-    ]
+    display_sets = [{"generic-medical-image": [file_path]}]
 
     async with AsyncClient(
         base_url=local_grand_challenge, verify=False, token=READERSTUDY_TOKEN
@@ -922,9 +997,7 @@ async def test_add_cases_to_reader_study_invalid_path(
 async def test_add_cases_to_reader_study_invalid_value(
     local_grand_challenge,
 ):
-    display_sets = [
-        {"generic-medical-image": "not a list"},
-    ]
+    display_sets = [{"generic-medical-image": "not a list"}]
 
     async with AsyncClient(
         base_url=local_grand_challenge, verify=False, token=READERSTUDY_TOKEN
@@ -947,9 +1020,7 @@ async def test_add_cases_to_reader_study_multiple_files(local_grand_challenge):
         for f in ["test.csv", "test.csv"]
     ]
 
-    display_sets = [
-        {"predictions-csv-file": files},
-    ]
+    display_sets = [{"predictions-csv-file": files}]
 
     async with AsyncClient(
         base_url=local_grand_challenge, verify=False, token=READERSTUDY_TOKEN
