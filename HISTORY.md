@@ -1,5 +1,10 @@
 # History
 
+## 0.11.0 (2022-12-14)
+
+  - Added automatic retries with backoff for failed requests
+  - Fixed added files to display sets
+
 ## 0.10.0 (2022-09-21)
 
   - Removed client-side json validation, which is instead handled by Grand Challenge
