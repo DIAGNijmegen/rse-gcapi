@@ -887,7 +887,8 @@ def test_add_cases_to_reader_study_invalid_path(local_grand_challenge):
         )
 
     assert str(e.value) == (
-        f"Invalid file paths: {{'generic-medical-image': [{file_path!r}]}}"
+        "Invalid file paths: "  # noqa: B907
+        f"{{'generic-medical-image': ['{file_path}']}}"
     )
 
 
