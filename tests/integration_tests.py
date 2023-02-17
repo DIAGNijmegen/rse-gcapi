@@ -75,7 +75,7 @@ def test_create_landmark_annotation(local_grand_challenge):
     for sla_error in response["singlelandmarkannotation_set"]:
         assert (
             sla_error["image"][0]
-            == f'Invalid pk "{nil_uuid}" - object does not exist.'
+            == f'Invalid pk "{nil_uuid}" - object does not exist.'  # noqa: B907
         )
 
 
@@ -100,7 +100,7 @@ def test_create_polygon_annotation_set(local_grand_challenge):
     assert response["grader"][0] == 'Invalid pk "0" - object does not exist.'
     assert (
         response["image"][0]
-        == f'Invalid pk "{nil_uuid}" - object does not exist.'
+        == f'Invalid pk "{nil_uuid}" - object does not exist.'  # noqa: B907
     )
     assert response["name"][0] == "This field is required."
 
@@ -886,7 +886,7 @@ def test_add_cases_to_reader_study_invalid_path(local_grand_challenge):
         )
 
     assert str(e.value) == (
-        f"Invalid file paths: {{'generic-medical-image': ['{file_path}']}}"
+        f"Invalid file paths: {{'generic-medical-image': [{file_path!r}]}}"
     )
 
 

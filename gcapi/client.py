@@ -45,7 +45,9 @@ class ImagesAPI(APIBase):
         self,
         *,
         filename: Union[str, Path],  # extension is added automatically
-        image_type: str = None,  # restrict download to a particular image type
+        image_type: Optional[
+            str
+        ] = None,  # restrict download to a particular image type
         pk=None,
         url=None,
         files=None,
@@ -438,7 +440,7 @@ class ClientBase(ApiDefinitions, ClientInterface):
             return api
         else:
             raise AttributeError(
-                f"'ClientBase' has no function or API '{item}'"
+                f"'ClientBase' has no function or API {item!r}"
             )
 
     def validate_url(self, url):
@@ -531,11 +533,11 @@ class ClientBase(ApiDefinitions, ClientInterface):
         self,
         *,
         files: List[str],
-        archive: str = None,
-        answer: str = None,
-        archive_item: str = None,
-        display_set: str = None,
-        interface: str = None,
+        archive: Optional[str] = None,
+        answer: Optional[str] = None,
+        archive_item: Optional[str] = None,
+        display_set: Optional[str] = None,
+        interface: Optional[str] = None,
     ):
         """
         Uploads a set of files to an archive, archive item or display set.

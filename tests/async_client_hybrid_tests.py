@@ -9,10 +9,10 @@ from gcapi.sync_async_hybrid_support import CallCapture, mark_generator
 
 class AbstractBase:
     def return_hello_world(self) -> str:
-        ...
+        raise NotImplementedError
 
     def throw_value_error(self):
-        ...
+        raise NotImplementedError
 
 
 class SyncBase(AbstractBase):
