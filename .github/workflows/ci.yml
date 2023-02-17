@@ -8,7 +8,7 @@ on:
       - published
 
 env:
-  MINIMUM_PYTHON_VERSION: '3.6'
+  MINIMUM_PYTHON_VERSION: '3.7'
 
 concurrency:
   group: ${{ github.head_ref || github.run_id }}
@@ -16,8 +16,7 @@ concurrency:
 
 jobs:
   precommit:
-    # Hard-code ubuntu version when using python 3.6, issue: https://githubcom/actions/setup-python/issues/544
-    runs-on: ubuntu-20.04
+    runs-on:ubuntu-latest
     steps:
       - name: Install Python ${{ env.MINIMUM_PYTHON_VERSION }}
         uses: actions/setup-python@v3
@@ -33,8 +32,7 @@ jobs:
         run: pre-commit run --all-files
 
   build:
-    # Hard-code ubuntu version when using python 3.6, issue: https://githubcom/actions/setup-python/issues/544
-    runs-on: ubuntu-20.04
+    runs-on: ubuntu-latest
     permissions:
       # These permissions are needed to interact with GitHub's OIDC Token endpoint.
       id-token: write
@@ -42,7 +40,7 @@ jobs:
     strategy:
       fail-fast: false # Try to work around ECS errors
       matrix:
-        python-version: ["3.6", "3.7", "3.8", "3.9", "3.10"]
+        python-version: ["3.7", "3.8", "3.9", "3.10"]
     steps:
       - uses: actions/checkout@v3
       - name: Set up Python ${{ matrix.python-version }}
@@ -76,8 +74,7 @@ jobs:
   deploy:
     if: github.event_name == 'release'
     needs: [precommit, build]
-    # Hard-code ubuntu version when using python 3.6, issue: https://githubcom/actions/setup-python/issues/544
-    runs-on: ubuntu-20.04
+    runs-on: ubuntu-latest
     steps:
       - name: Install Python ${{ env.MINIMUM_PYTHON_VERSION }}
         uses: actions/setup-python@v3

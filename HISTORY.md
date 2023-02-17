@@ -1,5 +1,9 @@
 # History
 
+## 0.12.0 (UNRELEASED)
+
+  - Removed support for Python 3.6
+
 ## 0.11.0 (2022-12-14)
 
   - Added automatic retries with backoff for failed requests
