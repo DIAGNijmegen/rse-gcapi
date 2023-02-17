@@ -3,6 +3,7 @@
 ## 0.12.0 (UNRELEASED)
 
   - Removed support for Python 3.6 and 3.7
+  - Added support for Python 3.11
 
 ## 0.11.0 (2022-12-14)
 
