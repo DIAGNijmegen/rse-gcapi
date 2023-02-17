@@ -20,8 +20,8 @@ Challenge](https://grand-challenge.org/documentation/grand-challenge-api/).
 This client is tested using the `tox` framework. This enables testing
 the client in various python-version environments.
 
-For example, running a specific `your_test` for only the python 3.7
+For example, running a specific `your_test` for only the python 3.8
 environment can be done as follows:
 ```bash
-tox -e py37 -- -k your_test
+tox -e py38 -- -k your_test
 ```
