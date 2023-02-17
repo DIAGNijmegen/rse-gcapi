@@ -16,7 +16,7 @@ concurrency:
 
 jobs:
   precommit:
-    runs-on:ubuntu-latest
+    runs-on: ubuntu-latest
     steps:
       - name: Install Python ${{ env.MINIMUM_PYTHON_VERSION }}
         uses: actions/setup-python@v3
