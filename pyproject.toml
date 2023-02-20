@@ -52,7 +52,7 @@ xfail_strict = true
 legacy_tox_ini = """
 [tox]
 isolated_build = True
-envlist = py38, py39, py310, py3.11
+envlist = py38, py39, py310, py311
 
 [gh-actions]
 python =
