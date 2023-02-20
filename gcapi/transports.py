@@ -43,7 +43,7 @@ class BaseRetryTransport:
             error_phrase = httpx.codes.get_reason_phrase(response.status_code)
             logger.error(
                 f"{request.method} request to {request.url} failed with "
-                f"{response.status_code} status ('{error_phrase}'): "
+                f"{response.status_code} status ({error_phrase!r}): "
                 f"retrying with {retry_delay}s delay"
             )
 

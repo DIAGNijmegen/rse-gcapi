@@ -37,7 +37,6 @@ def local_grand_challenge() -> Generator[str, None, None]:
     else:
         # Start our own version of grand challenge
         with TemporaryDirectory() as tmp_path:
-
             for f in [
                 "docker-compose.yml",
                 "dockerfiles/db/postgres.test.conf",

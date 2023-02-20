@@ -159,20 +159,12 @@ module.
 
 """
 
-from typing import Callable, Dict, NamedTuple, Tuple, Union
+from dataclasses import dataclass
+from typing import Callable, Dict, Tuple, Union
 
 
-class _CapturedCall(NamedTuple):
-    func: Union[object, Callable]
-    args: Tuple
-    kwargs: Dict
-
-
-# Paul K.: Trick to get the SLOT-constant through the mypy verification, which
-# does not like extra members being added to the a NamedTuple. dataclasses
-# would be the correct answer, but are not available in python 3.6 which we need
-# for MeVisLab
-class CapturedCall(_CapturedCall):
+@dataclass
+class CapturedCall:
     """
     A "CapturedCall" is a description of a "deep call" including all arguments.
     A "deep call" is a call to a function in some complex object-hierarchy,
@@ -180,6 +172,10 @@ class CapturedCall(_CapturedCall):
 
     `parent.child.grandchild.func("a", "b")`
     """
+
+    func: Union[object, Callable]
+    args: Tuple
+    kwargs: Dict
 
     SLOT = object()
 

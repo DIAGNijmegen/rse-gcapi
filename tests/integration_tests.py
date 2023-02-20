@@ -6,13 +6,14 @@ from httpx import HTTPStatusError
 
 from gcapi import Client
 from gcapi.exceptions import MultipleObjectsReturned, ObjectNotFound
-from tests.utils import recurse_call
-
-RETINA_TOKEN = "f1f98a1733c05b12118785ffd995c250fe4d90da"
-ADMIN_TOKEN = "1b9436200001f2eaf57cd77db075cbb60a49a00a"
-READERSTUDY_TOKEN = "01614a77b1c0b4ecd402be50a8ff96188d5b011d"
-DEMO_PARTICIPANT_TOKEN = "00aa710f4dc5621a0cb64b0795fbba02e39d7700"
-ARCHIVE_TOKEN = "0d284528953157759d26c469297afcf6fd367f71"
+from tests.utils import (
+    ADMIN_TOKEN,
+    ARCHIVE_TOKEN,
+    DEMO_PARTICIPANT_TOKEN,
+    READERSTUDY_TOKEN,
+    RETINA_TOKEN,
+    recurse_call,
+)
 
 
 @recurse_call
@@ -75,7 +76,7 @@ def test_create_landmark_annotation(local_grand_challenge):
     for sla_error in response["singlelandmarkannotation_set"]:
         assert (
             sla_error["image"][0]
-            == f'Invalid pk "{nil_uuid}" - object does not exist.'
+            == f'Invalid pk "{nil_uuid}" - object does not exist.'  # noqa: B907
         )
 
 
@@ -100,7 +101,7 @@ def test_create_polygon_annotation_set(local_grand_challenge):
     assert response["grader"][0] == 'Invalid pk "0" - object does not exist.'
     assert (
         response["image"][0]
-        == f'Invalid pk "{nil_uuid}" - object does not exist.'
+        == f'Invalid pk "{nil_uuid}" - object does not exist.'  # noqa: B907
     )
     assert response["name"][0] == "This field is required."
 
@@ -886,7 +887,8 @@ def test_add_cases_to_reader_study_invalid_path(local_grand_challenge):
         )
 
     assert str(e.value) == (
-        f"Invalid file paths: {{'generic-medical-image': ['{file_path}']}}"
+        "Invalid file paths: "  # noqa: B907
+        f"{{'generic-medical-image': ['{file_path}']}}"
     )
 
 

@@ -6,13 +6,14 @@ from httpx import HTTPStatusError
 
 from gcapi import AsyncClient
 from gcapi.exceptions import MultipleObjectsReturned, ObjectNotFound
-from tests.utils import async_recurse_call
-
-RETINA_TOKEN = "f1f98a1733c05b12118785ffd995c250fe4d90da"
-ADMIN_TOKEN = "1b9436200001f2eaf57cd77db075cbb60a49a00a"
-READERSTUDY_TOKEN = "01614a77b1c0b4ecd402be50a8ff96188d5b011d"
-DEMO_PARTICIPANT_TOKEN = "00aa710f4dc5621a0cb64b0795fbba02e39d7700"
-ARCHIVE_TOKEN = "0d284528953157759d26c469297afcf6fd367f71"
+from tests.utils import (
+    ADMIN_TOKEN,
+    ARCHIVE_TOKEN,
+    DEMO_PARTICIPANT_TOKEN,
+    READERSTUDY_TOKEN,
+    RETINA_TOKEN,
+    async_recurse_call,
+)
 
 
 @async_recurse_call
@@ -78,7 +79,7 @@ async def test_create_landmark_annotation(local_grand_challenge):
         for sla_error in response["singlelandmarkannotation_set"]:
             assert (
                 sla_error["image"][0]
-                == f'Invalid pk "{nil_uuid}" - object does not exist.'
+                == f'Invalid pk "{nil_uuid}" - object does not exist.'  # noqa: B907
             )
 
 
@@ -106,7 +107,7 @@ async def test_create_polygon_annotation_set(local_grand_challenge):
         )
         assert (
             response["image"][0]
-            == f'Invalid pk "{nil_uuid}" - object does not exist.'
+            == f'Invalid pk "{nil_uuid}" - object does not exist.'  # noqa: B907
         )
         assert response["name"][0] == "This field is required."
 
@@ -221,7 +222,6 @@ async def test_upload_cases_to_archive(
     async with AsyncClient(
         base_url=local_grand_challenge, verify=False, token=ARCHIVE_TOKEN
     ) as c:
-
         us = await c.upload_cases(
             archive="archive",
             interface=interface,
@@ -235,8 +235,8 @@ async def test_upload_cases_to_archive(
         image = await get_file(c, us["image_set"][0])
 
         # And that it was added to the archive
-        archive = await (
-            c.archives.iterate_all(params={"slug": "archive"})
+        archive = await c.archives.iterate_all(
+            params={"slug": "archive"}
         ).__anext__()
         archive_images = c.images.iterate_all(
             params={"archive": archive["pk"]}
@@ -277,11 +277,11 @@ async def test_upload_cases_to_archive_item_without_interface(
         base_url=local_grand_challenge, verify=False, token=ARCHIVE_TOKEN
     ) as c:
         # retrieve existing archive item pk
-        archive = await (
-            c.archives.iterate_all(params={"slug": "archive"})
+        archive = await c.archives.iterate_all(
+            params={"slug": "archive"}
         ).__anext__()
-        item = await (
-            c.archive_items.iterate_all(params={"archive": archive["pk"]})
+        item = await c.archive_items.iterate_all(
+            params={"archive": archive["pk"]}
         ).__anext__()
 
         with pytest.raises(ValueError) as e:
@@ -304,10 +304,9 @@ async def test_upload_cases_to_archive_item_with_existing_interface(
     async with AsyncClient(
         base_url=local_grand_challenge, verify=False, token=ARCHIVE_TOKEN
     ) as c:
-
         # retrieve existing archive item pk
-        archive = await (
-            c.archives.iterate_all(params={"slug": "archive"})
+        archive = await c.archives.iterate_all(
+            params={"slug": "archive"}
         ).__anext__()
         items = c.archive_items.iterate_all(params={"archive": archive["pk"]})
         old_items_list = [item async for item in items]
@@ -352,9 +351,8 @@ async def test_upload_cases_to_archive_item_with_new_interface(
     async with AsyncClient(
         base_url=local_grand_challenge, verify=False, token=ARCHIVE_TOKEN
     ) as c:
-
-        archive = await (
-            c.archives.iterate_all(params={"slug": "archive"})
+        archive = await c.archives.iterate_all(
+            params={"slug": "archive"}
         ).__anext__()
         items = c.archive_items.iterate_all(params={"archive": archive["pk"]})
         old_items_list = [item async for item in items]
@@ -554,8 +552,8 @@ async def test_add_and_update_file_to_archive_item(local_grand_challenge):
         base_url=local_grand_challenge, verify=False, token=ARCHIVE_TOKEN
     ) as c:
         # check number of archive items
-        archive = await (
-            c.archives.iterate_all(params={"slug": "archive"})
+        archive = await c.archives.iterate_all(
+            params={"slug": "archive"}
         ).__anext__()
         items = c.archive_items.iterate_all(params={"archive": archive["pk"]})
         old_items_list = [item async for item in items]
@@ -643,8 +641,8 @@ async def test_add_and_update_value_to_archive_item(local_grand_challenge):
         base_url=local_grand_challenge, verify=False, token=ARCHIVE_TOKEN
     ) as c:
         # check number of archive items
-        archive = await (
-            c.archives.iterate_all(params={"slug": "archive"})
+        archive = await c.archives.iterate_all(
+            params={"slug": "archive"}
         ).__anext__()
         items = c.archive_items.iterate_all(params={"archive": archive["pk"]})
         old_items_list = [item async for item in items]
@@ -712,8 +710,8 @@ async def test_update_interface_kind_of_archive_item_image_civ(
         base_url=local_grand_challenge, verify=False, token=ARCHIVE_TOKEN
     ) as c:
         # check number of archive items
-        archive = await (
-            c.archives.iterate_all(params={"slug": "archive"})
+        archive = await c.archives.iterate_all(
+            params={"slug": "archive"}
         ).__anext__()
         items = c.archive_items.iterate_all(params={"archive": archive["pk"]})
         old_items_list = [item async for item in items]
@@ -769,10 +767,9 @@ async def test_update_archive_item_with_non_existing_interface(
     async with AsyncClient(
         base_url=local_grand_challenge, verify=False, token=ARCHIVE_TOKEN
     ) as c:
-
         # retrieve existing archive item pk
-        archive = await (
-            c.archives.iterate_all(params={"slug": "archive"})
+        archive = await c.archives.iterate_all(
+            params={"slug": "archive"}
         ).__anext__()
         items = c.archive_items.iterate_all(params={"archive": archive["pk"]})
         item_ids = [item["pk"] async for item in items]
@@ -788,10 +785,9 @@ async def test_update_archive_item_without_value(local_grand_challenge):
     async with AsyncClient(
         base_url=local_grand_challenge, verify=False, token=ARCHIVE_TOKEN
     ) as c:
-
         # retrieve existing archive item pk
-        archive = await (
-            c.archives.iterate_all(params={"slug": "archive"})
+        archive = await c.archives.iterate_all(
+            params={"slug": "archive"}
         ).__anext__()
         items = c.archive_items.iterate_all(params={"archive": archive["pk"]})
         item_ids = [item["pk"] async for item in items]
@@ -886,7 +882,6 @@ async def test_add_cases_to_reader_study(display_sets, local_grand_challenge):
     async with AsyncClient(
         base_url=local_grand_challenge, verify=False, token=READERSTUDY_TOKEN
     ) as c:
-
         added_display_sets = await c.add_cases_to_reader_study(
             reader_study="reader-study", display_sets=display_sets
         )
@@ -959,7 +954,6 @@ async def test_add_cases_to_reader_study_invalid_interface(
     async with AsyncClient(
         base_url=local_grand_challenge, verify=False, token=READERSTUDY_TOKEN
     ) as c:
-
         with pytest.raises(ValueError) as e:
             await c.add_cases_to_reader_study(
                 reader_study="reader-study", display_sets=display_sets
@@ -982,14 +976,14 @@ async def test_add_cases_to_reader_study_invalid_path(
     async with AsyncClient(
         base_url=local_grand_challenge, verify=False, token=READERSTUDY_TOKEN
     ) as c:
-
         with pytest.raises(ValueError) as e:
             await c.add_cases_to_reader_study(
                 reader_study="reader-study", display_sets=display_sets
             )
 
         assert str(e.value) == (
-            f"Invalid file paths: {{'generic-medical-image': ['{file_path}']}}"
+            "Invalid file paths: "  # noqa: B907
+            f"{{'generic-medical-image': ['{file_path}']}}"
         )
 
 
@@ -1002,7 +996,6 @@ async def test_add_cases_to_reader_study_invalid_value(
     async with AsyncClient(
         base_url=local_grand_challenge, verify=False, token=READERSTUDY_TOKEN
     ) as c:
-
         with pytest.raises(ValueError) as e:
             await c.add_cases_to_reader_study(
                 reader_study="reader-study", display_sets=display_sets
@@ -1025,7 +1018,6 @@ async def test_add_cases_to_reader_study_multiple_files(local_grand_challenge):
     async with AsyncClient(
         base_url=local_grand_challenge, verify=False, token=READERSTUDY_TOKEN
     ) as c:
-
         with pytest.raises(ValueError) as e:
             await c.add_cases_to_reader_study(
                 reader_study="reader-study", display_sets=display_sets

@@ -3,6 +3,7 @@ from click.testing import CliRunner
 from httpx import HTTPStatusError
 
 from gcapi import Client, cli
+from tests.utils import ADMIN_TOKEN
 
 
 @pytest.mark.parametrize(
@@ -21,7 +22,7 @@ def test_headers():
 
 
 def test_token_via_env_var(monkeypatch):
-    token = "BEARER 1b9436200001f2eaf57cd77db075cbb60a49a00a"
+    token = f"BEARER {ADMIN_TOKEN}"
     monkeypatch.setenv("GRAND_CHALLENGE_AUTHORIZATION", token)
     c = Client()
     assert c._auth_header["Authorization"] == token

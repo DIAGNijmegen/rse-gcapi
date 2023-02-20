@@ -35,7 +35,7 @@ class ClientInterface:
         files=None,
         data=None,
     ) -> Generator[CapturedCall, Any, Any]:
-        pass
+        raise NotImplementedError
 
 
 class Common:
