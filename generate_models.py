@@ -3,12 +3,13 @@ from pathlib import Path
 from tempfile import TemporaryDirectory
 
 import httpx
-from datamodel_code_generator import generate
+from datamodel_code_generator import DataModelType, PythonVersion, generate
 
 
 def main() -> int:
     json_schema = httpx.get(
-        "https://grand-challenge.org/api/schema/",
+        "https://gc.localhost/api/schema/",
+        verify=False,
         headers={"accept": "application/json"},
     )
 
@@ -23,9 +24,11 @@ def main() -> int:
         generate(
             input,
             output=output,
-            use_annotated=True,
-            field_constraints=True,
+            base_class=None,
+            strip_default_none=True,
             field_include_all_keys=True,
+            output_model_type=DataModelType.DataclassesDataclass,
+            target_python_version=PythonVersion.PY_38,
         )
 
         with open(Path(__file__).parent / "gcapi" / "models.py", "w") as f:
