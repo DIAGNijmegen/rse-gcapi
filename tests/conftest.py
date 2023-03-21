@@ -141,7 +141,7 @@ def rewrite_docker_compose(content: bytes) -> bytes:
         # Strip watchfiles command from celery
         # as this is not included in the base container
         command = spec["services"][service]["command"]
-        command = command.replace('watchfiles "', "")
+        command = command.replace('watchfiles --filter python "', "")
         command = command.replace('" /app', "")
         spec["services"][service]["command"] = command
 
