@@ -5,6 +5,7 @@ from httpx import URL, HTTPStatusError
 from httpx._types import URLTypes
 
 from .exceptions import MultipleObjectsReturned, ObjectNotFound
+from .model_base import BaseModel
 from .sync_async_hybrid_support import (
     CallCapture,
     CapturedCall,
@@ -41,6 +42,7 @@ class ClientInterface:
 class Common:
     _client: Optional[ClientInterface] = None
     base_path = ""
+    model: Optional[Type[BaseModel]] = None
 
     yield_request = CallCapture()
 
@@ -66,16 +68,24 @@ class APIBase(Common):
     def page(self, offset=0, limit=100, params=None):
         if params is None:
             params = {}
+
         params["offset"] = offset
         params["limit"] = limit
+
         response = yield self.yield_request(
             method="GET", path=self.base_path, params=params
         )
+
+        if self.model is None:
+            results = response["results"]
+        else:
+            results = [self.model(**result) for result in response["results"]]
+
         return PageResult(
             offset=offset,
             limit=limit,
             total_count=response["count"],
-            results=response["results"],
+            results=results,
         )
 
     @mark_generator

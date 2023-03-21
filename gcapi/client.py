@@ -21,6 +21,7 @@ from urllib.parse import urljoin
 import httpx
 from httpx import URL, HTTPStatusError, Timeout
 
+import gcapi.models
 from gcapi.apibase import APIBase, ClientInterface, ModifiableMixin
 from gcapi.exceptions import ObjectNotFound
 from gcapi.retries import BaseRetryStrategy, SelectiveBackoffStrategy
@@ -140,6 +141,7 @@ class ReaderStudyDisplaySetsAPI(ModifiableMixin, APIBase):
 
 class ReaderStudiesAPI(APIBase):
     base_path = "reader-studies/"
+    model = gcapi.models.ReaderStudy
 
     sub_apis = {
         "answers": ReaderStudyAnswersAPI,
