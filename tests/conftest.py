@@ -1,6 +1,6 @@
 from os import makedirs
 from pathlib import Path
-from subprocess import check_call, check_output
+from subprocess import STDOUT, check_call, check_output
 from tempfile import TemporaryDirectory
 from time import sleep
 from typing import Generator
@@ -76,6 +76,7 @@ def local_grand_challenge() -> Generator[str, None, None]:
                         "celery_worker",
                         "celery_worker_evaluation",
                     ],
+                    stderr=STDOUT,
                     cwd=tmp_path,
                 )
                 check_call(
