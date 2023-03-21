@@ -24,7 +24,7 @@ def main() -> int:
         generate(
             input,
             output=output,
-            base_class=None,
+            base_class="gcapi.model_base.BaseModel",
             strip_default_none=True,
             field_include_all_keys=True,
             output_model_type=DataModelType.DataclassesDataclass,
@@ -32,7 +32,12 @@ def main() -> int:
         )
 
         with open(Path(__file__).parent / "gcapi" / "models.py", "w") as f:
-            f.write(output.read_text())
+            f.write(
+                output.read_text().replace(
+                    "from dataclasses import dataclass, field",
+                    "from pydantic.dataclasses import dataclass",
+                )
+            )
 
     return 0
 
