@@ -1,6 +1,6 @@
 from os import makedirs
 from pathlib import Path
-from subprocess import check_call
+from subprocess import check_call, check_output
 from tempfile import TemporaryDirectory
 from time import sleep
 from typing import Generator
@@ -67,7 +67,7 @@ def local_grand_challenge() -> Generator[str, None, None]:
                     ["make", "algorithm_evaluation_fixtures"],
                     cwd=tmp_path,
                 )
-                check_call(
+                check_output(
                     [
                         "docker-compose",
                         "up",
