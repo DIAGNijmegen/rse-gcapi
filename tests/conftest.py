@@ -1,6 +1,6 @@
 from os import makedirs
 from pathlib import Path
-from subprocess import STDOUT, check_call, check_output
+from subprocess import check_call
 from tempfile import TemporaryDirectory
 from time import sleep
 from typing import Generator
@@ -67,7 +67,7 @@ def local_grand_challenge() -> Generator[str, None, None]:
                     ["make", "algorithm_evaluation_fixtures"],
                     cwd=tmp_path,
                 )
-                check_output(
+                check_call(
                     [
                         "docker-compose",
                         "up",
@@ -76,7 +76,6 @@ def local_grand_challenge() -> Generator[str, None, None]:
                         "celery_worker",
                         "celery_worker_evaluation",
                     ],
-                    stderr=STDOUT,
                     cwd=tmp_path,
                 )
                 check_call(
@@ -142,7 +141,7 @@ def rewrite_docker_compose(content: bytes) -> bytes:
         # Strip watchfiles command from celery
         # as this is not included in the base container
         command = spec["services"][service]["command"]
-        command = command.replace('watchfiles "', "")
+        command = command.replace('watchfiles --filter python "', "")
         command = command.replace('" /app', "")
         spec["services"][service]["command"] = command
 
