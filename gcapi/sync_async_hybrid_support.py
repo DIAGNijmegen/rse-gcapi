@@ -160,7 +160,7 @@ module.
 """
 
 from dataclasses import dataclass
-from typing import Callable, Dict, Tuple, Union
+from typing import Callable, Dict, Tuple, TypeVar, Union
 
 
 @dataclass
@@ -237,8 +237,10 @@ class CallCapture:
 
 GENERATOR_MARKER = "__gcapi_generator"
 
+RT = TypeVar("RT")
 
-def mark_generator(f):
+
+def mark_generator(func: Callable[..., RT]) -> Callable[..., RT]:
     """
     All types of functions (generator or normal) that should support hybrid
     operations (sync and async) will have a generatorfunction-like signature.
@@ -247,8 +249,8 @@ def mark_generator(f):
     generator signature anyway, with some other means. This function can be
     used as a decorator to mark those functions
     """
-    setattr(f, GENERATOR_MARKER, True)
-    return f
+    setattr(func, GENERATOR_MARKER, True)
+    return func
 
 
 def is_generator(f):

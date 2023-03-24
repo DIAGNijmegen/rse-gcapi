@@ -39,7 +39,7 @@ def is_uuid(s):
         return True
 
 
-class ImagesAPI(APIBase):
+class ImagesAPI(APIBase[gcapi.models.HyperlinkedImage]):
     base_path = "cases/images/"
     model = gcapi.models.HyperlinkedImage
 
@@ -99,27 +99,31 @@ class ImagesAPI(APIBase):
         return downloaded_files
 
 
-class UploadSessionsAPI(ModifiableMixin, APIBase):
+class UploadSessionsAPI(
+    ModifiableMixin, APIBase[gcapi.models.RawImageUploadSession]
+):
     base_path = "cases/upload-sessions/"
     model = gcapi.models.RawImageUploadSession
 
 
-class WorkstationSessionsAPI(APIBase):
+class WorkstationSessionsAPI(APIBase[gcapi.models.Session]):
     base_path = "workstations/sessions/"
     model = gcapi.models.Session
 
 
-class ReaderStudyQuestionsAPI(APIBase):
+class ReaderStudyQuestionsAPI(APIBase[gcapi.models.Question]):
     base_path = "reader-studies/questions/"
     model = gcapi.models.Question
 
 
-class ReaderStudyMineAnswersAPI(ModifiableMixin, APIBase):
+class ReaderStudyMineAnswersAPI(
+    ModifiableMixin, APIBase[gcapi.models.ReaderStudy]
+):
     base_path = "reader-studies/answers/mine/"
     model = gcapi.models.ReaderStudy
 
 
-class ReaderStudyAnswersAPI(ModifiableMixin, APIBase):
+class ReaderStudyAnswersAPI(ModifiableMixin, APIBase[gcapi.models.Answer]):
     base_path = "reader-studies/answers/"
     model = gcapi.models.Answer
 
@@ -141,12 +145,14 @@ class ReaderStudyAnswersAPI(ModifiableMixin, APIBase):
         return ModifiableMixin._process_request_arguments(self, data)
 
 
-class ReaderStudyDisplaySetsAPI(ModifiableMixin, APIBase):
+class ReaderStudyDisplaySetsAPI(
+    ModifiableMixin, APIBase[gcapi.models.DisplaySet]
+):
     base_path = "reader-studies/display-sets/"
     model = gcapi.models.DisplaySet
 
 
-class ReaderStudiesAPI(APIBase):
+class ReaderStudiesAPI(APIBase[gcapi.models.ReaderStudy]):
     base_path = "reader-studies/"
     model = gcapi.models.ReaderStudy
 
@@ -171,12 +177,12 @@ class ReaderStudiesAPI(APIBase):
         )
 
 
-class AlgorithmsAPI(APIBase):
+class AlgorithmsAPI(APIBase[gcapi.models.Algorithm]):
     base_path = "algorithms/"
     model = gcapi.models.Algorithm
 
 
-class AlgorithmJobsAPI(ModifiableMixin, APIBase):
+class AlgorithmJobsAPI(ModifiableMixin, APIBase[gcapi.models.HyperlinkedJob]):
     base_path = "algorithms/jobs/"
     model = gcapi.models.HyperlinkedJob
 
@@ -185,22 +191,24 @@ class AlgorithmJobsAPI(ModifiableMixin, APIBase):
         yield from self.iterate_all(params={"image": pk})
 
 
-class ArchivesAPI(APIBase):
+class ArchivesAPI(APIBase[gcapi.models.Archive]):
     base_path = "archives/"
     model = gcapi.models.Archive
 
 
-class ArchiveItemsAPI(ModifiableMixin, APIBase):
+class ArchiveItemsAPI(ModifiableMixin, APIBase[gcapi.models.ArchiveItem]):
     base_path = "archives/items/"
     model = gcapi.models.ArchiveItem
 
 
-class ComponentInterfacesAPI(APIBase):
+class ComponentInterfacesAPI(APIBase[gcapi.models.ComponentInterface]):
     base_path = "components/interfaces/"
     model = gcapi.models.ComponentInterface
 
 
-class RetinaLandmarkAnnotationSetsAPI(ModifiableMixin, APIBase):
+class RetinaLandmarkAnnotationSetsAPI(
+    ModifiableMixin, APIBase[gcapi.models.LandmarkAnnotationSet]
+):
     base_path = "retina/landmark-annotation/"
     model = gcapi.models.LandmarkAnnotationSet
 
@@ -211,22 +219,28 @@ class RetinaLandmarkAnnotationSetsAPI(ModifiableMixin, APIBase):
         return result
 
 
-class RetinaPolygonAnnotationSetsAPI(ModifiableMixin, APIBase):
+class RetinaPolygonAnnotationSetsAPI(
+    ModifiableMixin, APIBase[gcapi.models.NestedPolygonAnnotationSet]
+):
     base_path = "retina/polygon-annotation-set/"
     model = gcapi.models.NestedPolygonAnnotationSet
 
 
-class RetinaSinglePolygonAnnotationsAPI(ModifiableMixin, APIBase):
+class RetinaSinglePolygonAnnotationsAPI(
+    ModifiableMixin, APIBase[gcapi.models.SinglePolygonAnnotation]
+):
     base_path = "retina/single-polygon-annotation/"
     model = gcapi.models.SinglePolygonAnnotation
 
 
-class RetinaETDRSGridAnnotationsAPI(ModifiableMixin, APIBase):
+class RetinaETDRSGridAnnotationsAPI(
+    ModifiableMixin, APIBase[gcapi.models.ETDRSGridAnnotation]
+):
     base_path = "retina/etdrs-grid-annotation/"
     model = gcapi.models.ETDRSGridAnnotation
 
 
-class UploadsAPI(APIBase):
+class UploadsAPI(APIBase[gcapi.models.UserUpload]):
     base_path = "uploads/"
     model = gcapi.models.UserUpload
 
@@ -366,7 +380,7 @@ class UploadsAPI(APIBase):
         return result
 
 
-class WorkstationConfigsAPI(APIBase):
+class WorkstationConfigsAPI(APIBase[gcapi.models.WorkstationConfig]):
     base_path = "workstations/configs/"
     model = gcapi.models.WorkstationConfig
 

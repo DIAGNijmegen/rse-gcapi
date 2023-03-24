@@ -4,8 +4,8 @@ from typing import (
     Dict,
     Generator,
     Generic,
+    Iterator,
     List,
-    Optional,
     Sequence,
     Type,
     TypeVar,
@@ -16,9 +16,8 @@ from urllib.parse import urljoin
 from httpx import URL, HTTPStatusError
 from httpx._types import URLTypes
 
-from .exceptions import MultipleObjectsReturned, ObjectNotFound
-from .model_base import BaseModel
-from .sync_async_hybrid_support import (
+from gcapi.exceptions import MultipleObjectsReturned, ObjectNotFound
+from gcapi.sync_async_hybrid_support import (
     CallCapture,
     CapturedCall,
     mark_generator,
@@ -53,18 +52,61 @@ class ClientInterface:
         raise NotImplementedError
 
 
-class Common:
-    _client: Optional[ClientInterface] = None
-    base_path = ""
-    model: Optional[Type[BaseModel]] = None
+class PageResult(Generic[T], collections.abc.Sequence):
+    def __init__(
+        self,
+        *,
+        offset: int,
+        limit: int,
+        total_count: int,
+        results: List[T],
+        **kwargs,
+    ) -> None:
+        super().__init__(**kwargs)
+        self._offset = offset
+        self._limit = limit
+        self._total_count = total_count
+        self._results = results
+
+    @overload
+    def __getitem__(self, key: int) -> T:
+        ...
+
+    @overload
+    def __getitem__(self, key: slice) -> Sequence[T]:
+        ...
+
+    def __getitem__(self, key):
+        return self._results[key]
+
+    def __len__(self) -> int:
+        return len(self._results)
+
+    @property
+    def offset(self) -> int:
+        return self._offset
+
+    @property
+    def limit(self) -> int:
+        return self._limit
+
+    @property
+    def total_count(self) -> int:
+        return self._total_count
+
+
+class Common(Generic[T]):
+    model: Type[T]
+    _client: ClientInterface
+    base_path: str
 
     yield_request = CallCapture()
 
 
-class APIBase(Common):
+class APIBase(Generic[T], Common[T]):
     sub_apis: Dict[str, Type["APIBase"]] = {}
 
-    def __init__(self, client):
+    def __init__(self, client) -> None:
         if isinstance(self, ModifiableMixin):
             ModifiableMixin.__init__(self)
 
@@ -79,7 +121,7 @@ class APIBase(Common):
         )
         return result
 
-    def page(self, offset=0, limit=100, params=None):
+    def page(self, offset=0, limit=100, params=None) -> PageResult[T]:
         if params is None:
             params = {}
 
@@ -100,7 +142,7 @@ class APIBase(Common):
         )
 
     @mark_generator
-    def iterate_all(self, params=None):
+    def iterate_all(self, params=None) -> Iterator[T]:
         req_count = 100
         offset = 0
         while True:
@@ -114,7 +156,7 @@ class APIBase(Common):
             yield from current_list
             offset += req_count
 
-    def detail(self, pk=None, **params):
+    def detail(self, pk=None, **params) -> T:
         if all((pk, params)):
             raise ValueError("Only one of pk or params must be specified")
 
@@ -170,46 +212,3 @@ class ModifiableMixin(Common):
 
     def delete(self, pk):
         return (yield from self.perform_request("DELETE", pk=pk))
-
-
-class PageResult(Generic[T], collections.abc.Sequence):
-    def __init__(
-        self,
-        *,
-        offset: int,
-        limit: int,
-        total_count: int,
-        results: List[T],
-        **kwargs,
-    ) -> None:
-        super().__init__(**kwargs)
-        self._offset = offset
-        self._limit = limit
-        self._total_count = total_count
-        self._results = results
-
-    @overload
-    def __getitem__(self, key: int) -> T:
-        ...
-
-    @overload
-    def __getitem__(self, key: slice) -> Sequence[T]:
-        ...
-
-    def __getitem__(self, key):
-        return self._results[key]
-
-    def __len__(self) -> int:
-        return len(self._results)
-
-    @property
-    def offset(self) -> int:
-        return self._offset
-
-    @property
-    def limit(self) -> int:
-        return self._limit
-
-    @property
-    def total_count(self) -> int:
-        return self._total_count
