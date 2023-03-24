@@ -117,17 +117,22 @@ class APIBase(Common):
                     raise ObjectNotFound from e
                 else:
                     raise e
+
+            if self.model is None:
+                return result
+            else:
+                return self.model(**result)
+
         else:
             results = yield from self.page(params=params)
             results = list(results)
+
             if len(results) == 1:
-                result = results[0]
+                return results[0]
             elif len(results) == 0:
                 raise ObjectNotFound
             else:
                 raise MultipleObjectsReturned
-
-        return result
 
 
 class ModifiableMixin(Common):
