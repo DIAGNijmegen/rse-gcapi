@@ -41,6 +41,7 @@ def is_uuid(s):
 
 class ImagesAPI(APIBase):
     base_path = "cases/images/"
+    model = gcapi.models.HyperlinkedImage
 
     def download(
         self,
@@ -104,18 +105,22 @@ class UploadSessionsAPI(ModifiableMixin, APIBase):
 
 class WorkstationSessionsAPI(APIBase):
     base_path = "workstations/sessions/"
+    model = gcapi.models.Session
 
 
 class ReaderStudyQuestionsAPI(APIBase):
     base_path = "reader-studies/questions/"
+    model = gcapi.models.Question
 
 
 class ReaderStudyMineAnswersAPI(ModifiableMixin, APIBase):
     base_path = "reader-studies/answers/mine/"
+    model = gcapi.models.ReaderStudy
 
 
 class ReaderStudyAnswersAPI(ModifiableMixin, APIBase):
     base_path = "reader-studies/answers/"
+    model = gcapi.models.Answer
 
     sub_apis = {"mine": ReaderStudyMineAnswersAPI}
 
@@ -137,6 +142,7 @@ class ReaderStudyAnswersAPI(ModifiableMixin, APIBase):
 
 class ReaderStudyDisplaySetsAPI(ModifiableMixin, APIBase):
     base_path = "reader-studies/display-sets/"
+    model = gcapi.models.DisplaySet
 
 
 class ReaderStudiesAPI(APIBase):
