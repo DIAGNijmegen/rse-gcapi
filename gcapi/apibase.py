@@ -76,10 +76,7 @@ class APIBase(Common):
             method="GET", path=self.base_path, params=params
         )
 
-        if self.model is None:
-            results = response["results"]
-        else:
-            results = [self.model(**result) for result in response["results"]]
+        results = [self.model(**result) for result in response["results"]]
 
         return PageResult(
             offset=offset,
@@ -112,17 +109,12 @@ class APIBase(Common):
                 result = yield self.yield_request(
                     method="GET", path=urljoin(self.base_path, pk + "/")
                 )
+                return self.model(**result)
             except HTTPStatusError as e:
                 if e.response.status_code == 404:
                     raise ObjectNotFound from e
                 else:
                     raise e
-
-            if self.model is None:
-                return result
-            else:
-                return self.model(**result)
-
         else:
             results = yield from self.page(params=params)
             results = list(results)

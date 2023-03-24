@@ -27,7 +27,6 @@ def main() -> int:
             base_class="gcapi.model_base.BaseModel",
             strip_default_none=True,
             strict_nullable=True,
-            field_include_all_keys=True,
             output_model_type=DataModelType.DataclassesDataclass,
             target_python_version=PythonVersion.PY_38,
         )

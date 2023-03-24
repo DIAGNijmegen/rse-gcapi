@@ -101,6 +101,7 @@ class ImagesAPI(APIBase):
 
 class UploadSessionsAPI(ModifiableMixin, APIBase):
     base_path = "cases/upload-sessions/"
+    model = gcapi.models.RawImageUploadSession
 
 
 class WorkstationSessionsAPI(APIBase):
@@ -196,6 +197,7 @@ class ArchiveItemsAPI(ModifiableMixin, APIBase):
 
 class ComponentInterfacesAPI(APIBase):
     base_path = "components/interfaces/"
+    model = gcapi.models.ComponentInterface
 
 
 class RetinaLandmarkAnnotationSetsAPI(ModifiableMixin, APIBase):
@@ -226,6 +228,8 @@ class RetinaETDRSGridAnnotationsAPI(ModifiableMixin, APIBase):
 
 class UploadsAPI(APIBase):
     base_path = "uploads/"
+    model = gcapi.models.UserUpload
+
     chunk_size = 32 * 1024 * 1024
     n_presigned_urls = 5  # number of pre-signed urls to generate
     max_retries = 10
