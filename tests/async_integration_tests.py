@@ -139,7 +139,7 @@ async def test_raw_image_and_upload_session(local_grand_challenge):
     async with AsyncClient(
         base_url=local_grand_challenge, verify=False, token=RETINA_TOKEN
     ) as c:
-        assert await c.raw_image_upload_sessions.page() == []
+        assert len(await c.raw_image_upload_sessions.page()) == 0
 
 
 @pytest.mark.anyio
@@ -148,7 +148,7 @@ async def test_local_response(local_grand_challenge):
         base_url=local_grand_challenge, verify=False, token=RETINA_TOKEN
     ) as c:
         # Empty response, but it didn't error out so the server is responding
-        assert await c.algorithms.page() == []
+        assert len(await c.algorithms.page()) == 0
 
 
 @pytest.mark.anyio

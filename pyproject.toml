@@ -27,6 +27,7 @@ pytest-cov = "*"
 pyyaml = "*"
 docker-compose-wait = "*"
 datamodel-code-generator = "^0.17.1"
+mypy = "^1.1.1"
 
 [build-system]
 requires = ["poetry-core>=1.0.0"]

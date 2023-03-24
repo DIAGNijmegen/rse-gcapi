@@ -1,4 +1,16 @@
-from typing import Any, Dict, Generator, Optional, Type
+import collections
+from typing import (
+    Any,
+    Dict,
+    Generator,
+    Generic,
+    List,
+    Optional,
+    Sequence,
+    Type,
+    TypeVar,
+    overload,
+)
 from urllib.parse import urljoin
 
 from httpx import URL, HTTPStatusError
@@ -11,6 +23,8 @@ from .sync_async_hybrid_support import (
     CapturedCall,
     mark_generator,
 )
+
+T = TypeVar("T")
 
 
 class ClientInterface:
@@ -158,13 +172,44 @@ class ModifiableMixin(Common):
         return (yield from self.perform_request("DELETE", pk=pk))
 
 
-class PageResult(list):
-    offset: int
-    limit: int
-    total_count: int
+class PageResult(Generic[T], collections.abc.Sequence):
+    def __init__(
+        self,
+        *,
+        offset: int,
+        limit: int,
+        total_count: int,
+        results: List[T],
+        **kwargs,
+    ) -> None:
+        super().__init__(**kwargs)
+        self._offset = offset
+        self._limit = limit
+        self._total_count = total_count
+        self._results = results
 
-    def __init__(self, *, offset, limit, total_count, results):
-        super().__init__(results)
-        self.offset = offset
-        self.limit = limit
-        self.total_count = total_count
+    @overload
+    def __getitem__(self, key: int) -> T:
+        ...
+
+    @overload
+    def __getitem__(self, key: slice) -> Sequence[T]:
+        ...
+
+    def __getitem__(self, key):
+        return self._results[key]
+
+    def __len__(self) -> int:
+        return len(self._results)
+
+    @property
+    def offset(self) -> int:
+        return self._offset
+
+    @property
+    def limit(self) -> int:
+        return self._limit
+
+    @property
+    def total_count(self) -> int:
+        return self._total_count
