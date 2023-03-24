@@ -172,14 +172,12 @@ class ReaderStudiesAPI(APIBase):
 
 class AlgorithmsAPI(APIBase):
     base_path = "algorithms/"
-
-
-class AlgorithmResultsAPI(APIBase):
-    base_path = "algorithms/results/"
+    model = gcapi.models.Algorithm
 
 
 class AlgorithmJobsAPI(ModifiableMixin, APIBase):
     base_path = "algorithms/jobs/"
+    model = gcapi.models.HyperlinkedJob
 
     @mark_generator
     def by_input_image(self, pk):
@@ -384,7 +382,6 @@ class ApiDefinitions:
     sessions: WorkstationSessionsAPI
     uploads: UploadsAPI
     algorithms: AlgorithmsAPI
-    algorithm_results: AlgorithmResultsAPI
     algorithm_jobs: AlgorithmJobsAPI
     archives: ArchivesAPI
     workstation_configs: WorkstationConfigsAPI
