@@ -121,7 +121,9 @@ class APIBase(Generic[T], Common[T]):
         )
         return result
 
-    def page(self, offset=0, limit=100, params=None) -> PageResult[T]:
+    def page(
+        self, offset=0, limit=100, params=None
+    ) -> Generator[T, Dict[Any, Any], PageResult[T]]:
         if params is None:
             params = {}
 
@@ -156,7 +158,7 @@ class APIBase(Generic[T], Common[T]):
             yield from current_list
             offset += req_count
 
-    def detail(self, pk=None, **params) -> T:
+    def detail(self, pk=None, **params) -> Generator[T, Dict[Any, Any], T]:
         if all((pk, params)):
             raise ValueError("Only one of pk or params must be specified")
 
@@ -173,7 +175,6 @@ class APIBase(Generic[T], Common[T]):
                     raise e
         else:
             results = yield from self.page(params=params)
-            results = list(results)
 
             if len(results) == 1:
                 return results[0]
