@@ -186,10 +186,12 @@ class AlgorithmJobsAPI(ModifiableMixin, APIBase):
 
 class ArchivesAPI(APIBase):
     base_path = "archives/"
+    model = gcapi.models.Archive
 
 
 class ArchiveItemsAPI(ModifiableMixin, APIBase):
     base_path = "archives/items/"
+    model = gcapi.models.ArchiveItem
 
 
 class ComponentInterfacesAPI(APIBase):
@@ -198,6 +200,7 @@ class ComponentInterfacesAPI(APIBase):
 
 class RetinaLandmarkAnnotationSetsAPI(ModifiableMixin, APIBase):
     base_path = "retina/landmark-annotation/"
+    model = gcapi.models.LandmarkAnnotationSet
 
     def for_image(self, pk):
         result = yield self.yield_request(
@@ -208,14 +211,17 @@ class RetinaLandmarkAnnotationSetsAPI(ModifiableMixin, APIBase):
 
 class RetinaPolygonAnnotationSetsAPI(ModifiableMixin, APIBase):
     base_path = "retina/polygon-annotation-set/"
+    model = gcapi.models.NestedPolygonAnnotationSet
 
 
 class RetinaSinglePolygonAnnotationsAPI(ModifiableMixin, APIBase):
     base_path = "retina/single-polygon-annotation/"
+    model = gcapi.models.SinglePolygonAnnotation
 
 
 class RetinaETDRSGridAnnotationsAPI(ModifiableMixin, APIBase):
     base_path = "retina/etdrs-grid-annotation/"
+    model = gcapi.models.ETDRSGridAnnotation
 
 
 class UploadsAPI(APIBase):
@@ -358,6 +364,7 @@ class UploadsAPI(APIBase):
 
 class WorkstationConfigsAPI(APIBase):
     base_path = "workstations/configs/"
+    model = gcapi.models.WorkstationConfig
 
 
 def _generate_auth_header(token: str = "") -> Dict:
