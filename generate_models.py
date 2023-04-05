@@ -8,8 +8,7 @@ from datamodel_code_generator import DataModelType, PythonVersion, generate
 
 def main() -> int:
     json_schema = httpx.get(
-        "https://gc.localhost/api/schema/",
-        verify=False,
+        "https://grand-challenge.org/api/schema/",
         headers={"accept": "application/json"},
     )
 
