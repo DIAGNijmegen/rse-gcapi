@@ -41,4 +41,3 @@ repos:
         additional_dependencies:
           - types-PyYAML
           - pydantic
-        pass_filenames: false
