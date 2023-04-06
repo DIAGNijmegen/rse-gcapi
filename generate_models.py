@@ -31,10 +31,13 @@ def main() -> int:
         )
 
         with open(Path(__file__).parent / "gcapi" / "models.py", "w") as f:
+            text = output.read_text()
+            to_replace = "from dataclasses import dataclass, field"
+            if to_replace not in text:
+                raise ValueError("Could not insert dataclass import for pydantic")
             f.write(
-                output.read_text().replace(
-                    "from dataclasses import dataclass, field",
-                    "from pydantic.dataclasses import dataclass",
+                text.replace(
+                    to_replace, "from pydantic.dataclasses import dataclass",
                 )
             )
 
