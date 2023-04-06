@@ -12,7 +12,7 @@ def main() -> int:
         headers={"accept": "application/json"},
     )
 
-    with TemporaryDirectory() as temporary_directory_name:
+    with TemporaryDirectory(prefix="gcapi_modelgen_") as temporary_directory_name:
         temporary_directory = Path(temporary_directory_name)
         input = temporary_directory / "schema.json"
         output = temporary_directory / "models.py"
