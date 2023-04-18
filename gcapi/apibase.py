@@ -1,15 +1,29 @@
-from typing import Any, Dict, Generator, Optional, Type
+import collections
+from typing import (
+    Any,
+    Dict,
+    Generator,
+    Generic,
+    Iterator,
+    List,
+    Sequence,
+    Type,
+    TypeVar,
+    overload,
+)
 from urllib.parse import urljoin
 
 from httpx import URL, HTTPStatusError
 from httpx._types import URLTypes
 
-from .exceptions import MultipleObjectsReturned, ObjectNotFound
-from .sync_async_hybrid_support import (
+from gcapi.exceptions import MultipleObjectsReturned, ObjectNotFound
+from gcapi.sync_async_hybrid_support import (
     CallCapture,
     CapturedCall,
     mark_generator,
 )
+
+T = TypeVar("T")
 
 
 class ClientInterface:
@@ -38,17 +52,61 @@ class ClientInterface:
         raise NotImplementedError
 
 
-class Common:
-    _client: Optional[ClientInterface] = None
-    base_path = ""
+class PageResult(Generic[T], collections.abc.Sequence):
+    def __init__(
+        self,
+        *,
+        offset: int,
+        limit: int,
+        total_count: int,
+        results: List[T],
+        **kwargs,
+    ) -> None:
+        super().__init__(**kwargs)
+        self._offset = offset
+        self._limit = limit
+        self._total_count = total_count
+        self._results = results
+
+    @overload
+    def __getitem__(self, key: int) -> T:
+        ...
+
+    @overload
+    def __getitem__(self, key: slice) -> Sequence[T]:
+        ...
+
+    def __getitem__(self, key):
+        return self._results[key]
+
+    def __len__(self) -> int:
+        return len(self._results)
+
+    @property
+    def offset(self) -> int:
+        return self._offset
+
+    @property
+    def limit(self) -> int:
+        return self._limit
+
+    @property
+    def total_count(self) -> int:
+        return self._total_count
+
+
+class Common(Generic[T]):
+    model: Type[T]
+    _client: ClientInterface
+    base_path: str
 
     yield_request = CallCapture()
 
 
-class APIBase(Common):
+class APIBase(Generic[T], Common[T]):
     sub_apis: Dict[str, Type["APIBase"]] = {}
 
-    def __init__(self, client):
+    def __init__(self, client) -> None:
         if isinstance(self, ModifiableMixin):
             ModifiableMixin.__init__(self)
 
@@ -63,23 +121,30 @@ class APIBase(Common):
         )
         return result
 
-    def page(self, offset=0, limit=100, params=None):
+    def page(
+        self, offset=0, limit=100, params=None
+    ) -> Generator[T, Dict[Any, Any], PageResult[T]]:
         if params is None:
             params = {}
+
         params["offset"] = offset
         params["limit"] = limit
+
         response = yield self.yield_request(
             method="GET", path=self.base_path, params=params
         )
+
+        results = [self.model(**result) for result in response["results"]]
+
         return PageResult(
             offset=offset,
             limit=limit,
             total_count=response["count"],
-            results=response["results"],
+            results=results,
         )
 
     @mark_generator
-    def iterate_all(self, params=None):
+    def iterate_all(self, params=None) -> Iterator[T]:
         req_count = 100
         offset = 0
         while True:
@@ -93,7 +158,7 @@ class APIBase(Common):
             yield from current_list
             offset += req_count
 
-    def detail(self, pk=None, **params):
+    def detail(self, pk=None, **params) -> Generator[T, Dict[Any, Any], T]:
         if all((pk, params)):
             raise ValueError("Only one of pk or params must be specified")
 
@@ -102,6 +167,7 @@ class APIBase(Common):
                 result = yield self.yield_request(
                     method="GET", path=urljoin(self.base_path, pk + "/")
                 )
+                return self.model(**result)
             except HTTPStatusError as e:
                 if e.response.status_code == 404:
                     raise ObjectNotFound from e
@@ -109,15 +175,13 @@ class APIBase(Common):
                     raise e
         else:
             results = yield from self.page(params=params)
-            results = list(results)
+
             if len(results) == 1:
-                result = results[0]
+                return results[0]
             elif len(results) == 0:
                 raise ObjectNotFound
             else:
                 raise MultipleObjectsReturned
-
-        return result
 
 
 class ModifiableMixin(Common):
@@ -149,15 +213,3 @@ class ModifiableMixin(Common):
 
     def delete(self, pk):
         return (yield from self.perform_request("DELETE", pk=pk))
-
-
-class PageResult(list):
-    offset: int
-    limit: int
-    total_count: int
-
-    def __init__(self, *, offset, limit, total_count, results):
-        super().__init__(results)
-        self.offset = offset
-        self.limit = limit
-        self.total_count = total_count
