@@ -12,7 +12,9 @@ def main() -> int:
         headers={"accept": "application/json"},
     )
 
-    with TemporaryDirectory(prefix="gcapi_modelgen_") as temporary_directory_name:
+    with TemporaryDirectory(
+        prefix="gcapi_modelgen_"
+    ) as temporary_directory_name:
         temporary_directory = Path(temporary_directory_name)
         input = temporary_directory / "schema.json"
         output = temporary_directory / "models.py"
@@ -34,10 +36,13 @@ def main() -> int:
             text = output.read_text()
             to_replace = "from dataclasses import dataclass, field"
             if to_replace not in text:
-                raise ValueError("Could not insert dataclass import for pydantic")
+                raise ValueError(
+                    "Could not insert dataclass import for pydantic"
+                )
             f.write(
                 text.replace(
-                    to_replace, "from pydantic.dataclasses import dataclass",
+                    to_replace,
+                    "from pydantic.dataclasses import dataclass",
                 )
             )
 
