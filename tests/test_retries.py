@@ -15,6 +15,7 @@ NO_RETRIES = [None]
             [
                 Response(e)
                 for e in (
+                    codes.INTERNAL_SERVER_ERROR,
                     codes.NOT_IMPLEMENTED,
                     codes.HTTP_VERSION_NOT_SUPPORTED,
                     codes.VARIANT_ALSO_NEGOTIATES,
@@ -31,7 +32,6 @@ NO_RETRIES = [None]
                 [0.1, 0.2, 0.4, 0.8, 1.60, 3.20, 6.40, 12.8, None, None],
             )
             for e in (
-                codes.INTERNAL_SERVER_ERROR,
                 codes.BAD_GATEWAY,
                 codes.SERVICE_UNAVAILABLE,
                 codes.GATEWAY_TIMEOUT,
@@ -40,8 +40,6 @@ NO_RETRIES = [None]
         ),
         (  # Mixed responses
             [
-                Response(codes.INTERNAL_SERVER_ERROR),
-                Response(codes.INTERNAL_SERVER_ERROR),
                 Response(codes.BAD_GATEWAY),
                 Response(codes.BAD_GATEWAY),
                 Response(codes.GATEWAY_TIMEOUT),

@@ -43,7 +43,6 @@ class SelectiveBackoffStrategy(BaseRetryStrategy):
 
     def get_delay(self, latest_response: httpx.Response) -> Optional[Seconds]:
         if latest_response.status_code in (
-            codes.INTERNAL_SERVER_ERROR,
             codes.BAD_GATEWAY,
             codes.SERVICE_UNAVAILABLE,
             codes.GATEWAY_TIMEOUT,
