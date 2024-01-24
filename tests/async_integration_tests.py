@@ -74,11 +74,9 @@ async def test_chunked_uploads(local_grand_challenge):
         ] == 1 + existing_chunks_admin
 
     # archive
-    async with (
-        AsyncClient(
-            token=ARCHIVE_TOKEN, base_url=local_grand_challenge, verify=False
-        ) as c_archive
-    ):
+    async with AsyncClient(
+        token=ARCHIVE_TOKEN, base_url=local_grand_challenge, verify=False
+    ) as c_archive:
         existing_chunks_archive = (await c_archive(path="uploads/"))["count"]
 
         with open(file_to_upload, "rb") as f:
