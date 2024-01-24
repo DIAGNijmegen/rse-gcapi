@@ -4,6 +4,7 @@
 
   - Removed support for Python 3.6 and 3.7
   - Added support for Python 3.11
+  - Removed the retina endpoints
 
 ## 0.11.0 (2022-12-14)
 

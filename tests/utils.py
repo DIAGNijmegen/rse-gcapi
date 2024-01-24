@@ -3,7 +3,6 @@ from time import sleep
 
 from httpx import AsyncHTTPTransport, HTTPStatusError, HTTPTransport
 
-RETINA_TOKEN = "f1f98a1733c05b12118785ffd995c250fe4d90da"
 ADMIN_TOKEN = "1b9436200001f2eaf57cd77db075cbb60a49a00a"
 READERSTUDY_TOKEN = "01614a77b1c0b4ecd402be50a8ff96188d5b011d"
 DEMO_PARTICIPANT_TOKEN = "00aa710f4dc5621a0cb64b0795fbba02e39d7700"
