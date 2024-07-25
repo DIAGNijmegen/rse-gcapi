@@ -1,6 +1,6 @@
 from os import makedirs
 from pathlib import Path
-from subprocess import check_call
+from subprocess import CalledProcessError, run
 from tempfile import TemporaryDirectory
 from time import sleep
 from typing import Generator
@@ -15,6 +15,12 @@ from tests.integration_tests import ADMIN_TOKEN
 @pytest.fixture
 def anyio_backend():
     return "asyncio"
+
+def check_call(args, *, cwd=None):
+    try:
+        run(args, capture_output=True, check=True, cwd=cwd)
+    except CalledProcessError as e:
+        raise Exception(f"stdout\n\n{e.stdout}\n\nstderr\n\n{e.stderr}")
 
 
 @pytest.fixture(scope="session")
@@ -96,7 +102,7 @@ def get_grand_challenge_file(repo_path: Path, output_directory: Path) -> None:
     r = httpx.get(
         (
             f"https://raw.githubusercontent.com/comic/grand-challenge.org/"
-            f"main/{repo_path}"
+            f"6ef429ae7691afcadfbfae6e1da834ce0e3ba76b/{repo_path}"
         ),
         follow_redirects=True,
     )
@@ -130,7 +136,7 @@ def rewrite_docker_compose(content: bytes) -> bytes:
         ):
             spec["services"][s][
                 "image"
-            ] = "public.ecr.aws/diag-nijmegen/grand-challenge/web:latest"
+            ] = "public.ecr.aws/diag-nijmegen/grand-challenge/web:6ef429a-main-9847fc43"
 
     # Use the production web server as the test one is not included
     spec["services"]["web"][
