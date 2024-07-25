@@ -102,7 +102,7 @@ def get_grand_challenge_file(repo_path: Path, output_directory: Path) -> None:
     r = httpx.get(
         (
             f"https://raw.githubusercontent.com/comic/grand-challenge.org/"
-            f"4324dffe89e8d2a2243b16224bad596b062669e9/{repo_path}"
+            f"cc514a444386d1787a7b4ef5d1395c22e33df07d/{repo_path}"
         ),
         follow_redirects=True,
     )
@@ -136,7 +136,7 @@ def rewrite_docker_compose(content: bytes) -> bytes:
         ):
             spec["services"][s][
                 "image"
-            ] = "public.ecr.aws/diag-nijmegen/grand-challenge/web:4324dff-main-a12434fd"
+            ] = "public.ecr.aws/diag-nijmegen/grand-challenge/web:cc514a4-main-0eaa42a9"
 
     # Use the production web server as the test one is not included
     spec["services"]["web"][
@@ -161,4 +161,9 @@ def rewrite_makefile(content: bytes) -> bytes:
     # option added to the "up" action above
     makefile = content.decode("utf-8")
     makefile = makefile.replace("docker compose", "docker-compose")
+    # Faker is required by development_fixtures.py but not available on the production
+    # container. So we add it manually here.
+    makefile = makefile.replace(
+        "python manage.py migrate && python manage.py runscript minio development_fixtures",
+        "python -m pip install faker && python manage.py migrate && python manage.py runscript minio development_fixtures")
     return makefile.encode("utf-8")
