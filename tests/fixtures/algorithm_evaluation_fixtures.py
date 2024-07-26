@@ -1,19 +1,14 @@
-import gzip
 import os
-import shutil
 from contextlib import contextmanager
 from pathlib import Path
-from tempfile import TemporaryDirectory
 
 from django.conf import settings
 from django.contrib.auth import get_user_model
 from django.core.files.base import ContentFile
-
 from grandchallenge.algorithms.models import Algorithm, AlgorithmImage
 from grandchallenge.archives.models import Archive, ArchiveItem
 from grandchallenge.cases.models import Image, ImageFile
 from grandchallenge.challenges.models import Challenge
-from grandchallenge.components.backends import docker_client
 from grandchallenge.components.models import (
     ComponentInterface,
     ComponentInterfaceValue,
@@ -72,6 +67,7 @@ def _get_outputs():
     return ComponentInterface.objects.filter(
         slug__in=["generic-medical-image", "results-json-file"]
     )
+
 
 def _get_json_file_inputs():
     return [

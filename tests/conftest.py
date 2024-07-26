@@ -53,8 +53,14 @@ def local_grand_challenge() -> Generator[str, None, None]:
                 get_grand_challenge_file(Path(f), Path(tmp_path))
 
             for local_path, container_path in (
-                ('/testdata/algorithm_io.tar.gz', 'scripts/algorithm_io.tar.gz'),
-                ('/fixtures/algorithm_evaluation_fixtures.py', 'scripts/algorithm_evaluation_fixtures.py'),
+                (
+                    "/testdata/algorithm_io.tar.gz",
+                    "scripts/algorithm_io.tar.gz",
+                ),
+                (
+                    "/fixtures/algorithm_evaluation_fixtures.py",
+                    "scripts/algorithm_evaluation_fixtures.py",
+                ),
             ):
                 shutil.copy(
                     os.path.abspath(os.path.dirname(__file__)) + local_path,
@@ -105,7 +111,7 @@ def local_grand_challenge() -> Generator[str, None, None]:
 def get_grand_challenge_file(repo_path: Path, output_directory: Path) -> None:
     r = httpx.get(
         (
-            f"https://raw.githubusercontent.com/comic/grand-challenge.org/"
+            "https://raw.githubusercontent.com/comic/grand-challenge.org/"
             f"main/{repo_path}"
         ),
         follow_redirects=True,
@@ -168,6 +174,10 @@ def rewrite_makefile(content: bytes) -> bytes:
     # Faker is required by development_fixtures.py but not available on the production
     # container. So we add it manually here.
     makefile = makefile.replace(
-        "python manage.py migrate && python manage.py runscript minio development_fixtures",
-        "python -m pip install faker && python manage.py migrate && python manage.py runscript minio development_fixtures")
+        "python manage.py migrate && "
+        "python manage.py runscript minio development_fixtures",
+        "python -m pip install faker && "
+        "python manage.py migrate && "
+        "python manage.py runscript minio development_fixtures",
+    )
     return makefile.encode("utf-8")
