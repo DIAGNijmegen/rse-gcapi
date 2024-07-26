@@ -11,7 +11,6 @@ from tests.utils import (
     ARCHIVE_TOKEN,
     DEMO_PARTICIPANT_TOKEN,
     READERSTUDY_TOKEN,
-    RETINA_TOKEN,
     recurse_call,
 )
 
@@ -37,94 +36,6 @@ def get_archive_items(client, archive_pk, min_size):
     if len(items) <= min_size:
         raise ValueError
     return items
-
-
-@pytest.mark.parametrize(
-    "annotation",
-    [
-        "retina_landmark_annotations",
-        "retina_polygon_annotation_sets",
-        "retina_single_polygon_annotations",
-    ],
-)
-def test_list_annotations(local_grand_challenge, annotation):
-    c = Client(
-        base_url=local_grand_challenge, verify=False, token=RETINA_TOKEN
-    )
-    response = getattr(c, annotation).list()
-    assert len(response) == 0
-
-
-def test_create_landmark_annotation(local_grand_challenge):
-    c = Client(
-        base_url=local_grand_challenge, verify=False, token=RETINA_TOKEN
-    )
-    nil_uuid = "00000000-0000-4000-9000-000000000000"
-    create_data = {
-        "grader": 0,
-        "singlelandmarkannotation_set": [
-            {"image": nil_uuid, "landmarks": [[0, 0], [1, 1], [2, 2]]},
-            {"image": nil_uuid, "landmarks": [[0, 0], [1, 1], [2, 2]]},
-        ],
-    }
-    with pytest.raises(HTTPStatusError) as e:
-        c.retina_landmark_annotations.create(**create_data)
-    response = e.value.response
-    assert response.status_code == 400
-    response = response.json()
-    assert response["grader"][0] == 'Invalid pk "0" - object does not exist.'
-    for sla_error in response["singlelandmarkannotation_set"]:
-        assert (
-            sla_error["image"][0]
-            == f'Invalid pk "{nil_uuid}" - object does not exist.'  # noqa: B907
-        )
-
-
-def test_create_polygon_annotation_set(local_grand_challenge):
-    c = Client(
-        base_url=local_grand_challenge, verify=False, token=RETINA_TOKEN
-    )
-    nil_uuid = "00000000-0000-4000-9000-000000000000"
-    create_data = {
-        "grader": 0,
-        "image": nil_uuid,
-        "singlepolygonannotation_set": [
-            {"z": 0, "value": [[0, 0], [1, 1], [2, 2]]},
-            {"z": 1, "value": [[0, 0], [1, 1], [2, 2]]},
-        ],
-    }
-    with pytest.raises(HTTPStatusError) as e:
-        c.retina_polygon_annotation_sets.create(**create_data)
-    response = e.value.response
-    assert response.status_code == 400
-    response = response.json()
-    assert response["grader"][0] == 'Invalid pk "0" - object does not exist.'
-    assert (
-        response["image"][0]
-        == f'Invalid pk "{nil_uuid}" - object does not exist.'  # noqa: B907
-    )
-    assert response["name"][0] == "This field is required."
-
-
-def test_create_single_polygon_annotations(local_grand_challenge):
-    c = Client(
-        base_url=local_grand_challenge, verify=False, token=RETINA_TOKEN
-    )
-    create_data = {
-        "z": 0,
-        "value": [[0, 0], [1, 1], [2, 2]],
-        "annotation_set": 0,
-    }
-
-    with pytest.raises(HTTPStatusError) as e:
-        c.retina_single_polygon_annotations.create(**create_data)
-    response = e.value.response
-    assert response.status_code == 400
-    response = response.json()
-    assert (
-        response["annotation_set"][0]
-        == 'Invalid pk "0" - object does not exist.'
-    )
 
 
 @pytest.mark.parametrize(
@@ -173,18 +84,18 @@ def test_chunked_uploads(local_grand_challenge):
 
     assert c_admin(path="uploads/")["count"] == 1 + existing_chunks_admin
 
-    # retina
-    c_retina = Client(
-        token=RETINA_TOKEN, base_url=local_grand_challenge, verify=False
+    # archive
+    c_archive = Client(
+        token=ARCHIVE_TOKEN, base_url=local_grand_challenge, verify=False
     )
-    existing_chunks_retina = c_retina(path="uploads/")["count"]
+    existing_chunks_archive = c_archive(path="uploads/")["count"]
 
     with open(file_to_upload, "rb") as f:
-        c_retina.uploads.upload_fileobj(
+        c_archive.uploads.upload_fileobj(
             fileobj=f, filename=file_to_upload.name
         )
 
-    assert c_retina(path="uploads/")["count"] == 1 + existing_chunks_retina
+    assert c_archive(path="uploads/")["count"] == 1 + existing_chunks_archive
 
     c = Client(token="whatever")
     with pytest.raises(HTTPStatusError):

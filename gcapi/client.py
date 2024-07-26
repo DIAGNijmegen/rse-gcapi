@@ -206,40 +206,6 @@ class ComponentInterfacesAPI(APIBase[gcapi.models.ComponentInterface]):
     model = gcapi.models.ComponentInterface
 
 
-class RetinaLandmarkAnnotationSetsAPI(
-    ModifiableMixin, APIBase[gcapi.models.LandmarkAnnotationSet]
-):
-    base_path = "retina/landmark-annotation/"
-    model = gcapi.models.LandmarkAnnotationSet
-
-    def for_image(self, pk):
-        result = yield self.yield_request(
-            method="GET", path=self.base_path, params={"image_id": pk}
-        )
-        return result
-
-
-class RetinaPolygonAnnotationSetsAPI(
-    ModifiableMixin, APIBase[gcapi.models.NestedPolygonAnnotationSet]
-):
-    base_path = "retina/polygon-annotation-set/"
-    model = gcapi.models.NestedPolygonAnnotationSet
-
-
-class RetinaSinglePolygonAnnotationsAPI(
-    ModifiableMixin, APIBase[gcapi.models.SinglePolygonAnnotation]
-):
-    base_path = "retina/single-polygon-annotation/"
-    model = gcapi.models.SinglePolygonAnnotation
-
-
-class RetinaETDRSGridAnnotationsAPI(
-    ModifiableMixin, APIBase[gcapi.models.ETDRSGridAnnotation]
-):
-    base_path = "retina/etdrs-grid-annotation/"
-    model = gcapi.models.ETDRSGridAnnotation
-
-
 class UploadsAPI(APIBase[gcapi.models.UserUpload]):
     base_path = "uploads/"
     model = gcapi.models.UserUpload
@@ -410,10 +376,6 @@ class ApiDefinitions:
     algorithm_jobs: AlgorithmJobsAPI
     archives: ArchivesAPI
     workstation_configs: WorkstationConfigsAPI
-    retina_landmark_annotations: RetinaLandmarkAnnotationSetsAPI
-    retina_polygon_annotation_sets: RetinaPolygonAnnotationSetsAPI
-    retina_single_polygon_annotations: RetinaSinglePolygonAnnotationsAPI
-    retina_etdrs_grid_annotations: RetinaETDRSGridAnnotationsAPI
     raw_image_upload_sessions: UploadSessionsAPI
     archive_items: ArchiveItemsAPI
     interfaces: ComponentInterfacesAPI
