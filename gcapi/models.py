@@ -546,7 +546,7 @@ class NullEnum(Enum):
 
 
 @dataclass
-class OctRetinaImagePathologyAnnotation(BaseModel):#TODO remove
+class OctRetinaImagePathologyAnnotation(BaseModel):
     id: str
     created: Optional[str]
     grader: Optional[int]
@@ -559,7 +559,7 @@ class OctRetinaImagePathologyAnnotation(BaseModel):#TODO remove
 
 
 @dataclass
-class OctRetinaImagePathologyAnnotationRequest(BaseModel):#TODO REMOVE?
+class OctRetinaImagePathologyAnnotationRequest(BaseModel):
     created: Optional[str]
     grader: Optional[int]
     image: str
