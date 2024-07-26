@@ -40,7 +40,7 @@ async def get_archive_items(client, archive_pk, min_size):
 @pytest.mark.anyio
 async def test_raw_image_and_upload_session(local_grand_challenge):
     async with AsyncClient(
-        base_url=local_grand_challenge, verify=False, token=ARCHIVE_TOKEN
+        base_url=local_grand_challenge, verify=False, token=ADMIN_TOKEN
     ) as c:
         assert len(await c.raw_image_upload_sessions.page()) == 0
 
@@ -48,7 +48,7 @@ async def test_raw_image_and_upload_session(local_grand_challenge):
 @pytest.mark.anyio
 async def test_local_response(local_grand_challenge):
     async with AsyncClient(
-        base_url=local_grand_challenge, verify=False, token=ARCHIVE_TOKEN
+        base_url=local_grand_challenge, verify=False, token=ADMIN_TOKEN
     ) as c:
         # Empty response, but it didn't error out so the server is responding
         assert len(await c.algorithms.page()) == 0
