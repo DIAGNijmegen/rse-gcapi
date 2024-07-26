@@ -2,7 +2,7 @@ import os
 import shutil
 from os import makedirs
 from pathlib import Path
-from subprocess import CalledProcessError, run
+from subprocess import check_call
 from tempfile import TemporaryDirectory
 from time import sleep
 from typing import Generator
@@ -17,12 +17,6 @@ from tests.integration_tests import ADMIN_TOKEN
 @pytest.fixture
 def anyio_backend():
     return "asyncio"
-
-def check_call(args, *, cwd=None):
-    try:
-        run(args, capture_output=True, check=True, cwd=cwd)
-    except CalledProcessError as e:
-        raise Exception(f"stdout\n\n{e.stdout}\n\nstderr\n\n{e.stderr}")
 
 
 @pytest.fixture(scope="session")
