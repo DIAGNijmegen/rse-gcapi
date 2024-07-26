@@ -50,6 +50,7 @@ def local_grand_challenge() -> Generator[str, None, None]:
                 "dockerfiles/db/postgres.test.conf",
                 "Makefile",
                 "scripts/development_fixtures.py",
+                "scripts/component_interface_value_fixtures.py",
                 "scripts/image10x10x10.mha",
                 "scripts/minio.py",
                 "app/tests/resources/gc_demo_algorithm/copy_io.py",
