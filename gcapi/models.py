@@ -1699,7 +1699,6 @@ class HyperlinkedJob(BaseModel):
     outputs: List[HyperlinkedComponentInterfaceValue]
     status: str
     rendered_result_text: str
-    algorithm_title: str
     started_at: Optional[str]
     completed_at: Optional[str]
     hanging_protocol: Optional[HangingProtocol]
