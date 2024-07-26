@@ -1,3 +1,5 @@
+import os
+import shutil
 from os import makedirs
 from pathlib import Path
 from subprocess import CalledProcessError, run
@@ -48,7 +50,6 @@ def local_grand_challenge() -> Generator[str, None, None]:
                 "dockerfiles/db/postgres.test.conf",
                 "Makefile",
                 "scripts/development_fixtures.py",
-                "scripts/algorithm_evaluation_fixtures.py",
                 "scripts/image10x10x10.mha",
                 "scripts/minio.py",
                 "app/tests/resources/gc_demo_algorithm/copy_io.py",
@@ -56,6 +57,14 @@ def local_grand_challenge() -> Generator[str, None, None]:
             ]:
                 get_grand_challenge_file(Path(f), Path(tmp_path))
 
+            for local_path, container_path in (
+                ('/testdata/algorithm_io.tar.gz', 'scripts/algorithm_io.tar.gz'),
+                ('/fixtures/algorithm_evaluation_fixtures.py', 'scripts/algorithm_evaluation_fixtures.py'),
+            ):
+                shutil.copy(
+                    os.path.abspath(os.path.dirname(__file__)) + local_path,
+                    Path(tmp_path) / container_path,
+                )
             try:
                 check_call(
                     [
