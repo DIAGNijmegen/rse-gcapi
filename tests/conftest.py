@@ -111,7 +111,7 @@ def get_grand_challenge_file(repo_path: Path, output_directory: Path) -> None:
     r = httpx.get(
         (
             f"https://raw.githubusercontent.com/comic/grand-challenge.org/"
-            f"cc514a444386d1787a7b4ef5d1395c22e33df07d/{repo_path}"
+            f"d64cd8fa1ef9c31dcda35dbbeac6ff4d2ba3fa74/{repo_path}"
         ),
         follow_redirects=True,
     )
@@ -145,7 +145,7 @@ def rewrite_docker_compose(content: bytes) -> bytes:
         ):
             spec["services"][s][
                 "image"
-            ] = "public.ecr.aws/diag-nijmegen/grand-challenge/web:cc514a4-main-0eaa42a9"
+            ] = "public.ecr.aws/diag-nijmegen/grand-challenge/web:d64cd8f-main-b5d5276f"
 
     # Use the production web server as the test one is not included
     spec["services"]["web"][
