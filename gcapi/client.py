@@ -761,20 +761,6 @@ class ClientBase(ApiDefinitions, ClientInterface):
                 "lung-volume": 1.9,
             },
         )
-        If you provide a value or file for an existing interface of the archive
-        item, the old value will be overwritten by the new one, hence allowing you
-        to update existing archive item values.
-        For images that are already associated with an archive item, you can
-        also change the interface type (e.g. from generic medical image to
-        generic overlay) by providing the link to the existing image together
-        with the new interface slug you would like to use:
-        client.update_archive_item(
-            archive_item_pk=items[0]['id'],
-            values={
-                "generic-overlay":
-                "https://grand-challenge.org/api/v1/cases/images/.../",
-            }
-        )
 
         Parameters
         ----------

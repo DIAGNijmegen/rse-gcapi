@@ -703,64 +703,6 @@ async def test_add_and_update_value_to_archive_item(local_grand_challenge):
 
 
 @pytest.mark.anyio
-async def test_update_interface_kind_of_archive_item_image_civ(
-    local_grand_challenge,
-):
-    async with AsyncClient(
-        base_url=local_grand_challenge, verify=False, token=ARCHIVE_TOKEN
-    ) as c:
-        # check number of archive items
-        archive = await c.archives.iterate_all(
-            params={"slug": "archive"}
-        ).__anext__()
-        items = c.archive_items.iterate_all(params={"archive": archive["pk"]})
-        old_items_list = [item async for item in items]
-
-        # create new archive item
-        _ = await c.upload_cases(
-            archive="archive",
-            files=[Path(__file__).parent / "testdata" / "image10x10x101.mha"],
-        )
-
-        # retrieve existing archive item pk
-        items_list = await get_archive_items(
-            c, archive["pk"], len(old_items_list)
-        )
-
-        old_civ_count = len(items_list[-1]["values"])
-
-        assert (
-            items_list[-1]["values"][0]["interface"]["slug"]
-            == "generic-medical-image"
-        )
-        im = items_list[-1]["values"][0]["image"]
-        image = await get_file(c, im)
-
-        # change interface slug from generic-medical-image to generic-overlay
-        _ = await c.update_archive_item(
-            archive_item_pk=items_list[-1]["pk"],
-            values={"generic-overlay": image["api_url"]},
-        )
-
-        @async_recurse_call
-        async def get_updated_archive_detail():
-            item = await c.archive_items.detail(items_list[-1]["pk"])
-            if item["values"][-1]["interface"]["slug"] != "generic-overlay":
-                # interface type has not yet been replaced
-                raise ValueError
-            return item
-
-        item_updated = await get_updated_archive_detail()
-
-        # still the same amount of civs
-        assert len(item_updated["values"]) == old_civ_count
-        assert "generic-medical-image" not in [
-            value["interface"]["slug"] for value in item_updated["values"]
-        ]
-        assert item_updated["values"][-1]["image"] == im
-
-
-@pytest.mark.anyio
 async def test_update_archive_item_with_non_existing_interface(
     local_grand_challenge,
 ):
