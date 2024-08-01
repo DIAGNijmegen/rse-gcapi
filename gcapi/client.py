@@ -723,6 +723,9 @@ class ClientBase(ApiDefinitions, ClientInterface):
                 "lung-volume": 1.9,
             },
         )
+        If you provide a value or file for an existing interface of the archive
+        item, the old value will be overwritten by the new one, hence allowing you
+        to update existing archive item values.
 
         Parameters
         ----------
