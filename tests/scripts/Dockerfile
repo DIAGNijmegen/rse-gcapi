@@ -8,8 +8,6 @@ WORKDIR /home/myuser
 
 USER myuser
 
-RUN python3 -m pip install pynvml psutil
-
 ADD copy_io.py .
 
 ENTRYPOINT ["python", "copy_io.py"]

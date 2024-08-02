@@ -1,8 +1,11 @@
 import base64
+import gzip
 import logging
 import os
+import shutil
 from contextlib import contextmanager
 from pathlib import Path
+from tempfile import TemporaryDirectory
 
 from allauth.account.models import EmailAddress
 from django.conf import settings
@@ -15,6 +18,7 @@ from grandchallenge.algorithms.models import Algorithm, AlgorithmImage
 from grandchallenge.archives.models import Archive, ArchiveItem
 from grandchallenge.cases.models import Image, ImageFile
 from grandchallenge.challenges.models import Challenge
+from grandchallenge.components.backends import docker_client
 from grandchallenge.components.models import (
     ComponentInterface,
     ComponentInterfaceValue,
@@ -91,12 +95,6 @@ def run():
         inputs=inputs,
         outputs=outputs,
         suffix=f"Image {challenge_count}",
-    )
-    _create_algorithm(
-        creator=users["demop"],
-        inputs=_get_json_file_inputs(),
-        outputs=outputs,
-        suffix=f"File {challenge_count}",
     )
 
     print("✨ Test fixtures successfully created ✨")
@@ -349,17 +347,6 @@ def _get_outputs():
     )
 
 
-def _get_json_file_inputs():
-    return [
-        ComponentInterface.objects.get_or_create(
-            title="JSON File",
-            relative_path="json-file",
-            kind=ComponentInterface.Kind.ANY,
-            store_in_database=False,
-        )[0]
-    ]
-
-
 def _create_phase_archive(*, creator, interfaces, suffix, items=5):
     a = Archive.objects.create(
         title=f"Algorithm Evaluation {suffix} Test Set",
@@ -448,8 +435,25 @@ def _create_algorithm(*, creator, inputs, outputs, suffix):
 
 @contextmanager
 def _gc_demo_algorithm():
-    path = Path(__file__).parent / "algorithm_io.tar.gz"
-    yield from _uploaded_file(path=path)
+    with TemporaryDirectory() as tmp_dir:
+        tmp_path = Path(tmp_dir)
+
+        repo_tag = "fixtures-algorithm-io:latest"
+
+        docker_client.build_image(
+            path=str(Path(__file__).parent.absolute()), repo_tag=repo_tag
+        )
+
+        outfile = tmp_path / f"{repo_tag}.tar"
+        output_gz = f"{outfile}.gz"
+
+        docker_client.save_image(repo_tag=repo_tag, output=outfile)
+
+        with open(outfile, "rb") as f_in:
+            with gzip.open(output_gz, "wb") as f_out:
+                shutil.copyfileobj(f_in, f_out)
+
+        yield from _uploaded_file(path=output_gz)
 
 
 @contextmanager
