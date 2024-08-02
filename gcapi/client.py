@@ -2,20 +2,12 @@ import logging
 import os
 import re
 import uuid
+from collections.abc import Generator
 from io import BytesIO
 from pathlib import Path
 from random import randint
 from time import sleep
-from typing import (
-    TYPE_CHECKING,
-    Any,
-    Callable,
-    Dict,
-    Generator,
-    List,
-    Optional,
-    Union,
-)
+from typing import TYPE_CHECKING, Any, Callable, Optional, Union
 from urllib.parse import urljoin
 
 import httpx
@@ -206,40 +198,6 @@ class ComponentInterfacesAPI(APIBase[gcapi.models.ComponentInterface]):
     model = gcapi.models.ComponentInterface
 
 
-class RetinaLandmarkAnnotationSetsAPI(
-    ModifiableMixin, APIBase[gcapi.models.LandmarkAnnotationSet]
-):
-    base_path = "retina/landmark-annotation/"
-    model = gcapi.models.LandmarkAnnotationSet
-
-    def for_image(self, pk):
-        result = yield self.yield_request(
-            method="GET", path=self.base_path, params={"image_id": pk}
-        )
-        return result
-
-
-class RetinaPolygonAnnotationSetsAPI(
-    ModifiableMixin, APIBase[gcapi.models.NestedPolygonAnnotationSet]
-):
-    base_path = "retina/polygon-annotation-set/"
-    model = gcapi.models.NestedPolygonAnnotationSet
-
-
-class RetinaSinglePolygonAnnotationsAPI(
-    ModifiableMixin, APIBase[gcapi.models.SinglePolygonAnnotation]
-):
-    base_path = "retina/single-polygon-annotation/"
-    model = gcapi.models.SinglePolygonAnnotation
-
-
-class RetinaETDRSGridAnnotationsAPI(
-    ModifiableMixin, APIBase[gcapi.models.ETDRSGridAnnotation]
-):
-    base_path = "retina/etdrs-grid-annotation/"
-    model = gcapi.models.ETDRSGridAnnotation
-
-
 class UploadsAPI(APIBase[gcapi.models.UserUpload]):
     base_path = "uploads/"
     model = gcapi.models.UserUpload
@@ -385,7 +343,7 @@ class WorkstationConfigsAPI(APIBase[gcapi.models.WorkstationConfig]):
     model = gcapi.models.WorkstationConfig
 
 
-def _generate_auth_header(token: str = "") -> Dict:
+def _generate_auth_header(token: str = "") -> dict:
     if not token:
         try:
             token = str(os.environ["GRAND_CHALLENGE_AUTHORIZATION"])
@@ -410,10 +368,6 @@ class ApiDefinitions:
     algorithm_jobs: AlgorithmJobsAPI
     archives: ArchivesAPI
     workstation_configs: WorkstationConfigsAPI
-    retina_landmark_annotations: RetinaLandmarkAnnotationSetsAPI
-    retina_polygon_annotation_sets: RetinaPolygonAnnotationSetsAPI
-    retina_single_polygon_annotations: RetinaSinglePolygonAnnotationsAPI
-    retina_etdrs_grid_annotations: RetinaETDRSGridAnnotationsAPI
     raw_image_upload_sessions: UploadSessionsAPI
     archive_items: ArchiveItemsAPI
     interfaces: ComponentInterfacesAPI
@@ -562,7 +516,7 @@ class ClientBase(ApiDefinitions, ClientInterface):
     def upload_cases(  # noqa: C901
         self,
         *,
-        files: List[str],
+        files: list[str],
         archive: Optional[str] = None,
         answer: Optional[str] = None,
         archive_item: Optional[str] = None,
@@ -660,7 +614,7 @@ class ClientBase(ApiDefinitions, ClientInterface):
 
         return raw_image_upload_session
 
-    def run_external_job(self, *, algorithm: str, inputs: Dict[str, Any]):
+    def run_external_job(self, *, algorithm: str, inputs: dict[str, Any]):
         """
         Starts an algorithm job with the provided inputs.
         You will need to provide the slug of the algorithm. You can find this in the
@@ -740,7 +694,7 @@ class ClientBase(ApiDefinitions, ClientInterface):
         return (yield from self.__org_api_meta.algorithm_jobs.create(**job))
 
     def update_archive_item(
-        self, *, archive_item_pk: str, values: Dict[str, Any]
+        self, *, archive_item_pk: str, values: dict[str, Any]
     ):
         """
         This function updates an existing archive item with the provided values
@@ -764,17 +718,6 @@ class ClientBase(ApiDefinitions, ClientInterface):
         If you provide a value or file for an existing interface of the archive
         item, the old value will be overwritten by the new one, hence allowing you
         to update existing archive item values.
-        For images that are already associated with an archive item, you can
-        also change the interface type (e.g. from generic medical image to
-        generic overlay) by providing the link to the existing image together
-        with the new interface slug you would like to use:
-        client.update_archive_item(
-            archive_item_pk=items[0]['id'],
-            values={
-                "generic-overlay":
-                "https://grand-challenge.org/api/v1/cases/images/.../",
-            }
-        )
 
         Parameters
         ----------
@@ -788,7 +731,7 @@ class ClientBase(ApiDefinitions, ClientInterface):
         item = yield from self.__org_api_meta.archive_items.detail(
             pk=archive_item_pk
         )
-        civs: Dict[str, list] = {"values": []}
+        civs: dict[str, list] = {"values": []}
 
         for civ_slug, value in values.items():
             try:
@@ -880,7 +823,7 @@ class ClientBase(ApiDefinitions, ClientInterface):
         return interfaces
 
     def add_cases_to_reader_study(
-        self, *, reader_study: str, display_sets: List[Dict[str, Any]]
+        self, *, reader_study: str, display_sets: list[dict[str, Any]]
     ):
         """
         This function takes a reader study slug and a list of diplay sets
@@ -911,7 +854,7 @@ class ClientBase(ApiDefinitions, ClientInterface):
         The pks of the newly created display sets.
         """
         res = []
-        interfaces: Dict[str, Dict] = {}
+        interfaces: dict[str, dict] = {}
         for display_set in display_sets:
             new_interfaces = yield from self._validate_display_set_values(
                 display_set.items(), interfaces

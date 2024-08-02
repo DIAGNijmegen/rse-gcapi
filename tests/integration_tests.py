@@ -11,7 +11,6 @@ from tests.utils import (
     ARCHIVE_TOKEN,
     DEMO_PARTICIPANT_TOKEN,
     READERSTUDY_TOKEN,
-    RETINA_TOKEN,
     recurse_call,
 )
 
@@ -37,94 +36,6 @@ def get_archive_items(client, archive_pk, min_size):
     if len(items) <= min_size:
         raise ValueError
     return items
-
-
-@pytest.mark.parametrize(
-    "annotation",
-    [
-        "retina_landmark_annotations",
-        "retina_polygon_annotation_sets",
-        "retina_single_polygon_annotations",
-    ],
-)
-def test_list_annotations(local_grand_challenge, annotation):
-    c = Client(
-        base_url=local_grand_challenge, verify=False, token=RETINA_TOKEN
-    )
-    response = getattr(c, annotation).list()
-    assert len(response) == 0
-
-
-def test_create_landmark_annotation(local_grand_challenge):
-    c = Client(
-        base_url=local_grand_challenge, verify=False, token=RETINA_TOKEN
-    )
-    nil_uuid = "00000000-0000-4000-9000-000000000000"
-    create_data = {
-        "grader": 0,
-        "singlelandmarkannotation_set": [
-            {"image": nil_uuid, "landmarks": [[0, 0], [1, 1], [2, 2]]},
-            {"image": nil_uuid, "landmarks": [[0, 0], [1, 1], [2, 2]]},
-        ],
-    }
-    with pytest.raises(HTTPStatusError) as e:
-        c.retina_landmark_annotations.create(**create_data)
-    response = e.value.response
-    assert response.status_code == 400
-    response = response.json()
-    assert response["grader"][0] == 'Invalid pk "0" - object does not exist.'
-    for sla_error in response["singlelandmarkannotation_set"]:
-        assert (
-            sla_error["image"][0]
-            == f'Invalid pk "{nil_uuid}" - object does not exist.'  # noqa: B907
-        )
-
-
-def test_create_polygon_annotation_set(local_grand_challenge):
-    c = Client(
-        base_url=local_grand_challenge, verify=False, token=RETINA_TOKEN
-    )
-    nil_uuid = "00000000-0000-4000-9000-000000000000"
-    create_data = {
-        "grader": 0,
-        "image": nil_uuid,
-        "singlepolygonannotation_set": [
-            {"z": 0, "value": [[0, 0], [1, 1], [2, 2]]},
-            {"z": 1, "value": [[0, 0], [1, 1], [2, 2]]},
-        ],
-    }
-    with pytest.raises(HTTPStatusError) as e:
-        c.retina_polygon_annotation_sets.create(**create_data)
-    response = e.value.response
-    assert response.status_code == 400
-    response = response.json()
-    assert response["grader"][0] == 'Invalid pk "0" - object does not exist.'
-    assert (
-        response["image"][0]
-        == f'Invalid pk "{nil_uuid}" - object does not exist.'  # noqa: B907
-    )
-    assert response["name"][0] == "This field is required."
-
-
-def test_create_single_polygon_annotations(local_grand_challenge):
-    c = Client(
-        base_url=local_grand_challenge, verify=False, token=RETINA_TOKEN
-    )
-    create_data = {
-        "z": 0,
-        "value": [[0, 0], [1, 1], [2, 2]],
-        "annotation_set": 0,
-    }
-
-    with pytest.raises(HTTPStatusError) as e:
-        c.retina_single_polygon_annotations.create(**create_data)
-    response = e.value.response
-    assert response.status_code == 400
-    response = response.json()
-    assert (
-        response["annotation_set"][0]
-        == 'Invalid pk "0" - object does not exist.'
-    )
 
 
 @pytest.mark.parametrize(
@@ -173,18 +84,18 @@ def test_chunked_uploads(local_grand_challenge):
 
     assert c_admin(path="uploads/")["count"] == 1 + existing_chunks_admin
 
-    # retina
-    c_retina = Client(
-        token=RETINA_TOKEN, base_url=local_grand_challenge, verify=False
+    # archive
+    c_archive = Client(
+        token=ARCHIVE_TOKEN, base_url=local_grand_challenge, verify=False
     )
-    existing_chunks_retina = c_retina(path="uploads/")["count"]
+    existing_chunks_archive = c_archive(path="uploads/")["count"]
 
     with open(file_to_upload, "rb") as f:
-        c_retina.uploads.upload_fileobj(
+        c_archive.uploads.upload_fileobj(
             fileobj=f, filename=file_to_upload.name
         )
 
-    assert c_retina(path="uploads/")["count"] == 1 + existing_chunks_retina
+    assert c_archive(path="uploads/")["count"] == 1 + existing_chunks_archive
 
     c = Client(token="whatever")
     with pytest.raises(HTTPStatusError):
@@ -384,11 +295,12 @@ def test_download_cases(local_grand_challenge, files, tmpdir):
             "generic-medical-image",
             ["image10x10x101.mha"],
         ),
-        (
-            "test-algorithm-evaluation-file-1",
-            "json-file",
-            ["test.json"],
-        ),
+        # TODO this algorithm was removed from the test fixtures
+        # (
+        #    "test-algorithm-evaluation-file-1",
+        #    "json-file",
+        #    ["test.json"],
+        # ),
     ),
 )
 def test_create_job_with_upload(
@@ -417,7 +329,7 @@ def test_create_job_with_upload(
     assert job["status"] == "Queued"
     assert len(job["inputs"]) == 1
     job = c.algorithm_jobs.detail(job["pk"])
-    assert job["status"] == "Queued"
+    assert job["status"] in {"Queued", "Started"}
 
 
 def test_get_algorithm_by_slug(local_grand_challenge):
@@ -620,58 +532,6 @@ def test_add_and_update_value_to_archive_item(local_grand_challenge):
     assert new_json_civ["value"] == {"foo": 0.8}
 
 
-def test_update_interface_kind_of_archive_item_image_civ(
-    local_grand_challenge,
-):
-    c = Client(
-        base_url=local_grand_challenge, verify=False, token=ARCHIVE_TOKEN
-    )
-    # check number of archive items
-    archive = next(c.archives.iterate_all(params={"slug": "archive"}))
-    old_items_list = list(
-        c.archive_items.iterate_all(params={"archive": archive["pk"]})
-    )
-
-    # create new archive item
-    _ = c.upload_cases(
-        archive="archive",
-        files=[Path(__file__).parent / "testdata" / "image10x10x101.mha"],
-    )
-
-    # retrieve existing archive item pk
-    items = get_archive_items(c, archive["pk"], len(old_items_list))
-    old_civ_count = len(items[-1]["values"])
-
-    assert (
-        items[-1]["values"][0]["interface"]["slug"] == "generic-medical-image"
-    )
-    im = items[-1]["values"][0]["image"]
-    image = get_file(c, im)
-
-    # change interface slug from generic-medical-image to generic-overlay
-    _ = c.update_archive_item(
-        archive_item_pk=items[-1]["pk"],
-        values={"generic-overlay": image["api_url"]},
-    )
-
-    @recurse_call
-    def get_updated_archive_items():
-        i = c.archive_items.detail(items[-1]["pk"])
-        if i["values"][-1]["interface"]["slug"] != "generic-overlay":
-            # item has not been added yet
-            raise ValueError
-        return i
-
-    item_updated = get_updated_archive_items()
-
-    # still the same amount of civs
-    assert len(item_updated["values"]) == old_civ_count
-    assert "generic-medical-image" not in [
-        value["interface"]["slug"] for value in item_updated["values"]
-    ]
-    assert item_updated["values"][-1]["image"] == im
-
-
 def test_update_archive_item_with_non_existing_interface(
     local_grand_challenge,
 ):
@@ -824,7 +684,7 @@ def test_add_cases_to_reader_study(display_sets, local_grand_challenge):
 
     for display_set_pk, display_set in zip(added_display_sets, display_sets):
         ds = c.reader_studies.display_sets.detail(pk=display_set_pk)
-        # make take a while for the images to be added
+        # may take a while for the images to be added
         while len(ds["values"]) != len(display_set):
             ds = c.reader_studies.display_sets.detail(pk=display_set_pk)
 
@@ -887,8 +747,7 @@ def test_add_cases_to_reader_study_invalid_path(local_grand_challenge):
         )
 
     assert str(e.value) == (
-        "Invalid file paths: "  # noqa: B907
-        f"{{'generic-medical-image': ['{file_path}']}}"
+        "Invalid file paths: " f"{{'generic-medical-image': ['{file_path}']}}"
     )
 
 

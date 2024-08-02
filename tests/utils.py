@@ -3,11 +3,12 @@ from time import sleep
 
 from httpx import AsyncHTTPTransport, HTTPStatusError, HTTPTransport
 
-RETINA_TOKEN = "f1f98a1733c05b12118785ffd995c250fe4d90da"
-ADMIN_TOKEN = "1b9436200001f2eaf57cd77db075cbb60a49a00a"
-READERSTUDY_TOKEN = "01614a77b1c0b4ecd402be50a8ff96188d5b011d"
-DEMO_PARTICIPANT_TOKEN = "00aa710f4dc5621a0cb64b0795fbba02e39d7700"
-ARCHIVE_TOKEN = "0d284528953157759d26c469297afcf6fd367f71"
+from tests.scripts.constants import USER_TOKENS
+
+ADMIN_TOKEN = USER_TOKENS["admin"]
+READERSTUDY_TOKEN = USER_TOKENS["readerstudy"]
+DEMO_PARTICIPANT_TOKEN = USER_TOKENS["demop"]
+ARCHIVE_TOKEN = USER_TOKENS["archive"]
 
 
 def recurse_call(func):
