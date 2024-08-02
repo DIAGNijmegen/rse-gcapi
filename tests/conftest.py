@@ -46,10 +46,11 @@ def local_grand_challenge() -> Generator[str, None, None]:
                 get_grand_challenge_file(Path(f), Path(tmp_path))
 
             for file in (Path(__file__).parent / "scripts").glob("*"):
-                shutil.copy(
-                    file,
-                    Path(tmp_path) / "scripts" / file.name,
-                )
+                if file.is_file():
+                    shutil.copy(
+                        file,
+                        Path(tmp_path) / "scripts" / file.name,
+                    )
 
             docker_gid = int(
                 os.environ.get(
