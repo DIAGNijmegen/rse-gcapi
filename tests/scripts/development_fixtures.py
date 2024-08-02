@@ -16,6 +16,7 @@ from faker import Faker
 from grandchallenge.algorithms.models import Algorithm, AlgorithmImage, Job
 from grandchallenge.anatomy.models import BodyRegion, BodyStructure
 from grandchallenge.archives.models import Archive, ArchiveItem
+from grandchallenge.cases.models import Image, ImageFile
 from grandchallenge.challenges.models import Challenge, ChallengeSeries
 from grandchallenge.components.models import (
     ComponentInterface,
@@ -47,8 +48,10 @@ from knox import crypto
 from knox.models import AuthToken
 from knox.settings import CONSTANTS
 from machina.apps.forum.models import Forum
-from scripts.algorithm_evaluation_fixtures import _gc_demo_algorithm
-from scripts.component_interface_value_fixtures import _create_image
+from scripts.algorithm_evaluation_fixtures import (
+    _gc_demo_algorithm,
+    _uploaded_image_file,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -491,3 +494,20 @@ def _create_user_tokens(users):
         out += f"\t{user} token is: {token}\n"
     out += f"{'*' * 80}\n"
     logger.debug(out)
+
+
+image_counter = 0
+
+
+def _create_image(**kwargs):
+    global image_counter
+
+    im = Image.objects.create(**kwargs)
+    im_file = ImageFile.objects.create(image=im)
+
+    with _uploaded_image_file() as f:
+        im_file.file.save(f"test_image_{image_counter}.mha", f)
+        image_counter += 1
+        im_file.save()
+
+    return im
