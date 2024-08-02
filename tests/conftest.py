@@ -41,7 +41,6 @@ def local_grand_challenge() -> Generator[str, None, None]:
         with TemporaryDirectory() as tmp_path:
             for f in [
                 "docker-compose.yml",
-                "dockerfiles/db/postgres.test.conf",
                 "Makefile",
                 "scripts/development_fixtures.py",
                 "scripts/component_interface_value_fixtures.py",
@@ -136,6 +135,7 @@ def get_grand_challenge_file(repo_path: Path, output_directory: Path) -> None:
         ),
         follow_redirects=True,
     )
+    r.raise_for_status()
 
     if str(repo_path) == "docker-compose.yml":
         content = rewrite_docker_compose(r.content)
@@ -185,12 +185,7 @@ def rewrite_docker_compose(content: bytes) -> bytes:
 
 
 def rewrite_makefile(content: bytes) -> bytes:
-    # Using `docker compose` with version 2.4.1+azure-1 does not seem to work
-    # It works locally with version `2.5.1`, so for now go back to docker-compose
-    # If this is fixed docker-compose-wait can be removed and the `--wait`
-    # option added to the "up" action above
     makefile = content.decode("utf-8")
-    # makefile = makefile.replace("docker compose", "docker-compose")
     # Faker is required by development_fixtures.py but not available on the production
     # container. So we add it manually here.
     makefile = makefile.replace(
