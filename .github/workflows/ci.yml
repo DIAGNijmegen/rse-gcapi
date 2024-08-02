@@ -66,8 +66,6 @@ jobs:
           retry -t 5 -- docker pull public.ecr.aws/diag-nijmegen/grand-challenge/http:latest
       - name: Add gc.localhost to /etc/hosts
         run: sudo echo "127.0.0.1 gc.localhost\n127.0.0.1 minio.localhost" | sudo tee -a /etc/hosts
-      - name: Find the docker compose version (should be at least 2.1.1 for --wait, everything works locally with 2.5.1, 2.4.1+azure-1 does not work)
-        run: docker compose version
       - name: Run tox
         run: tox
 

@@ -41,7 +41,6 @@ def local_grand_challenge() -> Generator[str, None, None]:
         with TemporaryDirectory() as tmp_path:
             for f in [
                 "docker-compose.yml",
-                "Makefile",
                 "scripts/development_fixtures.py",
                 "scripts/component_interface_value_fixtures.py",
                 "scripts/image10x10x10.mha",
@@ -88,12 +87,24 @@ def local_grand_challenge() -> Generator[str, None, None]:
                     stderr=STDOUT,
                 )
                 check_output(
-                    ["make", "development_fixtures"],
-                    cwd=tmp_path,
-                    stderr=STDOUT,
-                )
-                check_output(
-                    ["make", "algorithm_evaluation_fixtures"],
+                    [
+                        "docker",
+                        "compose",
+                        "run",
+                        "-v",
+                        f"{(Path(tmp_path) / 'scripts').absolute()}:/app/scripts:ro",
+                        "--rm",
+                        "celery_worker_evaluation",
+                        "bash",
+                        "-c",
+                        (
+                            # TODO remove dependency on faker
+                            "python -m pip install faker "
+                            "&& python manage.py migrate "
+                            "&& python manage.py runscript "
+                            "minio development_fixtures algorithm_evaluation_fixtures"
+                        ),
+                    ],
                     cwd=tmp_path,
                     stderr=STDOUT,
                 )
@@ -139,8 +150,6 @@ def get_grand_challenge_file(repo_path: Path, output_directory: Path) -> None:
 
     if str(repo_path) == "docker-compose.yml":
         content = rewrite_docker_compose(r.content)
-    elif str(repo_path) == "Makefile":
-        content = rewrite_makefile(r.content)
     else:
         content = r.content
 
@@ -182,17 +191,3 @@ def rewrite_docker_compose(content: bytes) -> bytes:
         spec["services"][service]["command"] = command
 
     return yaml.safe_dump(spec).encode("utf-8")
-
-
-def rewrite_makefile(content: bytes) -> bytes:
-    makefile = content.decode("utf-8")
-    # Faker is required by development_fixtures.py but not available on the production
-    # container. So we add it manually here.
-    makefile = makefile.replace(
-        "python manage.py migrate && "
-        "python manage.py runscript minio development_fixtures",
-        "python -m pip install faker && "
-        "python manage.py migrate && "
-        "python manage.py runscript minio development_fixtures",
-    )
-    return makefile.encode("utf-8")

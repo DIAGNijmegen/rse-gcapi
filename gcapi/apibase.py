@@ -28,15 +28,12 @@ T = TypeVar("T")
 
 class ClientInterface:
     @property
-    def base_url(self) -> URL:
-        ...
+    def base_url(self) -> URL: ...
 
     @base_url.setter
-    def base_url(self, v: URLTypes):
-        ...
+    def base_url(self, v: URLTypes): ...
 
-    def validate_url(self, url):
-        ...
+    def validate_url(self, url): ...
 
     def __call__(
         self,
@@ -69,12 +66,10 @@ class PageResult(Generic[T], collections.abc.Sequence):
         self._results = results
 
     @overload
-    def __getitem__(self, key: int) -> T:
-        ...
+    def __getitem__(self, key: int) -> T: ...
 
     @overload
-    def __getitem__(self, key: slice) -> Sequence[T]:
-        ...
+    def __getitem__(self, key: slice) -> Sequence[T]: ...
 
     def __getitem__(self, key):
         return self._results[key]

@@ -760,7 +760,7 @@ async def test_add_cases_to_reader_study(display_sets, local_grand_challenge):
             added_display_sets, display_sets
         ):
             ds = await c.reader_studies.display_sets.detail(pk=display_set_pk)
-            # make take a while for the images to be added
+            # may take a while for the images to be added
             while len(ds["values"]) != len(display_set):
                 ds = await c.reader_studies.display_sets.detail(
                     pk=display_set_pk
@@ -828,7 +828,7 @@ async def test_add_cases_to_reader_study_invalid_path(
 
         assert str(e.value) == (
             "Invalid file paths: "  # noqa: B907
-            f"{{'generic-medical-image': ['{file_path}']}}"
+            f"{{'generic-medical-image': [{file_path!r}]}}"
         )
 
 
