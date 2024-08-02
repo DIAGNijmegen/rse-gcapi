@@ -5,6 +5,7 @@ import os
 import shutil
 from contextlib import contextmanager
 from pathlib import Path
+from subprocess import CalledProcessError
 from tempfile import TemporaryDirectory
 
 from allauth.account.models import EmailAddress
@@ -440,9 +441,13 @@ def _gc_demo_algorithm():
 
         repo_tag = "fixtures-algorithm-io:latest"
 
-        docker_client.build_image(
-            path=str(Path(__file__).parent.absolute()), repo_tag=repo_tag
-        )
+        try:
+            docker_client.build_image(
+                path=str(Path(__file__).parent.absolute()), repo_tag=repo_tag
+            )
+        except CalledProcessError as e:
+            print(f"Error building image: {e.stderr}")
+            raise
 
         outfile = tmp_path / f"{repo_tag}.tar"
         output_gz = f"{outfile}.gz"

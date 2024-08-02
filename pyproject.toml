@@ -70,5 +70,5 @@ setenv =
     PYTHONPATH = {toxinidir}
 commands =
     poetry install -v
-    poetry run pytest --cov-branch --cov-report term-missing --cov=tests/ --cov=gcapi/ --basetemp={envtmpdir} {posargs}
+    poetry run pytest -vv --cov-branch --cov-report term-missing --cov=tests/ --cov=gcapi/ --basetemp={envtmpdir} {posargs}
 """
