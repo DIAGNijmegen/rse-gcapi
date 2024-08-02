@@ -153,9 +153,14 @@ def rewrite_docker_compose(content: bytes) -> bytes:
     spec = yaml.safe_load(content)
 
     for s in spec["services"]:
-        # Remove the non-postgres volume mounts, these are not needed for testing
-        if s != "postgres" and "volumes" in spec["services"][s]:
-            del spec["services"][s]["volumes"]
+        # Remove the non-docker socket volume mounts,
+        # these are not needed for these tests
+        if "volumes" in spec["services"][s]:
+            spec["services"][s]["volumes"] = [
+                volume
+                for volume in spec["services"][s]["volumes"]
+                if volume["target"] == "/var/run/docker.sock"
+            ]
 
         # Replace test with production containers
         if (
