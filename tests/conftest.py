@@ -170,7 +170,7 @@ def rewrite_makefile(content: bytes) -> bytes:
     # If this is fixed docker-compose-wait can be removed and the `--wait`
     # option added to the "up" action above
     makefile = content.decode("utf-8")
-    makefile = makefile.replace("docker compose", "docker-compose")
+    # makefile = makefile.replace("docker compose", "docker-compose")
     # Faker is required by development_fixtures.py but not available on the production
     # container. So we add it manually here.
     makefile = makefile.replace(
