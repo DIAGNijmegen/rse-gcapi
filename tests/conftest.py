@@ -84,11 +84,9 @@ def local_grand_challenge() -> Generator[str, None, None]:
                         "bash",
                         "-c",
                         (
-                            # TODO remove dependency on faker
-                            "python -m pip install faker "
-                            "&& python manage.py migrate "
+                            "python manage.py migrate "
                             "&& python manage.py runscript "
-                            "minio development_fixtures algorithm_evaluation_fixtures"
+                            "minio create_test_fixtures"
                         ),
                     ],
                     cwd=tmp_path,
