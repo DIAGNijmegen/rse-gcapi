@@ -3,7 +3,7 @@ from time import sleep
 
 from httpx import AsyncHTTPTransport, HTTPStatusError, HTTPTransport
 
-from tests.scripts.create_test_fixtures import USER_TOKENS
+from tests.scripts.constants import USER_TOKENS
 
 ADMIN_TOKEN = USER_TOKENS["admin"]
 READERSTUDY_TOKEN = USER_TOKENS["reader_study"]
