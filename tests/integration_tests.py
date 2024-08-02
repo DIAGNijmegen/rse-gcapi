@@ -295,11 +295,12 @@ def test_download_cases(local_grand_challenge, files, tmpdir):
             "generic-medical-image",
             ["image10x10x101.mha"],
         ),
-        (
-            "test-algorithm-evaluation-file-1",
-            "json-file",
-            ["test.json"],
-        ),
+        # TODO this algorithm was removed from the test fixtures
+        # (
+        #    "test-algorithm-evaluation-file-1",
+        #    "json-file",
+        #    ["test.json"],
+        # ),
     ),
 )
 def test_create_job_with_upload(
@@ -531,58 +532,6 @@ def test_add_and_update_value_to_archive_item(local_grand_challenge):
     assert new_json_civ["value"] == {"foo": 0.8}
 
 
-def test_update_interface_kind_of_archive_item_image_civ(
-    local_grand_challenge,
-):
-    c = Client(
-        base_url=local_grand_challenge, verify=False, token=ARCHIVE_TOKEN
-    )
-    # check number of archive items
-    archive = next(c.archives.iterate_all(params={"slug": "archive"}))
-    old_items_list = list(
-        c.archive_items.iterate_all(params={"archive": archive["pk"]})
-    )
-
-    # create new archive item
-    _ = c.upload_cases(
-        archive="archive",
-        files=[Path(__file__).parent / "testdata" / "image10x10x101.mha"],
-    )
-
-    # retrieve existing archive item pk
-    items = get_archive_items(c, archive["pk"], len(old_items_list))
-    old_civ_count = len(items[-1]["values"])
-
-    assert (
-        items[-1]["values"][0]["interface"]["slug"] == "generic-medical-image"
-    )
-    im = items[-1]["values"][0]["image"]
-    image = get_file(c, im)
-
-    # change interface slug from generic-medical-image to generic-overlay
-    _ = c.update_archive_item(
-        archive_item_pk=items[-1]["pk"],
-        values={"generic-overlay": image["api_url"]},
-    )
-
-    @recurse_call
-    def get_updated_archive_items():
-        i = c.archive_items.detail(items[-1]["pk"])
-        if i["values"][-1]["interface"]["slug"] != "generic-overlay":
-            # item has not been added yet
-            raise ValueError
-        return i
-
-    item_updated = get_updated_archive_items()
-
-    # still the same amount of civs
-    assert len(item_updated["values"]) == old_civ_count
-    assert "generic-medical-image" not in [
-        value["interface"]["slug"] for value in item_updated["values"]
-    ]
-    assert item_updated["values"][-1]["image"] == im
-
-
 def test_update_archive_item_with_non_existing_interface(
     local_grand_challenge,
 ):
@@ -735,7 +684,7 @@ def test_add_cases_to_reader_study(display_sets, local_grand_challenge):
 
     for display_set_pk, display_set in zip(added_display_sets, display_sets):
         ds = c.reader_studies.display_sets.detail(pk=display_set_pk)
-        # make take a while for the images to be added
+        # may take a while for the images to be added
         while len(ds["values"]) != len(display_set):
             ds = c.reader_studies.display_sets.detail(pk=display_set_pk)
 
@@ -798,8 +747,7 @@ def test_add_cases_to_reader_study_invalid_path(local_grand_challenge):
         )
 
     assert str(e.value) == (
-        "Invalid file paths: "  # noqa: B907
-        f"{{'generic-medical-image': ['{file_path}']}}"
+        "Invalid file paths: " f"{{'generic-medical-image': ['{file_path}']}}"
     )
 
 

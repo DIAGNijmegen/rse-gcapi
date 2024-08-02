@@ -27,7 +27,7 @@ class AlgorithmImage(BaseModel):
 
 @dataclass
 class Answer(BaseModel):
-    answer: Optional[Dict[str, Any]]
+    answer: Optional[dict[str, Any]]
     api_url: str
     created: str
     creator: str
@@ -43,7 +43,7 @@ class Answer(BaseModel):
 
 @dataclass
 class AnswerRequest(BaseModel):
-    answer: Optional[Dict[str, Any]]
+    answer: Optional[dict[str, Any]]
     display_set: Optional[str]
     question: str
     last_edit_duration: Optional[str]
@@ -54,7 +54,7 @@ class Archive(BaseModel):
     pk: str
     name: str
     title: str
-    algorithms: List[str]
+    algorithms: list[str]
     logo: str
     description: Optional[str]
     api_url: str
@@ -115,7 +115,7 @@ class ColorSpaceEnum(Enum):
 @dataclass
 class ComponentInterfaceValuePost(BaseModel):
     interface: str
-    value: Optional[Dict[str, Any]]
+    value: Optional[dict[str, Any]]
     file: Optional[str]
     image: Optional[str]
     pk: int
@@ -124,7 +124,7 @@ class ComponentInterfaceValuePost(BaseModel):
 @dataclass
 class ComponentInterfaceValuePostRequest(BaseModel):
     interface: str
-    value: Optional[Dict[str, Any]]
+    value: Optional[dict[str, Any]]
     file: Optional[bytes]
     image: Optional[str]
     upload_session: Optional[str]
@@ -134,7 +134,7 @@ class ComponentInterfaceValuePostRequest(BaseModel):
 @dataclass
 class DisplaySetPostRequest(BaseModel):
     reader_study: Optional[str]
-    values: Optional[List[ComponentInterfaceValuePostRequest]]
+    values: Optional[list[ComponentInterfaceValuePostRequest]]
     order: Optional[int]
 
 
@@ -144,8 +144,8 @@ class ETDRSGridAnnotation(BaseModel):
     grader: Optional[int]
     created: Optional[str]
     image: str
-    fovea: List[float]
-    optic_disk: Optional[List[float]]
+    fovea: list[float]
+    optic_disk: Optional[list[float]]
 
 
 @dataclass
@@ -153,8 +153,8 @@ class ETDRSGridAnnotationRequest(BaseModel):
     grader: Optional[int]
     created: Optional[str]
     image: str
-    fovea: List[float]
-    optic_disk: Optional[List[float]]
+    fovea: list[float]
+    optic_disk: Optional[list[float]]
 
 
 class EyeChoiceEnum(Enum):
@@ -169,7 +169,7 @@ class Feedback(BaseModel):
     session: str
     screenshot: Optional[str]
     user_comment: str
-    context: Optional[Dict[str, Any]]
+    context: Optional[dict[str, Any]]
 
 
 @dataclass
@@ -177,7 +177,7 @@ class FeedbackRequest(BaseModel):
     session: str
     screenshot: Optional[bytes]
     user_comment: str
-    context: Optional[Dict[str, Any]]
+    context: Optional[dict[str, Any]]
 
 
 class FieldOfViewEnum(Enum):
@@ -204,12 +204,12 @@ class FollowRequest(BaseModel):
 
 @dataclass
 class HangingProtocol(BaseModel):
-    json_: Dict[str, Any]
+    json_: dict[str, Any]
 
 
 @dataclass
 class HangingProtocolRequest(BaseModel):
-    json_: Dict[str, Any]
+    json_: dict[str, Any]
 
 
 @dataclass
@@ -252,14 +252,14 @@ class ImagingModality(BaseModel):
 @dataclass
 class JobPost(BaseModel):
     pk: str
-    inputs: List[ComponentInterfaceValuePost]
+    inputs: list[ComponentInterfaceValuePost]
     status: str
 
 
 @dataclass
 class JobPostRequest(BaseModel):
     algorithm: str
-    inputs: List[ComponentInterfaceValuePostRequest]
+    inputs: list[ComponentInterfaceValuePostRequest]
 
 
 class LocationEnum(Enum):
@@ -575,7 +575,7 @@ class PaginatedAlgorithmImageList(BaseModel):
     count: Optional[int]
     next: Optional[str]
     previous: Optional[str]
-    results: Optional[List[AlgorithmImage]]
+    results: Optional[list[AlgorithmImage]]
 
 
 @dataclass
@@ -583,7 +583,7 @@ class PaginatedAnswerList(BaseModel):
     count: Optional[int]
     next: Optional[str]
     previous: Optional[str]
-    results: Optional[List[Answer]]
+    results: Optional[list[Answer]]
 
 
 @dataclass
@@ -591,7 +591,7 @@ class PaginatedArchiveList(BaseModel):
     count: Optional[int]
     next: Optional[str]
     previous: Optional[str]
-    results: Optional[List[Archive]]
+    results: Optional[list[Archive]]
 
 
 @dataclass
@@ -599,7 +599,7 @@ class PaginatedFeedbackList(BaseModel):
     count: Optional[int]
     next: Optional[str]
     previous: Optional[str]
-    results: Optional[List[Feedback]]
+    results: Optional[list[Feedback]]
 
 
 @dataclass
@@ -607,7 +607,7 @@ class PaginatedFollowList(BaseModel):
     count: Optional[int]
     next: Optional[str]
     previous: Optional[str]
-    results: Optional[List[Follow]]
+    results: Optional[list[Follow]]
 
 
 @dataclass
@@ -615,7 +615,7 @@ class PaginatedNotificationList(BaseModel):
     count: Optional[int]
     next: Optional[str]
     previous: Optional[str]
-    results: Optional[List[Notification]]
+    results: Optional[list[Notification]]
 
 
 @dataclass
@@ -636,7 +636,7 @@ class PartRequest(BaseModel):
 
 @dataclass
 class PatchedAnswerRequest(BaseModel):
-    answer: Optional[Dict[str, Any]]
+    answer: Optional[dict[str, Any]]
     display_set: Optional[str]
     question: Optional[str]
     last_edit_duration: Optional[str]
@@ -645,7 +645,7 @@ class PatchedAnswerRequest(BaseModel):
 @dataclass
 class PatchedArchiveItemPostRequest(BaseModel):
     archive: Optional[str]
-    values: Optional[List[ComponentInterfaceValuePostRequest]]
+    values: Optional[list[ComponentInterfaceValuePostRequest]]
 
 
 @dataclass
@@ -660,7 +660,7 @@ class PatchedBooleanClassificationAnnotationRequest(BaseModel):
 @dataclass
 class PatchedDisplaySetPostRequest(BaseModel):
     reader_study: Optional[str]
-    values: Optional[List[ComponentInterfaceValuePostRequest]]
+    values: Optional[list[ComponentInterfaceValuePostRequest]]
     order: Optional[int]
 
 
@@ -669,8 +669,8 @@ class PatchedETDRSGridAnnotationRequest(BaseModel):
     grader: Optional[int]
     created: Optional[str]
     image: Optional[str]
-    fovea: Optional[List[float]]
-    optic_disk: Optional[List[float]]
+    fovea: Optional[list[float]]
+    optic_disk: Optional[list[float]]
 
 
 @dataclass
@@ -716,7 +716,7 @@ class PatchedRetinaImagePathologyAnnotationRequest(BaseModel):
 
 @dataclass
 class PatchedSinglePolygonAnnotationRequest(BaseModel):
-    value: Optional[List[List[float]]]
+    value: Optional[list[list[float]]]
     annotation_set: Optional[str]
     z: Optional[float]
     interpolated: Optional[bool]
@@ -724,12 +724,12 @@ class PatchedSinglePolygonAnnotationRequest(BaseModel):
 
 @dataclass
 class PatchedUserUploadCompleteRequest(BaseModel):
-    parts: Optional[List[PartRequest]]
+    parts: Optional[list[PartRequest]]
 
 
 @dataclass
 class PatchedUserUploadPresignedURLsRequest(BaseModel):
-    part_numbers: Optional[List[int]]
+    part_numbers: Optional[list[int]]
 
 
 class PathologyEnum(Enum):
@@ -770,23 +770,23 @@ class RawImageUploadSession(BaseModel):
     creator: Optional[int]
     status: str
     error_message: Optional[str]
-    image_set: List[str]
+    image_set: list[str]
     api_url: str
-    user_uploads: Optional[List[str]]
-    uploads: List[str]
+    user_uploads: Optional[list[str]]
+    uploads: list[str]
 
 
 @dataclass
 class RawImageUploadSessionRequest(BaseModel):
     creator: Optional[int]
     error_message: Optional[str]
-    user_uploads: Optional[List[str]]
+    user_uploads: Optional[list[str]]
     archive: Optional[str]
     answer: Optional[str]
     interface: Optional[str]
     archive_item: Optional[str]
     display_set: Optional[str]
-    uploads: List[str]
+    uploads: list[str]
 
 
 @dataclass
@@ -828,19 +828,19 @@ class SimpleImage(BaseModel):
 class SingleLandmarkAnnotationSerializerNoParent(BaseModel):
     id: str
     image: str
-    landmarks: List[List[float]]
+    landmarks: list[list[float]]
 
 
 @dataclass
 class SingleLandmarkAnnotationSerializerNoParentRequest(BaseModel):
     image: str
-    landmarks: List[List[float]]
+    landmarks: list[list[float]]
 
 
 @dataclass
 class SinglePolygonAnnotation(BaseModel):
     id: str
-    value: List[List[float]]
+    value: list[list[float]]
     annotation_set: str
     created: str
     z: Optional[float]
@@ -849,7 +849,7 @@ class SinglePolygonAnnotation(BaseModel):
 
 @dataclass
 class SinglePolygonAnnotationRequest(BaseModel):
-    value: List[List[float]]
+    value: list[list[float]]
     annotation_set: str
     z: Optional[float]
     interpolated: Optional[bool]
@@ -858,7 +858,7 @@ class SinglePolygonAnnotationRequest(BaseModel):
 @dataclass
 class SinglePolygonAnnotationSerializerNoParent(BaseModel):
     id: Optional[str]
-    value: List[List[float]]
+    value: list[list[float]]
     z: Optional[float]
     interpolated: Optional[bool]
 
@@ -866,7 +866,7 @@ class SinglePolygonAnnotationSerializerNoParent(BaseModel):
 @dataclass
 class SinglePolygonAnnotationSerializerNoParentRequest(BaseModel):
     id: Optional[str]
-    value: List[List[float]]
+    value: list[list[float]]
     z: Optional[float]
     interpolated: Optional[bool]
 
@@ -1545,7 +1545,7 @@ class UserUploadParts(BaseModel):
     s3_upload_id: str
     status: str
     api_url: str
-    parts: List[Part]
+    parts: list[Part]
 
 
 @dataclass
@@ -1557,7 +1557,7 @@ class UserUploadPresignedURLs(BaseModel):
     s3_upload_id: str
     status: str
     api_url: str
-    presigned_urls: Dict[str, str]
+    presigned_urls: dict[str, str]
 
 
 @dataclass
@@ -1590,18 +1590,18 @@ class WorkstationConfig(BaseModel):
     modified: str
     creator: str
     image_context: str
-    window_presets: List[WindowPreset]
+    window_presets: list[WindowPreset]
     default_window_preset: WindowPreset
     default_slab_thickness_mm: float
     default_slab_render_method: str
     default_orientation: str
     default_overlay_alpha: float
-    overlay_luts: List[LookUpTable]
+    overlay_luts: list[LookUpTable]
     default_overlay_lut: LookUpTable
     default_overlay_interpolation: str
     default_image_interpolation: str
-    overlay_segments: Optional[Dict[str, Any]]
-    key_bindings: Optional[Dict[str, Any]]
+    overlay_segments: Optional[dict[str, Any]]
+    key_bindings: Optional[dict[str, Any]]
     default_zoom_scale: float
     default_brush_size: Optional[Decimal]
     default_annotation_color: Optional[str]
@@ -1619,7 +1619,7 @@ class WorkstationConfig(BaseModel):
     show_overlay_selection_tool: Optional[bool]
     show_lut_selection_tool: Optional[bool]
     show_annotation_counter_tool: Optional[bool]
-    enabled_preprocessors: List[str]
+    enabled_preprocessors: list[str]
     auto_jump_center_of_gravity: Optional[bool]
     link_images: Optional[bool]
     link_panning: Optional[bool]
@@ -1634,15 +1634,15 @@ class WorkstationConfig(BaseModel):
 @dataclass
 class ArchiveItemPost(BaseModel):
     pk: str
-    values: List[ComponentInterfaceValuePost]
+    values: list[ComponentInterfaceValuePost]
     hanging_protocol: Optional[HangingProtocol]
-    view_content: Dict[str, Any]
+    view_content: dict[str, Any]
 
 
 @dataclass
 class ArchiveItemPostRequest(BaseModel):
     archive: str
-    values: List[ComponentInterfaceValuePostRequest]
+    values: list[ComponentInterfaceValuePostRequest]
 
 
 @dataclass
@@ -1652,17 +1652,17 @@ class ComponentInterface(BaseModel):
     slug: str
     kind: str
     pk: int
-    default_value: Optional[Dict[str, Any]]
+    default_value: Optional[dict[str, Any]]
     super_kind: str
     relative_path: str
-    overlay_segments: Optional[Dict[str, Any]]
+    overlay_segments: Optional[dict[str, Any]]
     look_up_table: Optional[LookUpTable]
 
 
 @dataclass
 class ComponentInterfaceValue(BaseModel):
     interface: ComponentInterface
-    value: Optional[Dict[str, Any]]
+    value: Optional[dict[str, Any]]
     file: Optional[str]
     image: Optional[SimpleImage]
     pk: int
@@ -1672,11 +1672,11 @@ class ComponentInterfaceValue(BaseModel):
 class DisplaySetPost(BaseModel):
     pk: str
     reader_study: Optional[str]
-    values: Optional[List[ComponentInterfaceValuePost]]
+    values: Optional[list[ComponentInterfaceValuePost]]
     order: Optional[int]
     api_url: str
     hanging_protocol: Optional[HangingProtocol]
-    view_content: Dict[str, Any]
+    view_content: dict[str, Any]
     description: str
     index: Optional[int]
 
@@ -1684,7 +1684,7 @@ class DisplaySetPost(BaseModel):
 @dataclass
 class HyperlinkedComponentInterfaceValue(BaseModel):
     interface: ComponentInterface
-    value: Optional[Dict[str, Any]]
+    value: Optional[dict[str, Any]]
     file: Optional[str]
     image: Optional[str]
     pk: int
@@ -1695,15 +1695,14 @@ class HyperlinkedJob(BaseModel):
     pk: str
     api_url: str
     algorithm_image: str
-    inputs: List[HyperlinkedComponentInterfaceValue]
-    outputs: List[HyperlinkedComponentInterfaceValue]
+    inputs: list[HyperlinkedComponentInterfaceValue]
+    outputs: list[HyperlinkedComponentInterfaceValue]
     status: str
     rendered_result_text: str
-    algorithm_title: str
     started_at: Optional[str]
     completed_at: Optional[str]
     hanging_protocol: Optional[HangingProtocol]
-    view_content: Dict[str, Any]
+    view_content: dict[str, Any]
 
 
 @dataclass
@@ -1755,7 +1754,7 @@ class LandmarkAnnotationSet(BaseModel):
     id: str
     grader: Optional[int]
     created: Optional[str]
-    singlelandmarkannotation_set: List[
+    singlelandmarkannotation_set: list[
         SingleLandmarkAnnotationSerializerNoParent
     ]
 
@@ -1764,7 +1763,7 @@ class LandmarkAnnotationSet(BaseModel):
 class LandmarkAnnotationSetRequest(BaseModel):
     grader: Optional[int]
     created: Optional[str]
-    singlelandmarkannotation_set: List[
+    singlelandmarkannotation_set: list[
         SingleLandmarkAnnotationSerializerNoParentRequest
     ]
 
@@ -1776,7 +1775,7 @@ class NestedPolygonAnnotationSet(BaseModel):
     grader: Optional[int]
     created: Optional[str]
     name: str
-    singlepolygonannotation_set: List[
+    singlepolygonannotation_set: list[
         SinglePolygonAnnotationSerializerNoParent
     ]
 
@@ -1787,7 +1786,7 @@ class NestedPolygonAnnotationSetRequest(BaseModel):
     grader: Optional[int]
     created: Optional[str]
     name: str
-    singlepolygonannotation_set: List[
+    singlepolygonannotation_set: list[
         SinglePolygonAnnotationSerializerNoParentRequest
     ]
 
@@ -1797,7 +1796,7 @@ class PaginatedComponentInterfaceList(BaseModel):
     count: Optional[int]
     next: Optional[str]
     previous: Optional[str]
-    results: Optional[List[ComponentInterface]]
+    results: Optional[list[ComponentInterface]]
 
 
 @dataclass
@@ -1805,7 +1804,7 @@ class PaginatedHyperlinkedJobList(BaseModel):
     count: Optional[int]
     next: Optional[str]
     previous: Optional[str]
-    results: Optional[List[HyperlinkedJob]]
+    results: Optional[list[HyperlinkedJob]]
 
 
 @dataclass
@@ -1813,7 +1812,7 @@ class PaginatedRawImageUploadSessionList(BaseModel):
     count: Optional[int]
     next: Optional[str]
     previous: Optional[str]
-    results: Optional[List[RawImageUploadSession]]
+    results: Optional[list[RawImageUploadSession]]
 
 
 @dataclass
@@ -1821,7 +1820,7 @@ class PaginatedSessionList(BaseModel):
     count: Optional[int]
     next: Optional[str]
     previous: Optional[str]
-    results: Optional[List[Session]]
+    results: Optional[list[Session]]
 
 
 @dataclass
@@ -1829,7 +1828,7 @@ class PaginatedUserUploadList(BaseModel):
     count: Optional[int]
     next: Optional[str]
     previous: Optional[str]
-    results: Optional[List[UserUpload]]
+    results: Optional[list[UserUpload]]
 
 
 @dataclass
@@ -1837,7 +1836,7 @@ class PaginatedWorkstationConfigList(BaseModel):
     count: Optional[int]
     next: Optional[str]
     previous: Optional[str]
-    results: Optional[List[WorkstationConfig]]
+    results: Optional[list[WorkstationConfig]]
 
 
 @dataclass
@@ -1845,7 +1844,7 @@ class PaginatedWorkstationList(BaseModel):
     count: Optional[int]
     next: Optional[str]
     previous: Optional[str]
-    results: Optional[List[Workstation]]
+    results: Optional[list[Workstation]]
 
 
 @dataclass
@@ -1870,7 +1869,7 @@ class PatchedLandmarkAnnotationSetRequest(BaseModel):
     grader: Optional[int]
     created: Optional[str]
     singlelandmarkannotation_set: Optional[
-        List[SingleLandmarkAnnotationSerializerNoParentRequest]
+        list[SingleLandmarkAnnotationSerializerNoParentRequest]
     ]
 
 
@@ -1881,7 +1880,7 @@ class PatchedNestedPolygonAnnotationSetRequest(BaseModel):
     created: Optional[str]
     name: Optional[str]
     singlepolygonannotation_set: Optional[
-        List[SinglePolygonAnnotationSerializerNoParentRequest]
+        list[SinglePolygonAnnotationSerializerNoParentRequest]
     ]
 
 
@@ -1896,9 +1895,9 @@ class Question(BaseModel):
     question_text: str
     reader_study: str
     required: Optional[bool]
-    options: List[CategoricalOption]
+    options: list[CategoricalOption]
     interface: Optional[ComponentInterface]
-    overlay_segments: Optional[Dict[str, Any]]
+    overlay_segments: Optional[dict[str, Any]]
     look_up_table: Optional[LookUpTable]
     widget: str
     answer_min_value: Optional[int]
@@ -1915,7 +1914,7 @@ class ReaderStudy(BaseModel):
     description: Optional[str]
     help_text: str
     pk: str
-    questions: List[Question]
+    questions: list[Question]
     title: str
     is_educational: Optional[bool]
     has_ground_truth: bool
@@ -1929,7 +1928,7 @@ class ReaderStudy(BaseModel):
 class RetinaImage(BaseModel):
     pk: str
     name: str
-    files: List[ImageFile]
+    files: list[ImageFile]
     width: int
     height: int
     depth: Optional[int]
@@ -1940,8 +1939,8 @@ class RetinaImage(BaseModel):
         Union[StereoscopicChoiceEnum, BlankEnum, NullEnum]
     ]
     field_of_view: Optional[Union[FieldOfViewEnum, BlankEnum, NullEnum]]
-    shape_without_color: List[int]
-    shape: List[int]
+    shape_without_color: list[int]
+    shape: list[int]
     voxel_width_mm: Optional[float]
     voxel_height_mm: Optional[float]
     voxel_depth_mm: Optional[float]
@@ -1958,7 +1957,7 @@ class RetinaImage(BaseModel):
     series_description: Optional[str]
     window_center: Optional[float]
     window_width: Optional[float]
-    landmark_annotations: List[str]
+    landmark_annotations: list[str]
 
 
 @dataclass
@@ -1989,28 +1988,28 @@ class Algorithm(BaseModel):
     logo: str
     slug: str
     average_duration: Optional[float]
-    inputs: List[ComponentInterface]
-    outputs: List[ComponentInterface]
+    inputs: list[ComponentInterface]
+    outputs: list[ComponentInterface]
 
 
 @dataclass
 class ArchiveItem(BaseModel):
     pk: str
     archive: str
-    values: List[HyperlinkedComponentInterfaceValue]
+    values: list[HyperlinkedComponentInterfaceValue]
     hanging_protocol: Optional[HangingProtocol]
-    view_content: Dict[str, Any]
+    view_content: dict[str, Any]
 
 
 @dataclass
 class DisplaySet(BaseModel):
     pk: str
     reader_study: str
-    values: List[HyperlinkedComponentInterfaceValue]
+    values: list[HyperlinkedComponentInterfaceValue]
     order: Optional[int]
     api_url: str
     hanging_protocol: Optional[HangingProtocol]
-    view_content: Dict[str, Any]
+    view_content: dict[str, Any]
     description: str
     index: Optional[int]
 
@@ -2022,10 +2021,10 @@ class Evaluation(BaseModel):
     submission: Submission
     created: str
     published: Optional[bool]
-    outputs: List[ComponentInterfaceValue]
+    outputs: list[ComponentInterfaceValue]
     rank: Optional[int]
     rank_score: Optional[float]
-    rank_per_metric: Optional[Dict[str, Any]]
+    rank_per_metric: Optional[dict[str, Any]]
     status: str
     title: str
 
@@ -2034,7 +2033,7 @@ class Evaluation(BaseModel):
 class HyperlinkedImage(BaseModel):
     pk: str
     name: str
-    files: List[ImageFile]
+    files: list[ImageFile]
     width: int
     height: int
     depth: Optional[int]
@@ -2045,8 +2044,8 @@ class HyperlinkedImage(BaseModel):
         Union[StereoscopicChoiceEnum, BlankEnum, NullEnum]
     ]
     field_of_view: Optional[Union[FieldOfViewEnum, BlankEnum, NullEnum]]
-    shape_without_color: List[int]
-    shape: List[int]
+    shape_without_color: list[int]
+    shape: list[int]
     voxel_width_mm: Optional[float]
     voxel_height_mm: Optional[float]
     voxel_depth_mm: Optional[float]
@@ -2070,7 +2069,7 @@ class PaginatedAlgorithmList(BaseModel):
     count: Optional[int]
     next: Optional[str]
     previous: Optional[str]
-    results: Optional[List[Algorithm]]
+    results: Optional[list[Algorithm]]
 
 
 @dataclass
@@ -2078,7 +2077,7 @@ class PaginatedArchiveItemList(BaseModel):
     count: Optional[int]
     next: Optional[str]
     previous: Optional[str]
-    results: Optional[List[ArchiveItem]]
+    results: Optional[list[ArchiveItem]]
 
 
 @dataclass
@@ -2086,7 +2085,7 @@ class PaginatedDisplaySetList(BaseModel):
     count: Optional[int]
     next: Optional[str]
     previous: Optional[str]
-    results: Optional[List[DisplaySet]]
+    results: Optional[list[DisplaySet]]
 
 
 @dataclass
@@ -2094,7 +2093,7 @@ class PaginatedEvaluationList(BaseModel):
     count: Optional[int]
     next: Optional[str]
     previous: Optional[str]
-    results: Optional[List[Evaluation]]
+    results: Optional[list[Evaluation]]
 
 
 @dataclass
@@ -2102,7 +2101,7 @@ class PaginatedHyperlinkedImageList(BaseModel):
     count: Optional[int]
     next: Optional[str]
     previous: Optional[str]
-    results: Optional[List[HyperlinkedImage]]
+    results: Optional[list[HyperlinkedImage]]
 
 
 @dataclass
@@ -2110,7 +2109,7 @@ class PaginatedQuestionList(BaseModel):
     count: Optional[int]
     next: Optional[str]
     previous: Optional[str]
-    results: Optional[List[Question]]
+    results: Optional[list[Question]]
 
 
 @dataclass
@@ -2118,7 +2117,7 @@ class PaginatedReaderStudyList(BaseModel):
     count: Optional[int]
     next: Optional[str]
     previous: Optional[str]
-    results: Optional[List[ReaderStudy]]
+    results: Optional[list[ReaderStudy]]
 
 
 @dataclass
@@ -2126,4 +2125,4 @@ class PaginatedRetinaImageList(BaseModel):
     count: Optional[int]
     next: Optional[str]
     previous: Optional[str]
-    results: Optional[List[RetinaImage]]
+    results: Optional[list[RetinaImage]]
