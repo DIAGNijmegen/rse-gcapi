@@ -2,7 +2,7 @@ import os
 import shutil
 from os import makedirs
 from pathlib import Path
-from subprocess import check_call
+from subprocess import STDOUT, check_output
 from tempfile import TemporaryDirectory
 from time import sleep
 from typing import Generator
@@ -66,37 +66,53 @@ def local_grand_challenge() -> Generator[str, None, None]:
                     os.path.abspath(os.path.dirname(__file__)) + local_path,
                     Path(tmp_path) / container_path,
                 )
+
+            docker_gid = int(
+                os.environ.get(
+                    "DOCKER_GID",
+                    check_output(
+                        "getent group docker | cut -d: -f3",
+                        shell=True,
+                        text=True,
+                    ),
+                ).strip()
+            )
+
             try:
-                check_call(
+                check_output(
                     [
                         "bash",
                         "-c",
-                        "echo DOCKER_GID=`getent group docker | cut -d: -f3` > .env",  # noqa: B950
+                        f"echo DOCKER_GID={docker_gid} > .env",
                     ],
                     cwd=tmp_path,
+                    stderr=STDOUT,
                 )
-                check_call(
+                check_output(
                     ["make", "development_fixtures"],
                     cwd=tmp_path,
+                    stderr=STDOUT,
                 )
-                check_call(
+                check_output(
                     ["make", "algorithm_evaluation_fixtures"],
                     cwd=tmp_path,
+                    stderr=STDOUT,
                 )
-                check_call(
+                check_output(
                     [
-                        "docker-compose",
+                        "docker",
+                        "compose",
                         "up",
+                        "--wait",
+                        "--wait-timeout",
+                        "300",
                         "-d",
                         "http",
                         "celery_worker",
                         "celery_worker_evaluation",
                     ],
                     cwd=tmp_path,
-                )
-                check_call(
-                    ["docker-compose-wait", "-w", "-t", "5m"],
-                    cwd=tmp_path,
+                    stderr=STDOUT,
                 )
 
                 # Give the system some time to import the algorithm image
@@ -105,7 +121,11 @@ def local_grand_challenge() -> Generator[str, None, None]:
                 yield local_api_url
 
             finally:
-                check_call(["docker-compose", "down"], cwd=tmp_path)
+                check_output(
+                    ["docker", "compose", "down"],
+                    cwd=tmp_path,
+                    stderr=STDOUT,
+                )
 
 
 def get_grand_challenge_file(repo_path: Path, output_directory: Path) -> None:
