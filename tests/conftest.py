@@ -41,28 +41,14 @@ def local_grand_challenge() -> Generator[str, None, None]:
         with TemporaryDirectory() as tmp_path:
             for f in [
                 "docker-compose.yml",
-                "scripts/development_fixtures.py",
-                "scripts/component_interface_value_fixtures.py",
-                "scripts/image10x10x10.mha",
                 "scripts/minio.py",
-                "app/tests/resources/gc_demo_algorithm/copy_io.py",
-                "app/tests/resources/gc_demo_algorithm/Dockerfile",
             ]:
                 get_grand_challenge_file(Path(f), Path(tmp_path))
 
-            for local_path, container_path in (
-                (
-                    "/testdata/algorithm_io.tar.gz",
-                    "scripts/algorithm_io.tar.gz",
-                ),
-                (
-                    "/fixtures/algorithm_evaluation_fixtures.py",
-                    "scripts/algorithm_evaluation_fixtures.py",
-                ),
-            ):
+            for file in (Path(__file__).parent / "scripts").glob("*"):
                 shutil.copy(
-                    os.path.abspath(os.path.dirname(__file__)) + local_path,
-                    Path(tmp_path) / container_path,
+                    file,
+                    Path(tmp_path) / "scripts" / file.name,
                 )
 
             docker_gid = int(
