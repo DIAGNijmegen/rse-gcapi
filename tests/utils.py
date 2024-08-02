@@ -6,8 +6,8 @@ from httpx import AsyncHTTPTransport, HTTPStatusError, HTTPTransport
 from tests.scripts.constants import USER_TOKENS
 
 ADMIN_TOKEN = USER_TOKENS["admin"]
-READERSTUDY_TOKEN = USER_TOKENS["reader_study"]
-DEMO_PARTICIPANT_TOKEN = USER_TOKENS["demo_participant"]
+READERSTUDY_TOKEN = USER_TOKENS["readerstudy"]
+DEMO_PARTICIPANT_TOKEN = USER_TOKENS["demop"]
 ARCHIVE_TOKEN = USER_TOKENS["archive"]
 
 
