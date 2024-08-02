@@ -332,7 +332,8 @@ async def test_download_cases(local_grand_challenge, files, tmpdir):
             "generic-medical-image",
             ["image10x10x101.mha"],
         ),
-        ("test-algorithm-evaluation-file-1", "json-file", ["test.json"]),
+        # TODO this algorithm was removed from the test fixtures
+        # ("test-algorithm-evaluation-file-1", "json-file", ["test.json"]),
     ),
 )
 @pytest.mark.anyio
