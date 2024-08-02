@@ -1,4 +1,4 @@
-from typing import Dict, Optional
+from typing import Optional
 
 import httpx
 from httpx import codes
@@ -33,7 +33,7 @@ class SelectiveBackoffStrategy(BaseRetryStrategy):
     def __init__(self, backoff_factor, maximum_number_of_retries):
         self.backoff_factor: float = backoff_factor
         self.maximum_number_of_retries: int = maximum_number_of_retries
-        self.earlier_number_of_retries: Dict[int, int] = dict()
+        self.earlier_number_of_retries: dict[int, int] = dict()
 
     def __call__(self) -> BaseRetryStrategy:
         return self.__class__(

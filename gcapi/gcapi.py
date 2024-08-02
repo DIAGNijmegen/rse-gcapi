@@ -1,15 +1,8 @@
 import inspect
 import logging
+from collections.abc import AsyncGenerator, Generator
 from functools import wraps
-from typing import (
-    Any,
-    AsyncGenerator,
-    Callable,
-    Dict,
-    Generator,
-    NamedTuple,
-    Union,
-)
+from typing import Any, Callable, NamedTuple, Union
 
 import httpx
 
@@ -72,7 +65,7 @@ class WrapApiInterfaces(ClientBase):
 
     def _wrap_client_base_interfaces(self):
         def wrap_api(api: APIBase):
-            attrs: Dict[str, Any] = {"__init__": lambda *_, **__: None}
+            attrs: dict[str, Any] = {"__init__": lambda *_, **__: None}
 
             for name in dir(api):
                 if name.startswith("__"):
