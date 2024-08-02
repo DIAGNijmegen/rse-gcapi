@@ -1,11 +1,11 @@
 import os
 import shutil
+from collections.abc import Generator
 from os import makedirs
 from pathlib import Path
 from subprocess import STDOUT, check_output
 from tempfile import TemporaryDirectory
 from time import sleep
-from typing import Generator
 
 import httpx
 import pytest

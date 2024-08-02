@@ -160,7 +160,7 @@ module.
 """
 
 from dataclasses import dataclass
-from typing import Callable, Dict, Tuple, TypeVar, Union
+from typing import Callable, TypeVar, Union
 
 
 @dataclass
@@ -174,8 +174,8 @@ class CapturedCall:
     """
 
     func: Union[object, Callable]
-    args: Tuple
-    kwargs: Dict
+    args: tuple
+    kwargs: dict
 
     SLOT = object()
 

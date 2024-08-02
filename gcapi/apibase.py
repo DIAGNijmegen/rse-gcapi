@@ -1,16 +1,6 @@
 import collections
-from typing import (
-    Any,
-    Dict,
-    Generator,
-    Generic,
-    Iterator,
-    List,
-    Sequence,
-    Type,
-    TypeVar,
-    overload,
-)
+from collections.abc import Generator, Iterator, Sequence
+from typing import Any, Generic, TypeVar, overload
 from urllib.parse import urljoin
 
 from httpx import URL, HTTPStatusError
@@ -56,7 +46,7 @@ class PageResult(Generic[T], collections.abc.Sequence):
         offset: int,
         limit: int,
         total_count: int,
-        results: List[T],
+        results: list[T],
         **kwargs,
     ) -> None:
         super().__init__(**kwargs)
@@ -91,7 +81,7 @@ class PageResult(Generic[T], collections.abc.Sequence):
 
 
 class Common(Generic[T]):
-    model: Type[T]
+    model: type[T]
     _client: ClientInterface
     base_path: str
 
@@ -99,7 +89,7 @@ class Common(Generic[T]):
 
 
 class APIBase(Generic[T], Common[T]):
-    sub_apis: Dict[str, Type["APIBase"]] = {}
+    sub_apis: dict[str, type["APIBase"]] = {}
 
     def __init__(self, client) -> None:
         if isinstance(self, ModifiableMixin):
@@ -118,7 +108,7 @@ class APIBase(Generic[T], Common[T]):
 
     def page(
         self, offset=0, limit=100, params=None
-    ) -> Generator[T, Dict[Any, Any], PageResult[T]]:
+    ) -> Generator[T, dict[Any, Any], PageResult[T]]:
         if params is None:
             params = {}
 
@@ -153,7 +143,7 @@ class APIBase(Generic[T], Common[T]):
             yield from current_list
             offset += req_count
 
-    def detail(self, pk=None, **params) -> Generator[T, Dict[Any, Any], T]:
+    def detail(self, pk=None, **params) -> Generator[T, dict[Any, Any], T]:
         if all((pk, params)):
             raise ValueError("Only one of pk or params must be specified")
 

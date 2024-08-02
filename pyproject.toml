@@ -15,7 +15,7 @@ classifiers = [
 gcapi = "gcapi.cli:main"
 
 [tool.poetry.dependencies]
-python = ">=3.8,<4.0"
+python = ">=3.9,<4.0"
 httpx = "~0.23.0"
 Click = ">=6.0"
 pydantic = "*"
@@ -39,7 +39,7 @@ line_length = 79
 
 [tool.black]
 line-length = 79
-target-version = ['py38']
+target-version = ['py39']
 
 [tool.pytest.ini_options]
 minversion = "6.0"
@@ -54,14 +54,14 @@ xfail_strict = true
 legacy_tox_ini = """
 [tox]
 isolated_build = True
-envlist = py38, py39, py310, py311
+envlist = py39, py310, py311, py312
 
 [gh-actions]
 python =
-    3.8: py38
     3.9: py39
     3.10: py310
     3.11: py311
+    3.12: py312
 
 [testenv]
 allowlist_externals =
