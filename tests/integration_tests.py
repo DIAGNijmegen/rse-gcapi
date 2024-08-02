@@ -295,11 +295,12 @@ def test_download_cases(local_grand_challenge, files, tmpdir):
             "generic-medical-image",
             ["image10x10x101.mha"],
         ),
-        (
-            "test-algorithm-evaluation-file-1",
-            "json-file",
-            ["test.json"],
-        ),
+        # TODO this algorithm was removed from the test fixtures
+        # (
+        #    "test-algorithm-evaluation-file-1",
+        #    "json-file",
+        #    ["test.json"],
+        # ),
     ),
 )
 def test_create_job_with_upload(
@@ -683,7 +684,7 @@ def test_add_cases_to_reader_study(display_sets, local_grand_challenge):
 
     for display_set_pk, display_set in zip(added_display_sets, display_sets):
         ds = c.reader_studies.display_sets.detail(pk=display_set_pk)
-        # make take a while for the images to be added
+        # may take a while for the images to be added
         while len(ds["values"]) != len(display_set):
             ds = c.reader_studies.display_sets.detail(pk=display_set_pk)
 
@@ -746,8 +747,7 @@ def test_add_cases_to_reader_study_invalid_path(local_grand_challenge):
         )
 
     assert str(e.value) == (
-        "Invalid file paths: "  # noqa: B907
-        f"{{'generic-medical-image': ['{file_path}']}}"
+        "Invalid file paths: " f"{{'generic-medical-image': ['{file_path}']}}"
     )
 
 

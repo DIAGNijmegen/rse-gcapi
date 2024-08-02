@@ -2,20 +2,12 @@ import logging
 import os
 import re
 import uuid
+from collections.abc import Generator
 from io import BytesIO
 from pathlib import Path
 from random import randint
 from time import sleep
-from typing import (
-    TYPE_CHECKING,
-    Any,
-    Callable,
-    Dict,
-    Generator,
-    List,
-    Optional,
-    Union,
-)
+from typing import TYPE_CHECKING, Any, Callable, Optional, Union
 from urllib.parse import urljoin
 
 import httpx
@@ -351,7 +343,7 @@ class WorkstationConfigsAPI(APIBase[gcapi.models.WorkstationConfig]):
     model = gcapi.models.WorkstationConfig
 
 
-def _generate_auth_header(token: str = "") -> Dict:
+def _generate_auth_header(token: str = "") -> dict:
     if not token:
         try:
             token = str(os.environ["GRAND_CHALLENGE_AUTHORIZATION"])
@@ -524,7 +516,7 @@ class ClientBase(ApiDefinitions, ClientInterface):
     def upload_cases(  # noqa: C901
         self,
         *,
-        files: List[str],
+        files: list[str],
         archive: Optional[str] = None,
         answer: Optional[str] = None,
         archive_item: Optional[str] = None,
@@ -622,7 +614,7 @@ class ClientBase(ApiDefinitions, ClientInterface):
 
         return raw_image_upload_session
 
-    def run_external_job(self, *, algorithm: str, inputs: Dict[str, Any]):
+    def run_external_job(self, *, algorithm: str, inputs: dict[str, Any]):
         """
         Starts an algorithm job with the provided inputs.
         You will need to provide the slug of the algorithm. You can find this in the
@@ -702,7 +694,7 @@ class ClientBase(ApiDefinitions, ClientInterface):
         return (yield from self.__org_api_meta.algorithm_jobs.create(**job))
 
     def update_archive_item(
-        self, *, archive_item_pk: str, values: Dict[str, Any]
+        self, *, archive_item_pk: str, values: dict[str, Any]
     ):
         """
         This function updates an existing archive item with the provided values
@@ -739,7 +731,7 @@ class ClientBase(ApiDefinitions, ClientInterface):
         item = yield from self.__org_api_meta.archive_items.detail(
             pk=archive_item_pk
         )
-        civs: Dict[str, list] = {"values": []}
+        civs: dict[str, list] = {"values": []}
 
         for civ_slug, value in values.items():
             try:
@@ -831,7 +823,7 @@ class ClientBase(ApiDefinitions, ClientInterface):
         return interfaces
 
     def add_cases_to_reader_study(
-        self, *, reader_study: str, display_sets: List[Dict[str, Any]]
+        self, *, reader_study: str, display_sets: list[dict[str, Any]]
     ):
         """
         This function takes a reader study slug and a list of diplay sets
@@ -862,7 +854,7 @@ class ClientBase(ApiDefinitions, ClientInterface):
         The pks of the newly created display sets.
         """
         res = []
-        interfaces: Dict[str, Dict] = {}
+        interfaces: dict[str, dict] = {}
         for display_set in display_sets:
             new_interfaces = yield from self._validate_display_set_values(
                 display_set.items(), interfaces

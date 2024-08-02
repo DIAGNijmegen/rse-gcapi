@@ -1,11 +1,11 @@
 import os
 import shutil
+from collections.abc import Generator
 from os import makedirs
 from pathlib import Path
-from subprocess import check_call
+from subprocess import STDOUT, check_output
 from tempfile import TemporaryDirectory
 from time import sleep
-from typing import Generator
 
 import httpx
 import pytest
@@ -41,62 +41,77 @@ def local_grand_challenge() -> Generator[str, None, None]:
         with TemporaryDirectory() as tmp_path:
             for f in [
                 "docker-compose.yml",
-                "dockerfiles/db/postgres.test.conf",
-                "Makefile",
-                "scripts/development_fixtures.py",
-                "scripts/component_interface_value_fixtures.py",
-                "scripts/image10x10x10.mha",
                 "scripts/minio.py",
-                "app/tests/resources/gc_demo_algorithm/copy_io.py",
-                "app/tests/resources/gc_demo_algorithm/Dockerfile",
             ]:
                 get_grand_challenge_file(Path(f), Path(tmp_path))
 
-            for local_path, container_path in (
-                (
-                    "/testdata/algorithm_io.tar.gz",
-                    "scripts/algorithm_io.tar.gz",
-                ),
-                (
-                    "/fixtures/algorithm_evaluation_fixtures.py",
-                    "scripts/algorithm_evaluation_fixtures.py",
-                ),
-            ):
+            for file in (Path(__file__).parent / "scripts").glob("*"):
                 shutil.copy(
-                    os.path.abspath(os.path.dirname(__file__)) + local_path,
-                    Path(tmp_path) / container_path,
+                    file,
+                    Path(tmp_path) / "scripts" / file.name,
                 )
+
+            docker_gid = int(
+                os.environ.get(
+                    "DOCKER_GID",
+                    check_output(
+                        "getent group docker | cut -d: -f3",
+                        shell=True,
+                        text=True,
+                    ),
+                ).strip()
+            )
+
             try:
-                check_call(
+                check_output(
                     [
                         "bash",
                         "-c",
-                        "echo DOCKER_GID=`getent group docker | cut -d: -f3` > .env",  # noqa: B950
+                        f"echo DOCKER_GID={docker_gid} > .env",
                     ],
                     cwd=tmp_path,
+                    stderr=STDOUT,
                 )
-                check_call(
-                    ["make", "development_fixtures"],
+                check_output(
+                    ["docker", "compose", "pull"],
                     cwd=tmp_path,
+                    stderr=STDOUT,
                 )
-                check_call(
-                    ["make", "algorithm_evaluation_fixtures"],
-                    cwd=tmp_path,
-                )
-                check_call(
+                check_output(
                     [
-                        "docker-compose",
+                        "docker",
+                        "compose",
+                        "run",
+                        "-v",
+                        f"{(Path(tmp_path) / 'scripts').absolute()}:/app/scripts:ro",
+                        "--rm",
+                        "celery_worker_evaluation",
+                        "bash",
+                        "-c",
+                        (
+                            "python manage.py migrate "
+                            "&& python manage.py runscript "
+                            "minio create_test_fixtures"
+                        ),
+                    ],
+                    cwd=tmp_path,
+                    stderr=STDOUT,
+                )
+                check_output(
+                    [
+                        "docker",
+                        "compose",
                         "up",
+                        "--wait",
+                        "--wait-timeout",
+                        "300",
                         "-d",
                         "http",
                         "celery_worker",
                         "celery_worker_evaluation",
                     ],
                     cwd=tmp_path,
-                )
-                check_call(
-                    ["docker-compose-wait", "-w", "-t", "5m"],
-                    cwd=tmp_path,
+                    stderr=STDOUT,
                 )
 
                 # Give the system some time to import the algorithm image
@@ -105,7 +120,11 @@ def local_grand_challenge() -> Generator[str, None, None]:
                 yield local_api_url
 
             finally:
-                check_call(["docker-compose", "down"], cwd=tmp_path)
+                check_output(
+                    ["docker", "compose", "down"],
+                    cwd=tmp_path,
+                    stderr=STDOUT,
+                )
 
 
 def get_grand_challenge_file(repo_path: Path, output_directory: Path) -> None:
@@ -116,11 +135,10 @@ def get_grand_challenge_file(repo_path: Path, output_directory: Path) -> None:
         ),
         follow_redirects=True,
     )
+    r.raise_for_status()
 
     if str(repo_path) == "docker-compose.yml":
         content = rewrite_docker_compose(r.content)
-    elif str(repo_path) == "Makefile":
-        content = rewrite_makefile(r.content)
     else:
         content = r.content
 
@@ -135,9 +153,14 @@ def rewrite_docker_compose(content: bytes) -> bytes:
     spec = yaml.safe_load(content)
 
     for s in spec["services"]:
-        # Remove the non-postgres volume mounts, these are not needed for testing
-        if s != "postgres" and "volumes" in spec["services"][s]:
-            del spec["services"][s]["volumes"]
+        # Remove the non-docker socket volume mounts,
+        # these are not needed for these tests
+        if "volumes" in spec["services"][s]:
+            spec["services"][s]["volumes"] = [
+                volume
+                for volume in spec["services"][s]["volumes"]
+                if volume["target"] == "/var/run/docker.sock"
+            ]
 
         # Replace test with production containers
         if (
@@ -162,22 +185,3 @@ def rewrite_docker_compose(content: bytes) -> bytes:
         spec["services"][service]["command"] = command
 
     return yaml.safe_dump(spec).encode("utf-8")
-
-
-def rewrite_makefile(content: bytes) -> bytes:
-    # Using `docker compose` with version 2.4.1+azure-1 does not seem to work
-    # It works locally with version `2.5.1`, so for now go back to docker-compose
-    # If this is fixed docker-compose-wait can be removed and the `--wait`
-    # option added to the "up" action above
-    makefile = content.decode("utf-8")
-    makefile = makefile.replace("docker compose", "docker-compose")
-    # Faker is required by development_fixtures.py but not available on the production
-    # container. So we add it manually here.
-    makefile = makefile.replace(
-        "python manage.py migrate && "
-        "python manage.py runscript minio development_fixtures",
-        "python -m pip install faker && "
-        "python manage.py migrate && "
-        "python manage.py runscript minio development_fixtures",
-    )
-    return makefile.encode("utf-8")

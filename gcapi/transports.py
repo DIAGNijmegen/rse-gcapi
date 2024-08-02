@@ -1,7 +1,7 @@
 import asyncio
 import logging
 from time import sleep
-from typing import Callable, Optional, Tuple
+from typing import Callable, Optional
 
 import httpx
 
@@ -34,7 +34,7 @@ class BaseRetryTransport:
         retry_strategy,
         response,
         request,
-    ) -> Tuple[BaseRetryStrategy, Optional[Seconds]]:
+    ) -> tuple[BaseRetryStrategy, Optional[Seconds]]:
         if retry_strategy is None:
             retry_strategy = self.retry_strategy()  # type: ignore
 
