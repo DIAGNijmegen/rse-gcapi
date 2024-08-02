@@ -73,6 +73,11 @@ def local_grand_challenge() -> Generator[str, None, None]:
                     stderr=STDOUT,
                 )
                 check_output(
+                    ["docker", "compose", "pull"],
+                    cwd=tmp_path,
+                    stderr=STDOUT,
+                )
+                check_output(
                     [
                         "docker",
                         "compose",
