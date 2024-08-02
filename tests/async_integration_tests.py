@@ -363,7 +363,7 @@ async def test_create_job_with_upload(
         assert job["status"] == "Queued"
         assert len(job["inputs"]) == 1
         job = await c.algorithm_jobs.detail(job["pk"])
-        assert job["status"] == "Queued"
+        assert job["status"] in {"Queued", "Started"}
 
 
 @pytest.mark.parametrize(

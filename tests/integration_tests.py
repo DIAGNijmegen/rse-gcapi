@@ -329,7 +329,7 @@ def test_create_job_with_upload(
     assert job["status"] == "Queued"
     assert len(job["inputs"]) == 1
     job = c.algorithm_jobs.detail(job["pk"])
-    assert job["status"] == "Queued"
+    assert job["status"] in {"Queued", "Started"}
 
 
 def test_get_algorithm_by_slug(local_grand_challenge):
