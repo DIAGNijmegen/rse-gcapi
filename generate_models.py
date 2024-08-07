@@ -3,7 +3,12 @@ from pathlib import Path
 from tempfile import TemporaryDirectory
 
 import httpx
-from datamodel_code_generator import DataModelType, PythonVersion, generate
+from datamodel_code_generator import (
+    DataModelType,
+    InputFileType,
+    PythonVersion,
+    generate,
+)
 
 
 def main() -> int:
@@ -29,12 +34,13 @@ def main() -> int:
             strip_default_none=True,
             strict_nullable=True,
             output_model_type=DataModelType.DataclassesDataclass,
-            target_python_version=PythonVersion.PY_38,
+            target_python_version=PythonVersion.PY_39,
+            input_file_type=InputFileType.OpenAPI,
         )
 
         with open(Path(__file__).parent / "gcapi" / "models.py", "w") as f:
             text = output.read_text()
-            to_replace = "from dataclasses import dataclass, field"
+            to_replace = "from dataclasses import dataclass"
             if to_replace not in text:
                 raise ValueError(
                     "Could not insert dataclass import for pydantic"
