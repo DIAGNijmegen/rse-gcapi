@@ -654,7 +654,7 @@ class ClientBase(ApiDefinitions, ClientInterface):
         The created job
         """
         alg = yield from self.__org_api_meta.algorithms.detail(slug=algorithm)
-        input_interfaces = {ci["slug"]: ci for ci in alg["inputs"]}
+        input_interfaces = {ci.slug: ci for ci in alg.inputs}
 
         for ci in input_interfaces:
             if (
@@ -663,16 +663,16 @@ class ClientBase(ApiDefinitions, ClientInterface):
             ):
                 raise ValueError(f"{ci} is not provided")
 
-        job = {"algorithm": alg["api_url"], "inputs": []}
+        job = {"algorithm": alg.api_url, "inputs": []}
         for input_title, value in inputs.items():
-            ci = input_interfaces.get(input_title, None)
+            ci = input_interfaces.get(input_title, None)  # type: ignore
             if not ci:
                 raise ValueError(
                     f"{input_title} is not an input interface for this algorithm"
                 )
 
-            i = {"interface": ci["slug"]}
-            if ci["super_kind"].lower() == "image":
+            i = {"interface": ci.slug}  # type: ignore
+            if ci.super_kind.lower() == "image":  # type: ignore
                 if isinstance(value, list):
                     raw_image_upload_session = (
                         yield from self._upload_image_files(files=value)
@@ -680,16 +680,16 @@ class ClientBase(ApiDefinitions, ClientInterface):
                     i["upload_session"] = raw_image_upload_session["api_url"]
                 elif isinstance(value, str):
                     i["image"] = value
-            elif ci["super_kind"].lower() == "file":
+            elif ci["super_kind"].lower() == "file":  # type: ignore
                 if len(value) != 1:
                     raise ValueError(
-                        f"Only a single file can be provided for {ci['title']}."
+                        f"Only a single file can be provided for {ci['title']}."  # type: ignore
                     )
                 upload = yield from self._upload_file(value)
                 i["user_upload"] = upload["api_url"]
             else:
                 i["value"] = value
-            job["inputs"].append(i)
+            job["inputs"].append(i)  # type: ignore
 
         return (yield from self.__org_api_meta.algorithm_jobs.create(**job))
 
@@ -744,14 +744,12 @@ class ClientBase(ApiDefinitions, ClientInterface):
                     f"Please provide one from this list: "
                     f"https://grand-challenge.org/algorithms/interfaces/"
                 ) from e
-            i = {"interface": ci["slug"]}
+            i = {"interface": ci.slug}
 
             if not value:
-                raise ValueError(
-                    f"You need to provide a value for {ci['slug']}"
-                )
+                raise ValueError(f"You need to provide a value for {ci.slug}")
 
-            if ci["super_kind"].lower() == "image":
+            if ci.super_kind.lower() == "image":
                 if isinstance(value, list):
                     raw_image_upload_session = (
                         yield from self._upload_image_files(files=value)
@@ -759,11 +757,11 @@ class ClientBase(ApiDefinitions, ClientInterface):
                     i["upload_session"] = raw_image_upload_session["api_url"]
                 elif isinstance(value, str):
                     i["image"] = value
-            elif ci["super_kind"].lower() == "file":
+            elif ci.super_kind.lower() == "file":
                 if len(value) != 1:
                     raise ValueError(
                         f"You can only upload one single file "
-                        f"to a {ci['slug']} interface."
+                        f"to a {ci.slug} interface."
                     )
                 upload = yield from self._upload_file(value)
                 i["user_upload"] = upload["api_url"]
@@ -773,7 +771,7 @@ class ClientBase(ApiDefinitions, ClientInterface):
 
         return (
             yield from self.__org_api_meta.archive_items.partial_update(
-                pk=item["pk"], **civs
+                pk=item.pk, **civs
             )
         )
 
@@ -799,7 +797,7 @@ class ClientBase(ApiDefinitions, ClientInterface):
             else:
                 interface = yield from self._fetch_interface(slug)
                 interfaces[slug] = interface
-            super_kind = interface["super_kind"].casefold()
+            super_kind = interface.super_kind.casefold()
             if super_kind != "value":
                 if not isinstance(value, list):
                     raise ValueError(
@@ -854,7 +852,7 @@ class ClientBase(ApiDefinitions, ClientInterface):
         The pks of the newly created display sets.
         """
         res = []
-        interfaces: dict[str, dict] = {}
+        interfaces: dict[str, gcapi.models.ComponentInterface] = {}
         for display_set in display_sets:
             new_interfaces = yield from self._validate_display_set_values(
                 display_set.items(), interfaces
@@ -869,7 +867,7 @@ class ClientBase(ApiDefinitions, ClientInterface):
             for slug, value in display_set.items():
                 interface = interfaces[slug]
                 data = {"interface": slug}
-                super_kind = interface["super_kind"].casefold()
+                super_kind = interface.super_kind.casefold()
                 if super_kind == "image":
                     yield from self._upload_image_files(
                         display_set=ds["pk"], interface=slug, files=value
