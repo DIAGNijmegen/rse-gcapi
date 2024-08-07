@@ -18,7 +18,7 @@ from tests.utils import (
 @recurse_call
 def get_upload_session(client, upload_pk):
     upl = client.raw_image_upload_sessions.detail(upload_pk)
-    if upl["status"] != "Succeeded":
+    if upl.status != "Succeeded":
         raise ValueError
     return upl
 
@@ -126,23 +126,21 @@ def test_upload_cases_to_archive(local_grand_challenge, files, interface):
     us = get_upload_session(c, us["pk"])
 
     # Check that only one image was created
-    assert len(us["image_set"]) == 1
+    assert len(us.image_set) == 1
 
-    image = get_file(c, us["image_set"][0])
+    image = get_file(c, us.image_set[0])
 
     # And that it was added to the archive
     archive = next(c.archives.iterate_all(params={"slug": "archive"}))
-    archive_images = c.images.iterate_all(params={"archive": archive["pk"]})
-    assert image["pk"] in [im["pk"] for im in archive_images]
-    archive_items = c.archive_items.iterate_all(
-        params={"archive": archive["pk"]}
-    )
+    archive_images = c.images.iterate_all(params={"archive": archive.pk})
+    assert image["pk"] in [im.pk for im in archive_images]
+    archive_items = c.archive_items.iterate_all(params={"archive": archive.pk})
     # with the correct interface
     image_url_to_interface_slug_dict = {
-        value["image"]: value["interface"]["slug"]
+        value.image: value.interface.slug
         for item in archive_items
-        for value in item["values"]
-        if value["image"]
+        for value in item.values
+        if value.image
     }
     if interface:
         assert image_url_to_interface_slug_dict[image["api_url"]] == interface
@@ -163,12 +161,12 @@ def test_upload_cases_to_archive_item_without_interface(local_grand_challenge):
     )
     # retrieve existing archive item pk
     archive = next(c.archives.iterate_all(params={"slug": "archive"}))
-    item = next(c.archive_items.iterate_all(params={"archive": archive["pk"]}))
+    item = next(c.archive_items.iterate_all(params={"archive": archive.pk}))
 
     # try upload without providing interface
     with pytest.raises(ValueError) as e:
         _ = c.upload_cases(
-            archive_item=item["pk"],
+            archive_item=item.pk,
             files=[Path(__file__).parent / "testdata" / "image10x10x101.mha"],
         )
     assert "You need to define an interface for archive item uploads" in str(e)
@@ -194,10 +192,10 @@ def test_upload_cases_to_archive_item_with_existing_interface(
     )
     # retrieve existing archive item pk
     archive = next(c.archives.iterate_all(params={"slug": "archive"}))
-    item = next(c.archive_items.iterate_all(params={"archive": archive["pk"]}))
+    item = next(c.archive_items.iterate_all(params={"archive": archive.pk}))
 
     us = c.upload_cases(
-        archive_item=item["pk"],
+        archive_item=item.pk,
         interface="generic-medical-image",
         files=[Path(__file__).parent / "testdata" / "image10x10x101.mha"],
     )
@@ -205,19 +203,15 @@ def test_upload_cases_to_archive_item_with_existing_interface(
     us = get_upload_session(c, us["pk"])
 
     # Check that only one image was created
-    assert len(us["image_set"]) == 1
+    assert len(us.image_set) == 1
 
-    image = get_file(c, us["image_set"][0])
+    image = get_file(c, us.image_set[0])
 
     # And that it was added to the archive item
-    item = c.archive_items.detail(pk=item["pk"])
-    assert image["api_url"] in [
-        civ["image"] for civ in item["values"] if civ["image"]
-    ]
+    item = c.archive_items.detail(pk=item.pk)
+    assert image["api_url"] in [civ.image for civ in item.values if civ.image]
     # with the correct interface
-    im_to_interface = {
-        civ["image"]: civ["interface"]["slug"] for civ in item["values"]
-    }
+    im_to_interface = {civ.image: civ.interface.slug for civ in item.values}
     assert im_to_interface[image["api_url"]] == "generic-medical-image"
 
 
@@ -229,29 +223,25 @@ def test_upload_cases_to_archive_item_with_new_interface(
     )
     # retrieve existing archive item pk
     archive = next(c.archives.iterate_all(params={"slug": "archive"}))
-    item = next(c.archive_items.iterate_all(params={"archive": archive["pk"]}))
+    item = next(c.archive_items.iterate_all(params={"archive": archive.pk}))
 
     us = c.upload_cases(
-        archive_item=item["pk"],
+        archive_item=item.pk,
         interface="generic-overlay",
         files=[Path(__file__).parent / "testdata" / "image10x10x101.mha"],
     )
 
     us = get_upload_session(c, us["pk"])
     # Check that only one image was created
-    assert len(us["image_set"]) == 1
+    assert len(us.image_set) == 1
 
-    image = get_file(c, us["image_set"][0])
+    image = get_file(c, us.image_set[0])
 
     # And that it was added to the archive item
-    item = c.archive_items.detail(pk=item["pk"])
-    assert image["api_url"] in [
-        civ["image"] for civ in item["values"] if civ["image"]
-    ]
+    item = c.archive_items.detail(pk=item.pk)
+    assert image["api_url"] in [civ.image for civ in item.values if civ.image]
     # with the correct interface
-    im_to_interface = {
-        civ["image"]: civ["interface"]["slug"] for civ in item["values"]
-    }
+    im_to_interface = {civ.image: civ.interface.slug for civ in item.values}
     assert im_to_interface[image["api_url"]] == "generic-overlay"
 
 
@@ -274,7 +264,7 @@ def test_download_cases(local_grand_challenge, files, tmpdir):
     @recurse_call
     def get_download():
         return c.images.download(
-            filename=tmpdir / "image", url=us["image_set"][0]
+            filename=tmpdir / "image", url=us.image_set[0]
         )
 
     downloaded_files = get_download()
@@ -329,7 +319,7 @@ def test_create_job_with_upload(
     assert job["status"] == "Queued"
     assert len(job["inputs"]) == 1
     job = c.algorithm_jobs.detail(job["pk"])
-    assert job["status"] in {"Queued", "Started"}
+    assert job.status in {"Queued", "Started"}
 
 
 def test_get_algorithm_by_slug(local_grand_challenge):
@@ -340,7 +330,7 @@ def test_get_algorithm_by_slug(local_grand_challenge):
     )
 
     by_slug = c.algorithms.detail(slug="test-algorithm-evaluation-image-1")
-    by_pk = c.algorithms.detail(pk=by_slug["pk"])
+    by_pk = c.algorithms.detail(pk=by_slug.pk)
 
     assert by_pk == by_slug
 
@@ -351,7 +341,7 @@ def test_get_reader_study_by_slug(local_grand_challenge):
     )
 
     by_slug = c.reader_studies.detail(slug="reader-study")
-    by_pk = c.reader_studies.detail(pk=by_slug["pk"])
+    by_pk = c.reader_studies.detail(pk=by_slug.pk)
 
     assert by_pk == by_slug
 
@@ -393,7 +383,7 @@ def test_add_and_update_file_to_archive_item(local_grand_challenge):
     # check number of archive items
     archive = next(c.archives.iterate_all(params={"slug": "archive"}))
     old_items_list = list(
-        c.archive_items.iterate_all(params={"archive": archive["pk"]})
+        c.archive_items.iterate_all(params={"archive": archive.pk})
     )
 
     # create new archive item
@@ -403,13 +393,13 @@ def test_add_and_update_file_to_archive_item(local_grand_challenge):
     )
 
     # retrieve existing archive item pk
-    items = get_archive_items(c, archive["pk"], len(old_items_list))
+    items = get_archive_items(c, archive.pk, len(old_items_list))
 
-    old_civ_count = len(items[-1]["values"])
+    old_civ_count = len(items[-1].values)
 
     with pytest.raises(ValueError) as e:
         _ = c.update_archive_item(
-            archive_item_pk=items[-1]["pk"],
+            archive_item_pk=items[-1].pk,
             values={
                 "predictions-csv-file": [
                     Path(__file__).parent / "testdata" / f
@@ -423,7 +413,7 @@ def test_add_and_update_file_to_archive_item(local_grand_challenge):
     )
 
     _ = c.update_archive_item(
-        archive_item_pk=items[-1]["pk"],
+        archive_item_pk=items[-1].pk,
         values={
             "predictions-csv-file": [
                 Path(__file__).parent / "testdata" / "test.csv"
@@ -433,22 +423,22 @@ def test_add_and_update_file_to_archive_item(local_grand_challenge):
 
     @recurse_call
     def get_updated_archive_item():
-        archive_item = c.archive_items.detail(items[-1]["pk"])
-        if len(archive_item["values"]) != old_civ_count + 1:
+        archive_item = c.archive_items.detail(items[-1].pk)
+        if len(archive_item.values) != old_civ_count + 1:
             # item has not been added
             raise ValueError
         return archive_item
 
     item_updated = get_updated_archive_item()
 
-    csv_civ = item_updated["values"][-1]
-    assert csv_civ["interface"]["slug"] == "predictions-csv-file"
-    assert "test.csv" in csv_civ["file"]
+    csv_civ = item_updated.values[-1]
+    assert csv_civ.interface.slug == "predictions-csv-file"
+    assert "test.csv" in csv_civ.file
 
-    updated_civ_count = len(item_updated["values"])
+    updated_civ_count = len(item_updated.values)
     # a new pdf upload will overwrite the old pdf interface value
     _ = c.update_archive_item(
-        archive_item_pk=items[-1]["pk"],
+        archive_item_pk=items[-1].pk,
         values={
             "predictions-csv-file": [
                 Path(__file__).parent / "testdata" / "test.csv"
@@ -458,17 +448,17 @@ def test_add_and_update_file_to_archive_item(local_grand_challenge):
 
     @recurse_call
     def get_updated_again_archive_item():
-        archive_item = c.archive_items.detail(items[-1]["pk"])
-        if csv_civ in archive_item["values"]:
+        archive_item = c.archive_items.detail(items[-1].pk)
+        if csv_civ in archive_item.values:
             # item has not been added
             raise ValueError
         return archive_item
 
     item_updated_again = get_updated_again_archive_item()
 
-    assert len(item_updated_again["values"]) == updated_civ_count
-    new_csv_civ = item_updated_again["values"][-1]
-    assert new_csv_civ["interface"]["slug"] == "predictions-csv-file"
+    assert len(item_updated_again.values) == updated_civ_count
+    new_csv_civ = item_updated_again.values[-1]
+    assert new_csv_civ.interface.slug == "predictions-csv-file"
 
 
 def test_add_and_update_value_to_archive_item(local_grand_challenge):
@@ -478,7 +468,7 @@ def test_add_and_update_value_to_archive_item(local_grand_challenge):
     # check number of archive items
     archive = next(c.archives.iterate_all(params={"slug": "archive"}))
     old_items_list = list(
-        c.archive_items.iterate_all(params={"archive": archive["pk"]})
+        c.archive_items.iterate_all(params={"archive": archive.pk})
     )
 
     # create new archive item
@@ -488,48 +478,48 @@ def test_add_and_update_value_to_archive_item(local_grand_challenge):
     )
 
     # retrieve existing archive item pk
-    items = get_archive_items(c, archive["pk"], len(old_items_list))
-    old_civ_count = len(items[-1]["values"])
+    items = get_archive_items(c, archive.pk, len(old_items_list))
+    old_civ_count = len(items[-1].values)
 
     _ = c.update_archive_item(
-        archive_item_pk=items[-1]["pk"],
+        archive_item_pk=items[-1].pk,
         values={"results-json-file": {"foo": 0.5}},
     )
 
     @recurse_call
     def get_archive_item_detail():
-        i = c.archive_items.detail(items[-1]["pk"])
-        if len(i["values"]) != old_civ_count + 1:
+        i = c.archive_items.detail(items[-1].pk)
+        if len(i.values) != old_civ_count + 1:
             # item has been added
             raise ValueError
         return i
 
     item_updated = get_archive_item_detail()
 
-    json_civ = item_updated["values"][-1]
-    assert json_civ["interface"]["slug"] == "results-json-file"
-    assert json_civ["value"] == {"foo": 0.5}
-    updated_civ_count = len(item_updated["values"])
+    json_civ = item_updated.values[-1]
+    assert json_civ.interface.slug == "results-json-file"
+    assert json_civ.value == {"foo": 0.5}
+    updated_civ_count = len(item_updated.values)
 
     _ = c.update_archive_item(
-        archive_item_pk=items[-1]["pk"],
+        archive_item_pk=items[-1].pk,
         values={"results-json-file": {"foo": 0.8}},
     )
 
     @recurse_call
     def get_updated_archive_item_detail():
-        i = c.archive_items.detail(items[-1]["pk"])
-        if json_civ in i["values"]:
+        i = c.archive_items.detail(items[-1].pk)
+        if json_civ in i.values:
             # item has not been added yet
             raise ValueError
         return i
 
     item_updated_again = get_updated_archive_item_detail()
 
-    assert len(item_updated_again["values"]) == updated_civ_count
-    new_json_civ = item_updated_again["values"][-1]
-    assert new_json_civ["interface"]["slug"] == "results-json-file"
-    assert new_json_civ["value"] == {"foo": 0.8}
+    assert len(item_updated_again.values) == updated_civ_count
+    new_json_civ = item_updated_again.values[-1]
+    assert new_json_civ.interface.slug == "results-json-file"
+    assert new_json_civ.value == {"foo": 0.8}
 
 
 def test_update_archive_item_with_non_existing_interface(
@@ -541,12 +531,10 @@ def test_update_archive_item_with_non_existing_interface(
 
     # retrieve existing archive item pk
     archive = next(c.archives.iterate_all(params={"slug": "archive"}))
-    items = list(
-        c.archive_items.iterate_all(params={"archive": archive["pk"]})
-    )
+    items = list(c.archive_items.iterate_all(params={"archive": archive.pk}))
     with pytest.raises(ValueError) as e:
         _ = c.update_archive_item(
-            archive_item_pk=items[0]["pk"], values={"new-interface": 5}
+            archive_item_pk=items[0].pk, values={"new-interface": 5}
         )
     assert "new-interface is not an existing interface" in str(e)
 
@@ -558,13 +546,11 @@ def test_update_archive_item_without_value(local_grand_challenge):
 
     # retrieve existing archive item pk
     archive = next(c.archives.iterate_all(params={"slug": "archive"}))
-    items = list(
-        c.archive_items.iterate_all(params={"archive": archive["pk"]})
-    )
+    items = list(c.archive_items.iterate_all(params={"archive": archive.pk}))
 
     with pytest.raises(ValueError) as e:
         _ = c.update_archive_item(
-            archive_item_pk=items[0]["pk"],
+            archive_item_pk=items[0].pk,
             values={"generic-medical-image": None},
         )
     assert "You need to provide a value for generic-medical-image" in str(e)
@@ -661,47 +647,45 @@ def test_add_cases_to_reader_study(display_sets, local_grand_challenge):
     )
     all_display_sets = list(
         c.reader_studies.display_sets.iterate_all(
-            params={"reader_study": reader_study["pk"]}
+            params={"reader_study": reader_study.pk}
         )
     )
 
     assert all(
-        [x in [y["pk"] for y in all_display_sets] for x in added_display_sets]
+        [x in [y.pk for y in all_display_sets] for x in added_display_sets]
     )
 
     @recurse_call
     def check_image(interface_value, expected_name):
-        image = get_file(c, interface_value["image"])
+        image = get_file(c, interface_value.image)
         assert image["name"] == expected_name
 
     def check_annotation(interface_value, expected):
-        assert interface_value["value"] == expected
+        assert interface_value.value == expected
 
     @recurse_call
     def check_file(interface_value, expected_name):
-        response = get_file(c, interface_value["file"])
+        response = get_file(c, interface_value.file)
         assert response.url.path.endswith(expected_name)
 
     for display_set_pk, display_set in zip(added_display_sets, display_sets):
         ds = c.reader_studies.display_sets.detail(pk=display_set_pk)
         # may take a while for the images to be added
-        while len(ds["values"]) != len(display_set):
+        while len(ds.values) != len(display_set):
             ds = c.reader_studies.display_sets.detail(pk=display_set_pk)
 
         for interface, value in display_set.items():
             civ = [
-                civ
-                for civ in ds["values"]
-                if civ["interface"]["slug"] == interface
+                civ for civ in ds.values if civ.interface.slug == interface
             ][0]
 
-            if civ["interface"]["super_kind"] == "Image":
+            if civ.interface.super_kind == "Image":
                 file_name = value[0].name
                 check_image(civ, file_name)
-            elif civ["interface"]["kind"] == "2D bounding box":
+            elif civ.interface.kind == "2D bounding box":
                 check_annotation(civ, value)
                 pass
-            elif civ["interface"]["super_kind"] == "File":
+            elif civ.interface.super_kind == "File":
                 file_name = value[0].name
                 check_file(civ, file_name)
 
