@@ -191,7 +191,10 @@ def _create_demo_challenge(users):
     submission.save()
 
     e = Evaluation.objects.create(
-        submission=submission, method=method, status=Evaluation.SUCCESS
+        submission=submission,
+        method=method,
+        status=Evaluation.SUCCESS,
+        time_limit=300,
     )
 
     def create_result(evaluation, result: dict):
