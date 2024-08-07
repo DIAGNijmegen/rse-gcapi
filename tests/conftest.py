@@ -177,12 +177,11 @@ def rewrite_docker_compose(content: bytes) -> bytes:
         "command"
     ] = "gunicorn -b 0.0.0.0 -k uvicorn.workers.UvicornWorker config.asgi:application"
 
-    for service in ["celery_worker", "celery_worker_evaluation"]:
-        # Strip watchfiles command from celery
-        # as this is not included in the base container
-        command = spec["services"][service]["command"]
-        command = command.replace('watchfiles --filter python "', "")
-        command = command.replace('" /app', "")
-        spec["services"][service]["command"] = command
+    # Strip watchfiles command from celery
+    # as this is not included in the base container
+    command = spec["services"]["celery_worker_evaluation"]["command"]
+    command = command.replace('watchfiles --filter python "', "")
+    command = command.replace('" /app', "")
+    spec["services"]["celery_worker_evaluation"]["command"] = command
 
     return yaml.safe_dump(spec).encode("utf-8")
