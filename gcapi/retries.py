@@ -30,9 +30,9 @@ class SelectiveBackoffStrategy(BaseRetryStrategy):
     Each response code has its own backoff counter.
     """
 
-    def __init__(self, backoff_factor, maximum_number_of_retries):
-        self.backoff_factor: float = backoff_factor
-        self.maximum_number_of_retries: int = maximum_number_of_retries
+    def __init__(self, backoff_factor: float, maximum_number_of_retries: int):
+        self.backoff_factor = backoff_factor
+        self.maximum_number_of_retries = maximum_number_of_retries
         self.earlier_number_of_retries: dict[int, int] = dict()
 
     def __call__(self) -> BaseRetryStrategy:

@@ -18,7 +18,7 @@ from tests.utils import (
 @async_recurse_call
 async def get_upload_session(client, upload_pk):
     upl = await client.raw_image_upload_sessions.detail(upload_pk)
-    if upl["status"] != "Succeeded":
+    if upl.status != "Succeeded":
         raise ValueError
     return upl
 
@@ -134,27 +134,25 @@ async def test_upload_cases_to_archive(
         us = await get_upload_session(c, us["pk"])
 
         # Check that only one image was created
-        assert len(us["image_set"]) == 1
-        image = await get_file(c, us["image_set"][0])
+        assert len(us.image_set) == 1
+        image = await get_file(c, us.image_set[0])
 
         # And that it was added to the archive
         archive = await c.archives.iterate_all(
             params={"slug": "archive"}
         ).__anext__()
-        archive_images = c.images.iterate_all(
-            params={"archive": archive["pk"]}
-        )
-        assert image["pk"] in [im["pk"] async for im in archive_images]
+        archive_images = c.images.iterate_all(params={"archive": archive.pk})
+        assert image["pk"] in [im.pk async for im in archive_images]
         archive_items = c.archive_items.iterate_all(
-            params={"archive": archive["pk"]}
+            params={"archive": archive.pk}
         )
 
         # with the correct interface
         image_url_to_interface_slug = {
-            val["image"]: val["interface"]["slug"]
+            val.image: val.interface.slug
             async for item in archive_items
-            for val in item["values"]
-            if val["image"]
+            for val in item.values
+            if val.image
         }
 
         if interface:
@@ -184,12 +182,12 @@ async def test_upload_cases_to_archive_item_without_interface(
             params={"slug": "archive"}
         ).__anext__()
         item = await c.archive_items.iterate_all(
-            params={"archive": archive["pk"]}
+            params={"archive": archive.pk}
         ).__anext__()
 
         with pytest.raises(ValueError) as e:
             _ = await c.upload_cases(
-                archive_item=item["pk"],
+                archive_item=item.pk,
                 files=[
                     Path(__file__).parent / "testdata" / "image10x10x101.mha"
                 ],
@@ -211,7 +209,7 @@ async def test_upload_cases_to_archive_item_with_existing_interface(
         archive = await c.archives.iterate_all(
             params={"slug": "archive"}
         ).__anext__()
-        items = c.archive_items.iterate_all(params={"archive": archive["pk"]})
+        items = c.archive_items.iterate_all(params={"archive": archive.pk})
         old_items_list = [item async for item in items]
 
         # create new archive item
@@ -222,11 +220,11 @@ async def test_upload_cases_to_archive_item_with_existing_interface(
 
         # retrieve existing archive item pk
         items_list = await get_archive_items(
-            c, archive["pk"], len(old_items_list)
+            c, archive.pk, len(old_items_list)
         )
 
         us = await c.upload_cases(
-            archive_item=items_list[-1]["pk"],
+            archive_item=items_list[-1].pk,
             interface="generic-medical-image",
             files=[Path(__file__).parent / "testdata" / "image10x10x101.mha"],
         )
@@ -234,15 +232,15 @@ async def test_upload_cases_to_archive_item_with_existing_interface(
         us = await get_upload_session(c, us["pk"])
 
         # Check that only one image was created
-        assert len(us["image_set"]) == 1
-        image = await get_file(c, us["image_set"][0])
+        assert len(us.image_set) == 1
+        image = await get_file(c, us.image_set[0])
 
         # And that it was added to the archive item
-        item = await c.archive_items.detail(pk=items_list[-1]["pk"])
-        assert image["api_url"] in [civ["image"] for civ in item["values"]]
+        item = await c.archive_items.detail(pk=items_list[-1].pk)
+        assert image["api_url"] in [civ.image for civ in item.values]
         # with the correct interface
         im_to_interface = {
-            civ["image"]: civ["interface"]["slug"] for civ in item["values"]
+            civ.image: civ.interface.slug for civ in item.values
         }
         assert im_to_interface[image["api_url"]] == "generic-medical-image"
 
@@ -257,7 +255,7 @@ async def test_upload_cases_to_archive_item_with_new_interface(
         archive = await c.archives.iterate_all(
             params={"slug": "archive"}
         ).__anext__()
-        items = c.archive_items.iterate_all(params={"archive": archive["pk"]})
+        items = c.archive_items.iterate_all(params={"archive": archive.pk})
         old_items_list = [item async for item in items]
 
         # create new archive item
@@ -267,11 +265,11 @@ async def test_upload_cases_to_archive_item_with_new_interface(
         )
 
         items_list = await get_archive_items(
-            c, archive["pk"], len(old_items_list)
+            c, archive.pk, len(old_items_list)
         )
 
         us = await c.upload_cases(
-            archive_item=items_list[-1]["pk"],
+            archive_item=items_list[-1].pk,
             interface="generic-overlay",
             files=[Path(__file__).parent / "testdata" / "image10x10x101.mha"],
         )
@@ -279,15 +277,15 @@ async def test_upload_cases_to_archive_item_with_new_interface(
         us = await get_upload_session(c, us["pk"])
 
         # Check that only one image was created
-        assert len(us["image_set"]) == 1
-        image = await get_file(c, us["image_set"][0])
+        assert len(us.image_set) == 1
+        image = await get_file(c, us.image_set[0])
 
         # And that it was added to the archive item
-        item = await c.archive_items.detail(pk=items_list[-1]["pk"])
-        assert image["api_url"] in [civ["image"] for civ in item["values"]]
+        item = await c.archive_items.detail(pk=items_list[-1].pk)
+        assert image["api_url"] in [civ.image for civ in item.values]
         # with the correct interface
         im_to_interface = {
-            civ["image"]: civ["interface"]["slug"] for civ in item["values"]
+            civ.image: civ.interface.slug for civ in item.values
         }
         assert im_to_interface[image["api_url"]] == "generic-overlay"
 
@@ -311,7 +309,7 @@ async def test_download_cases(local_grand_challenge, files, tmpdir):
         @async_recurse_call
         async def get_download():
             return await c.images.download(
-                filename=tmpdir / "image", url=us["image_set"][0]
+                filename=tmpdir / "image", url=us.image_set[0]
             )
 
         downloaded_files = await get_download()
@@ -362,8 +360,9 @@ async def test_create_job_with_upload(
 
         assert job["status"] == "Queued"
         assert len(job["inputs"]) == 1
+
         job = await c.algorithm_jobs.detail(job["pk"])
-        assert job["status"] in {"Queued", "Started"}
+        assert job.status in {"Queued", "Started"}
 
 
 @pytest.mark.parametrize(
@@ -398,7 +397,7 @@ async def test_get_algorithm_by_slug(local_grand_challenge):
         by_slug = await c.algorithms.detail(
             slug="test-algorithm-evaluation-image-1"
         )
-        by_pk = await c.algorithms.detail(pk=by_slug["pk"])
+        by_pk = await c.algorithms.detail(pk=by_slug.pk)
 
         assert by_pk == by_slug
 
@@ -409,7 +408,7 @@ async def test_get_reader_study_by_slug(local_grand_challenge):
         base_url=local_grand_challenge, verify=False, token=READERSTUDY_TOKEN
     ) as c:
         by_slug = await c.reader_studies.detail(slug="reader-study")
-        by_pk = await c.reader_studies.detail(pk=by_slug["pk"])
+        by_pk = await c.reader_studies.detail(pk=by_slug.pk)
 
         assert by_pk == by_slug
 
@@ -459,7 +458,7 @@ async def test_add_and_update_file_to_archive_item(local_grand_challenge):
         archive = await c.archives.iterate_all(
             params={"slug": "archive"}
         ).__anext__()
-        items = c.archive_items.iterate_all(params={"archive": archive["pk"]})
+        items = c.archive_items.iterate_all(params={"archive": archive.pk})
         old_items_list = [item async for item in items]
 
         # create new archive item
@@ -470,14 +469,14 @@ async def test_add_and_update_file_to_archive_item(local_grand_challenge):
 
         # retrieve existing archive item pk
         items_list = await get_archive_items(
-            c, archive["pk"], len(old_items_list)
+            c, archive.pk, len(old_items_list)
         )
 
-        old_civ_count = len(items_list[-1]["values"])
+        old_civ_count = len(items_list[-1].values)
 
         with pytest.raises(ValueError) as e:
             _ = await c.update_archive_item(
-                archive_item_pk=items_list[-1]["pk"],
+                archive_item_pk=items_list[-1].pk,
                 values={
                     "predictions-csv-file": [
                         Path(__file__).parent / "testdata" / f
@@ -491,7 +490,7 @@ async def test_add_and_update_file_to_archive_item(local_grand_challenge):
         )
 
         _ = await c.update_archive_item(
-            archive_item_pk=items_list[-1]["pk"],
+            archive_item_pk=items_list[-1].pk,
             values={
                 "predictions-csv-file": [
                     Path(__file__).parent / "testdata" / "test.csv"
@@ -501,22 +500,22 @@ async def test_add_and_update_file_to_archive_item(local_grand_challenge):
 
         @async_recurse_call
         async def get_archive_detail():
-            item = await c.archive_items.detail(items_list[-1]["pk"])
-            if len(item["values"]) != old_civ_count + 1:
+            item = await c.archive_items.detail(items_list[-1].pk)
+            if len(item.values) != old_civ_count + 1:
                 # csv interface value has not been added to item yet
                 raise ValueError
             return item
 
         item_updated = await get_archive_detail()
 
-        csv_civ = item_updated["values"][-1]
-        assert csv_civ["interface"]["slug"] == "predictions-csv-file"
-        assert "test.csv" in csv_civ["file"]
+        csv_civ = item_updated.values[-1]
+        assert csv_civ.interface.slug == "predictions-csv-file"
+        assert "test.csv" in csv_civ.file
 
-        updated_civ_count = len(item_updated["values"])
+        updated_civ_count = len(item_updated.values)
         # a new pdf upload will overwrite the old pdf interface value
         _ = await c.update_archive_item(
-            archive_item_pk=items_list[-1]["pk"],
+            archive_item_pk=items_list[-1].pk,
             values={
                 "predictions-csv-file": [
                     Path(__file__).parent / "testdata" / "test.csv"
@@ -526,17 +525,17 @@ async def test_add_and_update_file_to_archive_item(local_grand_challenge):
 
         @async_recurse_call
         async def get_updated_again_archive_item():
-            item = await c.archive_items.detail(items_list[-1]["pk"])
-            if csv_civ in item["values"]:
+            item = await c.archive_items.detail(items_list[-1].pk)
+            if csv_civ in item.values:
                 # csv interface value has been added to item
                 raise ValueError
             return item
 
         item_updated_again = await get_updated_again_archive_item()
 
-        assert len(item_updated_again["values"]) == updated_civ_count
-        new_csv_civ = item_updated_again["values"][-1]
-        assert new_csv_civ["interface"]["slug"] == "predictions-csv-file"
+        assert len(item_updated_again.values) == updated_civ_count
+        new_csv_civ = item_updated_again.values[-1]
+        assert new_csv_civ.interface.slug == "predictions-csv-file"
 
 
 @pytest.mark.anyio
@@ -548,7 +547,7 @@ async def test_add_and_update_value_to_archive_item(local_grand_challenge):
         archive = await c.archives.iterate_all(
             params={"slug": "archive"}
         ).__anext__()
-        items = c.archive_items.iterate_all(params={"archive": archive["pk"]})
+        items = c.archive_items.iterate_all(params={"archive": archive.pk})
         old_items_list = [item async for item in items]
 
         # create new archive item
@@ -559,39 +558,39 @@ async def test_add_and_update_value_to_archive_item(local_grand_challenge):
 
         # retrieve existing archive item pk
         items_list = await get_archive_items(
-            c, archive["pk"], len(old_items_list)
+            c, archive.pk, len(old_items_list)
         )
-        old_civ_count = len(items_list[-1]["values"])
+        old_civ_count = len(items_list[-1].values)
 
         _ = await c.update_archive_item(
-            archive_item_pk=items_list[-1]["pk"],
+            archive_item_pk=items_list[-1].pk,
             values={"results-json-file": {"foo": 0.5}},
         )
 
         @async_recurse_call
         async def get_archive_detail():
-            item = await c.archive_items.detail(items_list[-1]["pk"])
-            if len(item["values"]) != old_civ_count + 1:
+            item = await c.archive_items.detail(items_list[-1].pk)
+            if len(item.values) != old_civ_count + 1:
                 # csv interface value has been added to item
                 raise ValueError
             return item
 
         item_updated = await get_archive_detail()
 
-        json_civ = item_updated["values"][-1]
-        assert json_civ["interface"]["slug"] == "results-json-file"
-        assert json_civ["value"] == {"foo": 0.5}
-        updated_civ_count = len(item_updated["values"])
+        json_civ = item_updated.values[-1]
+        assert json_civ.interface.slug == "results-json-file"
+        assert json_civ.value == {"foo": 0.5}
+        updated_civ_count = len(item_updated.values)
 
         _ = await c.update_archive_item(
-            archive_item_pk=items_list[-1]["pk"],
+            archive_item_pk=items_list[-1].pk,
             values={"results-json-file": {"foo": 0.8}},
         )
 
         @async_recurse_call
         async def get_updated_archive_detail():
-            item = await c.archive_items.detail(items_list[-1]["pk"])
-            if json_civ in item["values"]:
+            item = await c.archive_items.detail(items_list[-1].pk)
+            if json_civ in item.values:
                 # results json interface value has been added to the item and
                 # the previously added json civ is no longer attached
                 # to this archive item
@@ -600,10 +599,10 @@ async def test_add_and_update_value_to_archive_item(local_grand_challenge):
 
         item_updated_again = await get_updated_archive_detail()
 
-        assert len(item_updated_again["values"]) == updated_civ_count
-        new_json_civ = item_updated_again["values"][-1]
-        assert new_json_civ["interface"]["slug"] == "results-json-file"
-        assert new_json_civ["value"] == {"foo": 0.8}
+        assert len(item_updated_again.values) == updated_civ_count
+        new_json_civ = item_updated_again.values[-1]
+        assert new_json_civ.interface.slug == "results-json-file"
+        assert new_json_civ.value == {"foo": 0.8}
 
 
 @pytest.mark.anyio
@@ -617,8 +616,8 @@ async def test_update_archive_item_with_non_existing_interface(
         archive = await c.archives.iterate_all(
             params={"slug": "archive"}
         ).__anext__()
-        items = c.archive_items.iterate_all(params={"archive": archive["pk"]})
-        item_ids = [item["pk"] async for item in items]
+        items = c.archive_items.iterate_all(params={"archive": archive.pk})
+        item_ids = [item.pk async for item in items]
         with pytest.raises(ValueError) as e:
             _ = await c.update_archive_item(
                 archive_item_pk=item_ids[0], values={"new-interface": 5}
@@ -635,8 +634,8 @@ async def test_update_archive_item_without_value(local_grand_challenge):
         archive = await c.archives.iterate_all(
             params={"slug": "archive"}
         ).__anext__()
-        items = c.archive_items.iterate_all(params={"archive": archive["pk"]})
-        item_ids = [item["pk"] async for item in items]
+        items = c.archive_items.iterate_all(params={"archive": archive.pk})
+        item_ids = [item.pk async for item in items]
 
         with pytest.raises(ValueError) as e:
             _ = await c.update_archive_item(
@@ -738,22 +737,22 @@ async def test_add_cases_to_reader_study(display_sets, local_grand_challenge):
             params={"slug": "reader-study"}
         ).__anext__()
         all_display_sets = c.reader_studies.display_sets.iterate_all(
-            params={"reader_study": reader_study["pk"]}
+            params={"reader_study": reader_study.pk}
         )
-        all_display_sets = {x["pk"]: x async for x in all_display_sets}
+        all_display_sets = {x.pk: x async for x in all_display_sets}
         assert all([x in all_display_sets for x in added_display_sets])
 
         @async_recurse_call
         async def check_image(interface_value, expected_name):
-            image = await get_file(c, interface_value["image"])
+            image = await get_file(c, interface_value.image)
             assert image["name"] == expected_name
 
         def check_annotation(interface_value, expected):
-            assert interface_value["value"] == expected
+            assert interface_value.value == expected
 
         @async_recurse_call
         async def check_file(interface_value, expected_name):
-            response = await get_file(c, interface_value["file"])
+            response = await get_file(c, interface_value.file)
             assert response.url.path.endswith(expected_name)
 
         # Check for each display set that the values are added
@@ -762,25 +761,23 @@ async def test_add_cases_to_reader_study(display_sets, local_grand_challenge):
         ):
             ds = await c.reader_studies.display_sets.detail(pk=display_set_pk)
             # may take a while for the images to be added
-            while len(ds["values"]) != len(display_set):
+            while len(ds.values) != len(display_set):
                 ds = await c.reader_studies.display_sets.detail(
                     pk=display_set_pk
                 )
 
             for interface, value in display_set.items():
                 civ = [
-                    civ
-                    for civ in ds["values"]
-                    if civ["interface"]["slug"] == interface
+                    civ for civ in ds.values if civ.interface.slug == interface
                 ][0]
 
-                if civ["interface"]["super_kind"] == "Image":
+                if civ.interface.super_kind == "Image":
                     file_name = value[0].name
                     await check_image(civ, file_name)
-                elif civ["interface"]["kind"] == "2D bounding box":
+                elif civ.interface.kind == "2D bounding box":
                     check_annotation(civ, value)
                     pass
-                elif civ["interface"]["super_kind"] == "File":
+                elif civ.interface.super_kind == "File":
                     file_name = value[0].name
                     await check_file(civ, file_name)
 
