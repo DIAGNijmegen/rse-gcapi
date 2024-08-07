@@ -86,7 +86,7 @@ def local_grand_challenge() -> Generator[str, None, None]:
                         "-v",
                         f"{(Path(tmp_path) / 'scripts').absolute()}:/app/scripts:ro",
                         "--rm",
-                        "celery_worker_evaluation",
+                        "celery_worker",
                         "bash",
                         "-c",
                         (
@@ -109,7 +109,6 @@ def local_grand_challenge() -> Generator[str, None, None]:
                         "-d",
                         "http",
                         "celery_worker",
-                        "celery_worker_evaluation",
                     ],
                     cwd=tmp_path,
                     stderr=STDOUT,
@@ -179,9 +178,9 @@ def rewrite_docker_compose(content: bytes) -> bytes:
 
     # Strip watchfiles command from celery
     # as this is not included in the base container
-    command = spec["services"]["celery_worker_evaluation"]["command"]
+    command = spec["services"]["celery_worker"]["command"]
     command = command.replace('watchfiles --filter python "', "")
     command = command.replace('" /app', "")
-    spec["services"]["celery_worker_evaluation"]["command"] = command
+    spec["services"]["celery_worker"]["command"] = command
 
     return yaml.safe_dump(spec).encode("utf-8")
