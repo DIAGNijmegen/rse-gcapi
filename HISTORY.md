@@ -1,11 +1,16 @@
 # History
 
-## 0.12.0 (UNRELEASED)
+## 0.13.0 (UNRELEASED)
 
-  - Removed support for Python 3.6, 3.7 and 3.8
-  - Added support for Python 3.11 and 3.12
   - Removed the retina endpoints
   - Migrated to use Pydantic models for request and response validation
+  - Removed support for Python 3.8
+  - Added support for Python 3.12
+
+## 0.12.0 (2023-02-20)
+
+  - Removed support for Python 3.6 and 3.7
+  - Added support for Python 3.11
 
 ## 0.11.0 (2022-12-14)
 
