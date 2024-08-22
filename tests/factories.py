@@ -1,6 +1,11 @@
 import uuid
 
-from gcapi.models import ComponentInterface, SimpleImage
+from gcapi.models import (
+    ColorSpaceEnum,
+    ComponentInterface,
+    HyperlinkedImage,
+    SimpleImage,
+)
 
 pk_counter = 0
 
@@ -44,3 +49,45 @@ def SimpleImageFactory(**kwargs) -> SimpleImage:  # noqa: N802
         setattr(si, key, value)
 
     return si
+
+
+def HyperlinkedImageFactory(**kwargs) -> HyperlinkedImage:  # noqa: N802
+
+    pk = kwargs.get("pk") or str(uuid.uuid4())
+    image = HyperlinkedImage(
+        pk=pk,
+        name=f"a_filename_{pk}.mha",
+        files=[],
+        width=10,
+        height=10,
+        depth=None,
+        color_space=ColorSpaceEnum.GRAY,
+        modality=None,
+        eye_choice=None,
+        stereoscopic_choice=None,
+        field_of_view=None,
+        shape_without_color=[10, 10],
+        shape=[10, 10],
+        voxel_width_mm=None,
+        voxel_height_mm=None,
+        voxel_depth_mm=None,
+        api_url=f"https://grand-challenge.org/api/v1/cases/images/{pk}",
+        patient_id=None,
+        patient_name=None,
+        patient_birth_date=None,
+        patient_age=None,
+        patient_sex=None,
+        study_date=None,
+        study_instance_uid=None,
+        series_instance_uid=None,
+        study_description=None,
+        series_description=None,
+        window_center=None,
+        window_width=None,
+        segments=None,
+    )
+
+    for key, value in kwargs.items():
+        setattr(image, key, value)
+
+    return image

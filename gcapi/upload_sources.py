@@ -6,53 +6,86 @@ from typing import Any, Optional, Union
 from httpx import AsyncClient, Client
 
 from gcapi.models import (
+    ArchiveItem,
     ComponentInterface,
     ComponentInterfaceValuePostRequest,
+    DisplaySet,
     HyperlinkedImage,
     SimpleImage,
 )
-
-# First, wrap every potential CIV in a call that has a basic validation call
-
-# potential CIV can be called that returns something that can be added to the civ.
-
-# This is dict with
-# "user_upload"
-# "upload_session"
-# "image"
-# "value"
-# based on the ComponentInterfaceValuePostSerializer
-
-# Note if we upload an image, it will be set after a while.
-# As such, we'll need to provide the display set it will be added to.
 
 
 class TooManyFiles(ValueError):
     pass
 
 
-def interface_to_civ_source(interface: ComponentInterface):
-    handler = {
-        "image": ImageCIVSource,
-        "file": FileCIVSource,
-        "value": ValueCIVSource,
-    }[interface.super_kind.casefold()]
-
-    return handler
-
-
-FileSource = Union[Path, list[Path], str, list[str]]
+FileSource = Union[
+    Path,
+    list[Path],
+    str,
+    list[str],
+    HyperlinkedImage,
+    SimpleImage,
+]
 
 
-class BaseCIVSource:
-    interface: ComponentInterface
-    client: Union[Client, AsyncClient]
+def get_proto_civ_class(interface):
+    # Determine the handler class based on the interface's super_kind
+    handler_class = {
+        "image": ImageProtoCIV,
+        "file": FileProtoCIV,
+        "value": ValueProtoCIV,
+    }.get(interface.super_kind.casefold())
 
-    def __init__(self, interface, client):
+    if handler_class is None:
+        raise ValueError(
+            f"Unsupported interface super_kind: {interface.super_kind}"
+        )
+
+    # Return an instance of the appropriate handler
+    return handler_class
+
+
+def clean_file_source(
+    source: FileSource, maximum_number: Optional[int] = None
+):
+    # Ensure we are handling a list
+    sources = [source] if not isinstance(source, list) else source
+
+    # Ensure items exist
+    cleaned = []
+    for s in sources:
+        path = Path(s) if isinstance(s, (str, Path)) else None
+        if path and path.exists():
+            cleaned.append(path)
+        else:
+            raise FileNotFoundError(s)
+    if not cleaned:
+        raise FileNotFoundError("No files provided")
+
+    # Ensure no more than can be handled
+    if maximum_number is not None and len(sources) > maximum_number:
+        raise TooManyFiles(
+            f"The maximum is {maximum_number}, "
+            f"you provided {maximum_number}: {sources}"
+        )
+
+    return cleaned
+
+
+class ProtoCIV:
+    def __init__(
+        self,
+        interface: ComponentInterface,
+        client: Union[Client, AsyncClient],
+    ):
         self.interface = interface
         self.client = client
 
-    def process(self) -> ComponentInterfaceValuePostRequest:
+    def get_post_value(
+        self,
+        civ_set: Optional[Union[DisplaySet, ArchiveItem]] = None,
+    ) -> ComponentInterfaceValuePostRequest:
         return ComponentInterfaceValuePostRequest(
             interface=self.interface.slug,
             value=None,
@@ -63,29 +96,7 @@ class BaseCIVSource:
         )
 
 
-def clean_file_source(
-    source: FileSource, maximum_number: Optional[int] = None
-):
-    sources = [source] if not isinstance(source, list) else source
-
-    validated = []
-    for s in sources:
-        path = Path(s) if isinstance(s, (str, Path)) else None
-        if path and path.exists():
-            validated.append(path)
-        else:
-            raise FileNotFoundError(s)
-
-    if maximum_number is not None and len(sources) > maximum_number:
-        raise TooManyFiles(
-            f"The maximum is {maximum_number}, "
-            f"you provided {maximum_number}: {sources}"
-        )
-
-    return validated
-
-
-class FileCIVSource(BaseCIVSource):
+class FileProtoCIV(ProtoCIV):
     def __init__(self, source: FileSource, **kwargs):
         super().__init__(**kwargs)
 
@@ -112,7 +123,7 @@ class FileCIVSource(BaseCIVSource):
             self.content = io.StringIO(json_str)
             self.content_name = self.interface.relative_path
 
-    def process(self):
+    def get_post_value(self, *_, **__):
         post = super().process()
 
         with open(self.content, "rb") as f:
@@ -124,8 +135,7 @@ class FileCIVSource(BaseCIVSource):
         return post
 
 
-class ImageCIVSource(BaseCIVSource):
-
+class ImageProtoCIV(ProtoCIV):
     def __init__(
         self,
         source: Union[FileSource, SimpleImage, HyperlinkedImage],
@@ -133,13 +143,18 @@ class ImageCIVSource(BaseCIVSource):
     ):
         super().__init__(**kwargs)
 
-        if isinstance(source, (SimpleImage, HyperlinkedImage)):
-            self.content = self.client.images.detail(pk=source.pk)
+        if isinstance(source, HyperlinkedImage):
+            self.content = source
+        elif isinstance(source, SimpleImage):
+            self.content = self._get_image_detail(source.pk)
         else:
             self.content = clean_file_source(source)
 
-    def process(self):
-        post = super().process()
+    def _get_image_detail(self, pk):
+        return (yield from self.client.images.detail(pk=pk))
+
+    def get_post_value(self, civ_set=None):
+        post = super().get_post_value()
 
         if isinstance(self.content, HyperlinkedImage):
             # Reuse the existing image
@@ -158,18 +173,35 @@ class ImageCIVSource(BaseCIVSource):
                     )
                 )
 
-        raw_image_upload = (
+        upload_session_data = {
+            "interface": self.interface.slug,
+        }
+
+        if civ_set is None:
+            pass  # No need to specify target
+        elif isinstance(civ_set, DisplaySet):
+            upload_session_data["display_set"] = civ_set.pk
+        elif isinstance(civ_set, ArchiveItem):
+            upload_session_data["archive_item"] = civ_set.pk
+        else:
+            raise NotImplementedError(
+                f"{type(civ_set)} not supporting for uploading image"
+            )
+
+        raw_image_upload_session = (
             yield from self.client.raw_image_upload_sessions.create(
                 uploads=[u.api_url for u in uploads],
+                **upload_session_data,
             )
         )
 
-        post.upload_session = raw_image_upload.api_url
+        if civ_set is None:
+            post.session_upload = raw_image_upload_session
 
         return post
 
 
-class ValueCIVSource(BaseCIVSource):
+class ValueProtoCIV(ProtoCIV):
     def __init__(self, source: Union[FileSource, Any], **kwargs):
         super().__init__(**kwargs)
 
@@ -185,7 +217,11 @@ class ValueCIVSource(BaseCIVSource):
             with open(clean_source) as fp:
                 self.content = json.load(fp)
 
-    def process(self):
-        data = super().process()
+    def get_post_value(
+        self,
+        *_,
+        **__,
+    ):
+        data = super().get_post_value()
         data.value = self.content
         return data

@@ -3,6 +3,7 @@ import os
 import re
 import uuid
 from collections.abc import Generator
+from functools import cache, partial
 from io import BytesIO
 from pathlib import Path
 from random import randint
@@ -18,6 +19,8 @@ from gcapi.apibase import APIBase, ClientInterface, ModifiableMixin
 from gcapi.exceptions import ObjectNotFound
 from gcapi.retries import BaseRetryStrategy, SelectiveBackoffStrategy
 from gcapi.sync_async_hybrid_support import CapturedCall, mark_generator
+from gcapi.typing import CIVSet, ComponentDict
+from gcapi.upload_sources import ProtoCIV, get_proto_civ_class
 
 logger = logging.getLogger(__name__)
 
@@ -886,3 +889,64 @@ class ClientBase(ApiDefinitions, ClientInterface):
 
             res.append(ds["pk"])
         return res  # noqa: B901
+
+    def add_civ_sets(
+        self,
+        values: list[ComponentDict],
+        archive_slug: Optional[str] = None,
+        reader_study_slug: Optional[str] = None,
+    ):
+
+        if reader_study_slug:
+            civ_set_api_create = partial(
+                self.__org_api_meta.reader_studies.display_sets.create,
+                reader_study=reader_study_slug,
+            )
+            civ_set_api_update = (
+                self.__org_api_meta.reader_studies.display_sets.partial_update
+            )
+        elif archive_slug:
+            civ_set_api_create = partial(
+                self.__org_api_meta.archive_items.create, archive=archive_slug
+            )
+            civ_set_api_update = (
+                self.__org_api_meta.archive_items.partial_update
+            )
+        else:
+            raise ValueError(
+                "Provide either an archive or a reader-study slug"
+            )
+
+        fetch_cached_interface = cache(self._fetch_interface)
+
+        # First, get handlers which include early validation
+        proto_civ_sets: list[list[ProtoCIV]] = []
+        for value in values:
+            proto_civ_set = []
+            for interface, source in value.items():
+                if not isinstance(interface, gcapi.models.ComponentInterface):
+                    interface = fetch_cached_interface(slug=interface)
+
+                proto_civ_set.append(
+                    get_proto_civ_class(interface)(
+                        client=self,
+                        interface=interface,
+                        source=source,
+                    )
+                )
+            proto_civ_sets.append(proto_civ_set)
+
+        # Second, create the civ_sets
+        civ_sets: list[CIVSet] = []
+        for proto_civ_set in proto_civ_sets:
+            civ_set = yield from civ_set_api_create()
+            post_values = []
+            for proto_civ in proto_civ_set:
+                post_value = proto_civ.get_post_value(civ_set)
+                post_values.append(post_value)
+            civ_set = yield from civ_set_api_update(
+                pk=civ_set.pk, values=post_values
+            )
+            civ_sets.append(civ_set)
+
+        return civ_sets

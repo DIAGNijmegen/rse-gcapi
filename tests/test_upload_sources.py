@@ -4,13 +4,18 @@ from pathlib import Path
 import pytest
 
 from gcapi.upload_sources import (
-    FileCIVSource,
-    ImageCIVSource,
+    FileProtoCIV,
+    ImageProtoCIV,
     TooManyFiles,
-    ValueCIVSource,
+    ValueProtoCIV,
     clean_file_source,
+    get_proto_civ_class,
 )
-from tests.factories import ComponentInterfaceFactory, SimpleImageFactory
+from tests.factories import (
+    ComponentInterfaceFactory,
+    HyperlinkedImageFactory,
+    SimpleImageFactory,
+)
 
 TESTDATA = Path(__file__).parent / "testdata"
 
@@ -55,11 +60,49 @@ from unittest.mock import MagicMock
             None,
             pytest.raises(FileNotFoundError),
         ),
+        (
+            [],
+            None,
+            pytest.raises(FileNotFoundError),
+        ),
     ),
 )
 def test_clean_file_source(source, max_number, context):
     with context:
         clean_file_source(source, max_number)
+
+
+@pytest.mark.parametrize(
+    "interface,cls,context",
+    (
+        (
+            ComponentInterfaceFactory(super_kind="Image"),
+            ImageProtoCIV,
+            nullcontext(),
+        ),
+        (
+            ComponentInterfaceFactory(super_kind="File"),
+            FileProtoCIV,
+            nullcontext(),
+        ),
+        (
+            ComponentInterfaceFactory(super_kind="Value"),
+            ValueProtoCIV,
+            nullcontext(),
+        ),
+        (
+            ComponentInterfaceFactory(super_kind="I do not exist"),
+            None,
+            pytest.raises(ValueError),
+        ),
+    ),
+)
+def test_proto_civ_class(interface, cls, context):
+    with context:
+        proto_civ_class = get_proto_civ_class(interface)
+
+    if cls:
+        assert proto_civ_class == cls
 
 
 @pytest.mark.parametrize(
@@ -72,10 +115,10 @@ def test_clean_file_source(source, max_number, context):
         ),
     ),
 )
-def test_file_source_validation(source, context):
+def test_file_civ_validation(source, context):
     with context:
-        FileCIVSource(
-            source,
+        FileProtoCIV(
+            source=source,
             interface=ComponentInterfaceFactory(super_kind="File"),
             client=MagicMock(),
         )
@@ -92,10 +135,10 @@ def test_file_source_validation(source, context):
         ),
     ),
 )
-def test_value_on_file_source(source, context, interface_kind):
+def test_value_on_file_civ(source, context, interface_kind):
     with context:
-        FileCIVSource(
-            source,
+        FileProtoCIV(
+            source=source,
             interface=ComponentInterfaceFactory(
                 super_kind="File", kind=interface_kind
             ),
@@ -115,12 +158,13 @@ def test_value_on_file_source(source, context, interface_kind):
             nullcontext(),
         ),
         (SimpleImageFactory(), nullcontext()),
+        (HyperlinkedImageFactory(), nullcontext()),
     ),
 )
-def test_image_source_validation(source, context):
+def test_image_civ_validation(source, context):
     with context:
-        ImageCIVSource(
-            source,
+        ImageProtoCIV(
+            source=source,
             interface=ComponentInterfaceFactory(super_kind="Image"),
             client=MagicMock(),
         )
@@ -143,13 +187,14 @@ def test_image_source_validation(source, context):
         (["foo", "bar"], nullcontext()),
         (1, nullcontext()),
         (None, nullcontext()),
+        ([], nullcontext()),
         (object(), pytest.raises(TypeError)),
     ),
 )
-def test_value_source_validation(source, context):
+def test_value_civ_validation(source, context):
     with context:
-        ValueCIVSource(
-            source,
+        ValueProtoCIV(
+            source=source,
             interface=ComponentInterfaceFactory(super_kind="Value"),
             client=MagicMock(),
         )
