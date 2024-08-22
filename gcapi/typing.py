@@ -1,8 +1,20 @@
-from typing import Any, Union
+from pathlib import Path
+from typing import Union
 
 import gcapi.models
 
-ValueDict = dict[Union[str, gcapi.models.ComponentInterface], Any]
+FileSource = Union[
+    Path,
+    list[Path],
+    str,
+    list[str],
+]
+
+
+CIVSetDescription = dict[
+    Union[str, gcapi.models.ComponentInterface],
+    Union[FileSource, gcapi.models.SimpleImage, gcapi.models.HyperlinkedImage],
+]
 
 ArchiveItemOrPk = Union[str, gcapi.models.ArchiveItem]
 DisplaySetOrPk = Union[str, gcapi.models.DisplaySet]

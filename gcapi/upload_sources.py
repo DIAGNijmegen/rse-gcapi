@@ -13,18 +13,11 @@ from gcapi.models import (
     HyperlinkedImage,
     SimpleImage,
 )
+from gcapi.typing import FileSource
 
 
 class TooManyFiles(ValueError):
     pass
-
-
-FileSource = Union[
-    Path,
-    list[Path],
-    str,
-    list[str],
-]
 
 
 def clean_file_source(
@@ -55,16 +48,8 @@ def clean_file_source(
 
 
 class ProtoCIV:
-    def __new__(
-        cls,
-        source: Union[FileSource, SimpleImage, HyperlinkedImage],
-        interface: ComponentInterface,
-        client: Union[Client, AsyncClient],
-    ):
-        if cls is not ProtoCIV:
-            return super().__new__(cls)
-
-        # Determine the handler class based on the interface's super_kind
+    def __new__(cls, *, interface: ComponentInterface, **__):
+        # Determine the class specialization based on the interface's super_kind
         handler_class = {
             "image": ImageProtoCIV,
             "file": FileProtoCIV,
@@ -72,16 +57,19 @@ class ProtoCIV:
         }.get(interface.super_kind.casefold())
 
         if handler_class is None:
-            raise ValueError(
+            raise NotImplementedError(
                 f"Unsupported interface super_kind: {interface.super_kind}"
             )
 
-        # Return an instance of the appropriate handler
-        return handler_class(
-            source=source,
-            interface=interface,
-            client=client,
-        )
+        if cls is not ProtoCIV:
+            if cls is not handler_class:
+                raise RuntimeError(
+                    f"{cls} does not support interface "
+                    f"super_kind: {interface.super_kind}"
+                )
+            return super().__new__(cls)
+
+        return super().__new__(handler_class)
 
     def __init__(
         self,
@@ -126,14 +114,15 @@ class FileProtoCIV(ProtoCIV):
         except FileNotFoundError as file_val_error:
             # Possibly a directly provided value
             if self.interface.kind.casefold() == "string":
+                # !! WARNING !!
                 # Incorrect paths being uploaded as content to a string interface can
-                # easily bypass detection because:
+                # easily bypass detection:
                 #   - Platform JSON schemas for strings are typically underdefined
                 #   - Files with super_kind require users to download them before
-                #    viewing the content.
+                #    viewing the content
                 raise FileNotFoundError(
-                    f"Interface kind {self.interface.kind} requires to be upload "
-                    "as a file, replace value with an existing file path"
+                    f"Interface kind {self.interface.kind} requires to be uploaded "
+                    "as a file, replace the value with an existing file path"
                 ) from file_val_error
             try:
                 json_str = json.dumps(self.source)
@@ -178,6 +167,17 @@ class ImageProtoCIV(ProtoCIV):
             return post
 
         # Upload the image
+        if civ_set is None:
+            upload_session_data = {}  # No need to specify target
+        elif isinstance(civ_set, DisplaySet):
+            upload_session_data = {"display_set": civ_set.pk}
+        elif isinstance(civ_set, ArchiveItem):
+            upload_session_data = {"archive_item": civ_set.pk}
+        else:
+            raise NotImplementedError(
+                f"{type(civ_set)} not supported for uploading images"
+            )
+
         uploads = []
         for file in self.content:
             with open(file, "rb") as f:
@@ -189,21 +189,7 @@ class ImageProtoCIV(ProtoCIV):
                     )
                 )
 
-        upload_session_data = {
-            "interface": self.interface.slug,
-        }
-
-        if civ_set is None:
-            pass  # No need to specify target
-        elif isinstance(civ_set, DisplaySet):
-            upload_session_data["display_set"] = civ_set.pk
-        elif isinstance(civ_set, ArchiveItem):
-            upload_session_data["archive_item"] = civ_set.pk
-        else:
-            raise NotImplementedError(
-                f"{type(civ_set)} not supporting for uploading image"
-            )
-
+        upload_session_data["interface"] = self.interface.slug
         raw_image_upload_session = (
             yield from self.client.raw_image_upload_sessions.create(
                 uploads=[u.api_url for u in uploads],

@@ -73,33 +73,43 @@ def test_clean_file_source(source, maximum_number, context):
 
 
 @pytest.mark.parametrize(
-    "interface,cls,context",
+    "init_cls,interface,cls,context",
     (
         (
+            ProtoCIV,
             ComponentInterfaceFactory(super_kind="Image"),
             ImageProtoCIV,
             nullcontext(),
         ),
         (
+            ProtoCIV,
             ComponentInterfaceFactory(super_kind="File"),
             FileProtoCIV,
             nullcontext(),
         ),
         (
+            ProtoCIV,
             ComponentInterfaceFactory(super_kind="Value"),
             ValueProtoCIV,
             nullcontext(),
         ),
         (
+            ProtoCIV,
             ComponentInterfaceFactory(super_kind="I do not exist"),
             None,
-            pytest.raises(ValueError),
+            pytest.raises(NotImplementedError),
+        ),
+        (
+            ImageProtoCIV,
+            ComponentInterfaceFactory(super_kind="File"),
+            None,
+            pytest.raises(RuntimeError),
         ),
     ),
 )
-def test_proto_civ_class(interface, cls, context):
+def test_proto_civ_class(init_cls, interface, cls, context):
     with context:
-        proto_civ = ProtoCIV(
+        proto_civ = init_cls(
             source=[],
             interface=interface,
             client=MagicMock(),
@@ -110,28 +120,23 @@ def test_proto_civ_class(interface, cls, context):
 
 
 @pytest.mark.parametrize(
-    "source,context",
+    "source,context,interface_kind",
     (
-        (TESTDATA / "test.json", nullcontext()),
+        (
+            TESTDATA / "test.json",
+            nullcontext(),
+            "Anything",
+        ),
         (
             [TESTDATA / "test.json", TESTDATA / "test.json"],
             pytest.raises(TooManyFiles),
+            "Anything",
         ),
-    ),
-)
-def test_file_civ_validation(source, context):
-    with context:
-        ProtoCIV(
-            source=source,
-            interface=ComponentInterfaceFactory(super_kind="File"),
-            client=MagicMock(),
-        ).clean()
-
-
-@pytest.mark.parametrize(
-    "source,context,interface_kind",
-    (
-        ({"foo": "bar"}, nullcontext(), "Anything"),
+        (  # Direct JSON on file
+            {"foo": "bar"},
+            nullcontext(),
+            "Anything",
+        ),
         (
             "A string which is not a file",
             pytest.raises(FileNotFoundError),
@@ -139,9 +144,9 @@ def test_file_civ_validation(source, context):
         ),
     ),
 )
-def test_value_on_file_civ(source, context, interface_kind):
+def test_file_civ_clean(source, context, interface_kind):
     with context:
-        ProtoCIV(
+        FileProtoCIV(
             source=source,
             interface=ComponentInterfaceFactory(
                 super_kind="File", kind=interface_kind
@@ -165,9 +170,9 @@ def test_value_on_file_civ(source, context, interface_kind):
         (HyperlinkedImageFactory(), nullcontext()),
     ),
 )
-def test_image_civ_validation(source, context):
+def test_image_civ_clean(source, context):
     with context:
-        ProtoCIV(
+        ImageProtoCIV(
             source=source,
             interface=ComponentInterfaceFactory(super_kind="Image"),
             client=MagicMock(),
@@ -178,7 +183,6 @@ def test_image_civ_validation(source, context):
     "source,context",
     (
         (TESTDATA / "test.json", nullcontext()),
-        ([TESTDATA / "test.json"], nullcontext()),
         (
             [
                 TESTDATA / "test.json",
@@ -195,9 +199,9 @@ def test_image_civ_validation(source, context):
         (object(), pytest.raises(TypeError)),
     ),
 )
-def test_value_civ_validation(source, context):
+def test_value_civ_clean(source, context):
     with context:
-        ProtoCIV(
+        ValueProtoCIV(
             source=source,
             interface=ComponentInterfaceFactory(super_kind="Value"),
             client=MagicMock(),

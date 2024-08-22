@@ -19,7 +19,7 @@ from gcapi.apibase import APIBase, ClientInterface, ModifiableMixin
 from gcapi.exceptions import ObjectNotFound
 from gcapi.retries import BaseRetryStrategy, SelectiveBackoffStrategy
 from gcapi.sync_async_hybrid_support import CapturedCall, mark_generator
-from gcapi.typing import CIVSet, ValueDict
+from gcapi.typing import CIVSet, CIVSetDescription
 from gcapi.upload_sources import ProtoCIV
 
 logger = logging.getLogger(__name__)
@@ -790,76 +790,53 @@ class ClientBase(ApiDefinitions, ClientInterface):
                 f"Please provide one from this list: "
                 f"https://grand-challenge.org/components/interfaces/reader-studies/"
             ) from e
-        return interface
-
-    def _validate_display_set_values(self, values, interfaces):
-        invalid_file_paths = {}
-        for slug, value in values:
-            if interfaces.get(slug):
-                interface = interfaces[slug]
-            else:
-                interface = yield from self._fetch_interface(slug)
-                interfaces[slug] = interface
-            super_kind = interface.super_kind.casefold()
-            if super_kind != "value":
-                if not isinstance(value, list):
-                    raise ValueError(
-                        f"Values for {slug} ({super_kind}) "
-                        "should be a list of file paths."
-                    )
-                if super_kind != "image" and len(value) > 1:
-                    raise ValueError(
-                        f"You can only upload one single file "
-                        f"to interface {slug} ({super_kind})."
-                    )
-                for file_path in value:
-                    if not Path(file_path).exists():
-                        invalid_file_paths[slug] = invalid_file_paths.get(
-                            slug, []
-                        )
-                        invalid_file_paths[slug].append(str(file_path))
-        if invalid_file_paths:
-            raise ValueError(f"Invalid file paths: {invalid_file_paths}")
-
-        return interfaces
 
     def add_cases_to_reader_study(
-        self, *, reader_study: str, display_sets: list[ValueDict]
+        self, *, reader_study: str, display_sets: list[CIVSetDescription]
     ):
         """
-        This function takes a reader study slug and a list of diplay sets
-        and creates the provided display sets and adds them to the reader
-        study. The format for the list of display sets is as follows:
-        [
-            {
-                "slug_0": ["filepath_0", ...]
-                ...
-                "slug_n": {"json": "value"}
-
-            },
-            ...
-        ]
-
-        Where the file paths are local paths to the files making up a
-        single image. For file type interface the file path can only
-        contain a single file. For json type interfaces any value that
-        is valid for the interface can be passed.`
+        This function takes a reader-study slug and a list of display set
+        descriptions and creates the display sets to be viewed via the reader
+        study.
 
         Parameters
         ----------
         reader_study
+            slug for the reader study (e.g. "i-am-a-reader-study")
         display_sets
+            The format for the description of display sets is as follows:
+
+            [
+                {
+                    "slug_0": ["filepath_0", ...],
+                    "slug_1": "filepath_0",
+                    "slug_2": pathlib.Path("filepath_0"),
+                    ...
+                    "slug_n": {"json": "value"}
+
+                },
+                ...
+            ]
+
+            Where the file paths are local paths to the files making up a
+            single image. For file type interfaces the file path can only
+            contain a single file. For json type interfaces any value that
+            is valid for the interface can be passed.`
 
         Returns
         -------
         The pks of the newly created display sets.
         """
-        self.add_civ_sets(values=display_sets, reader_study_slug=reader_study)
+        civ_sets = self.add_civ_sets(
+            values=display_sets, reader_study_slug=reader_study
+        )
+
+        return [civ_set.pk for civ_set in civ_sets]
 
     def add_civ_sets(
         self,
         *,
-        values: list[ValueDict],
+        values: list[CIVSetDescription],
         archive_slug: Optional[str] = None,
         reader_study_slug: Optional[str] = None,
     ):
