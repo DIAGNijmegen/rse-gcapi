@@ -1,7 +1,7 @@
 import io
 import json
 from pathlib import Path
-from typing import Any, Optional, Union
+from typing import Optional, Union
 
 from httpx import AsyncClient, Client
 
@@ -24,31 +24,12 @@ FileSource = Union[
     list[Path],
     str,
     list[str],
-    HyperlinkedImage,
-    SimpleImage,
 ]
 
 
-def get_proto_civ_class(interface):
-    # Determine the handler class based on the interface's super_kind
-    handler_class = {
-        "image": ImageProtoCIV,
-        "file": FileProtoCIV,
-        "value": ValueProtoCIV,
-    }.get(interface.super_kind.casefold())
-
-    if handler_class is None:
-        raise ValueError(
-            f"Unsupported interface super_kind: {interface.super_kind}"
-        )
-
-    # Return an instance of the appropriate handler
-    return handler_class
-
-
 def clean_file_source(
-    source: FileSource, maximum_number: Optional[int] = None
-):
+    source: FileSource, *, maximum_number: Optional[int] = None
+) -> list[Path]:
     # Ensure we are handling a list
     sources = [source] if not isinstance(source, list) else source
 
@@ -74,18 +55,55 @@ def clean_file_source(
 
 
 class ProtoCIV:
-    def __init__(
-        self,
+    def __new__(
+        cls,
+        source: Union[FileSource, SimpleImage, HyperlinkedImage],
         interface: ComponentInterface,
         client: Union[Client, AsyncClient],
     ):
+        if cls is not ProtoCIV:
+            return super().__new__(cls)
+
+        # Determine the handler class based on the interface's super_kind
+        handler_class = {
+            "image": ImageProtoCIV,
+            "file": FileProtoCIV,
+            "value": ValueProtoCIV,
+        }.get(interface.super_kind.casefold())
+
+        if handler_class is None:
+            raise ValueError(
+                f"Unsupported interface super_kind: {interface.super_kind}"
+            )
+
+        # Return an instance of the appropriate handler
+        return handler_class(
+            source=source,
+            interface=interface,
+            client=client,
+        )
+
+    def __init__(
+        self,
+        *,
+        source: Union[FileSource, SimpleImage, HyperlinkedImage],
+        interface: ComponentInterface,
+        client: Union[Client, AsyncClient],
+    ):
+        self.source = source
         self.interface = interface
         self.client = client
+        self.cleaned = False
+
+    def clean(self):
+        self.cleaned = True
 
     def get_post_value(
         self,
         civ_set: Optional[Union[DisplaySet, ArchiveItem]] = None,
     ) -> ComponentInterfaceValuePostRequest:
+        if not self.cleaned:
+            self.clean()
         return ComponentInterfaceValuePostRequest(
             interface=self.interface.slug,
             value=None,
@@ -97,11 +115,12 @@ class ProtoCIV:
 
 
 class FileProtoCIV(ProtoCIV):
-    def __init__(self, source: FileSource, **kwargs):
-        super().__init__(**kwargs)
+
+    def clean(self):
+        super().clean()
 
         try:
-            cleaned_sources = clean_file_source(source, maximum_number=1)
+            cleaned_sources = clean_file_source(self.source, maximum_number=1)
             self.content = cleaned_sources[0]
             self.content_name = self.content.name
         except FileNotFoundError as file_val_error:
@@ -117,7 +136,7 @@ class FileProtoCIV(ProtoCIV):
                     "as a file, replace value with an existing file path"
                 ) from file_val_error
             try:
-                json_str = json.dumps(source)
+                json_str = json.dumps(self.source)
             except TypeError:
                 raise file_val_error
             self.content = io.StringIO(json_str)
@@ -136,19 +155,16 @@ class FileProtoCIV(ProtoCIV):
 
 
 class ImageProtoCIV(ProtoCIV):
-    def __init__(
-        self,
-        source: Union[FileSource, SimpleImage, HyperlinkedImage],
-        **kwargs,
-    ):
-        super().__init__(**kwargs)
 
-        if isinstance(source, HyperlinkedImage):
-            self.content = source
-        elif isinstance(source, SimpleImage):
-            self.content = self._get_image_detail(source.pk)
+    def clean(self):
+        super().clean()
+
+        if isinstance(self.source, HyperlinkedImage):
+            self.content = self.source
+        elif isinstance(self.source, SimpleImage):
+            self.content = self._get_image_detail(self.source.pk)
         else:
-            self.content = clean_file_source(source)
+            self.content = clean_file_source(self.source)
 
     def _get_image_detail(self, pk):
         return (yield from self.client.images.detail(pk=pk))
@@ -202,26 +218,23 @@ class ImageProtoCIV(ProtoCIV):
 
 
 class ValueProtoCIV(ProtoCIV):
-    def __init__(self, source: Union[FileSource, Any], **kwargs):
-        super().__init__(**kwargs)
+
+    def clean(self):
+        super().clean()
 
         try:
-            cleaned_sources = clean_file_source(source, maximum_number=1)
+            cleaned_sources = clean_file_source(self.source, maximum_number=1)
             clean_source = cleaned_sources[0]
         except FileNotFoundError:
             # Directly provided value?
-            json.dumps(source)  # Check if it is JSON serializable
-            self.content = source
+            json.dumps(self.source)  # Check if it is JSON serializable
+            self.content = self.source
         else:
             # A singular json file
             with open(clean_source) as fp:
                 self.content = json.load(fp)
 
-    def get_post_value(
-        self,
-        *_,
-        **__,
-    ):
+    def get_post_value(self, *_, **__):
         data = super().get_post_value()
         data.value = self.content
         return data

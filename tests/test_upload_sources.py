@@ -6,10 +6,10 @@ import pytest
 from gcapi.upload_sources import (
     FileProtoCIV,
     ImageProtoCIV,
+    ProtoCIV,
     TooManyFiles,
     ValueProtoCIV,
     clean_file_source,
-    get_proto_civ_class,
 )
 from tests.factories import (
     ComponentInterfaceFactory,
@@ -23,7 +23,7 @@ from unittest.mock import MagicMock
 
 
 @pytest.mark.parametrize(
-    "source,max_number,context",
+    "source,maximum_number,context",
     (
         (
             TESTDATA / "test.json",
@@ -67,9 +67,9 @@ from unittest.mock import MagicMock
         ),
     ),
 )
-def test_clean_file_source(source, max_number, context):
+def test_clean_file_source(source, maximum_number, context):
     with context:
-        clean_file_source(source, max_number)
+        clean_file_source(source, maximum_number=1)
 
 
 @pytest.mark.parametrize(
@@ -99,10 +99,14 @@ def test_clean_file_source(source, max_number, context):
 )
 def test_proto_civ_class(interface, cls, context):
     with context:
-        proto_civ_class = get_proto_civ_class(interface)
+        proto_civ = ProtoCIV(
+            source=[],
+            interface=interface,
+            client=MagicMock(),
+        )
 
     if cls:
-        assert proto_civ_class == cls
+        assert type(proto_civ) is cls
 
 
 @pytest.mark.parametrize(
@@ -117,11 +121,11 @@ def test_proto_civ_class(interface, cls, context):
 )
 def test_file_civ_validation(source, context):
     with context:
-        FileProtoCIV(
+        ProtoCIV(
             source=source,
             interface=ComponentInterfaceFactory(super_kind="File"),
             client=MagicMock(),
-        )
+        ).clean()
 
 
 @pytest.mark.parametrize(
@@ -137,13 +141,13 @@ def test_file_civ_validation(source, context):
 )
 def test_value_on_file_civ(source, context, interface_kind):
     with context:
-        FileProtoCIV(
+        ProtoCIV(
             source=source,
             interface=ComponentInterfaceFactory(
                 super_kind="File", kind=interface_kind
             ),
             client=MagicMock(),
-        )
+        ).clean()
 
 
 @pytest.mark.parametrize(
@@ -163,11 +167,11 @@ def test_value_on_file_civ(source, context, interface_kind):
 )
 def test_image_civ_validation(source, context):
     with context:
-        ImageProtoCIV(
+        ProtoCIV(
             source=source,
             interface=ComponentInterfaceFactory(super_kind="Image"),
             client=MagicMock(),
-        )
+        ).clean()
 
 
 @pytest.mark.parametrize(
@@ -193,8 +197,8 @@ def test_image_civ_validation(source, context):
 )
 def test_value_civ_validation(source, context):
     with context:
-        ValueProtoCIV(
+        ProtoCIV(
             source=source,
             interface=ComponentInterfaceFactory(super_kind="Value"),
             client=MagicMock(),
-        )
+        ).clean()

@@ -8,7 +8,7 @@ from io import BytesIO
 from pathlib import Path
 from random import randint
 from time import sleep
-from typing import TYPE_CHECKING, Any, Callable, Optional, Union
+from typing import TYPE_CHECKING, Any, Callable, Optional, Union, cast
 from urllib.parse import urljoin
 
 import httpx
@@ -19,8 +19,8 @@ from gcapi.apibase import APIBase, ClientInterface, ModifiableMixin
 from gcapi.exceptions import ObjectNotFound
 from gcapi.retries import BaseRetryStrategy, SelectiveBackoffStrategy
 from gcapi.sync_async_hybrid_support import CapturedCall, mark_generator
-from gcapi.typing import CIVSet, ComponentDict
-from gcapi.upload_sources import ProtoCIV, get_proto_civ_class
+from gcapi.typing import CIVSet, ValueDict
+from gcapi.upload_sources import ProtoCIV
 
 logger = logging.getLogger(__name__)
 
@@ -824,7 +824,7 @@ class ClientBase(ApiDefinitions, ClientInterface):
         return interfaces
 
     def add_cases_to_reader_study(
-        self, *, reader_study: str, display_sets: list[dict[str, Any]]
+        self, *, reader_study: str, display_sets: list[ValueDict]
     ):
         """
         This function takes a reader study slug and a list of diplay sets
@@ -854,45 +854,12 @@ class ClientBase(ApiDefinitions, ClientInterface):
         -------
         The pks of the newly created display sets.
         """
-        res = []
-        interfaces: dict[str, gcapi.models.ComponentInterface] = {}
-        for display_set in display_sets:
-            new_interfaces = yield from self._validate_display_set_values(
-                display_set.items(), interfaces
-            )
-            interfaces.update(new_interfaces)
-
-        for display_set in display_sets:
-            ds = yield from self.__org_api_meta.reader_studies.display_sets.create(
-                reader_study=reader_study
-            )
-            values = []
-            for slug, value in display_set.items():
-                interface = interfaces[slug]
-                data = {"interface": slug}
-                super_kind = interface.super_kind.casefold()
-                if super_kind == "image":
-                    yield from self._upload_image_files(
-                        display_set=ds["pk"], interface=slug, files=value
-                    )
-                    data = {}
-                elif super_kind == "file":
-                    upload = yield from self._upload_file(value)
-                    data["user_upload"] = upload["api_url"]
-                else:
-                    data["value"] = value
-                if data:
-                    values.append(data)
-            yield from self.__org_api_meta.reader_studies.display_sets.partial_update(
-                pk=ds["pk"], values=values
-            )
-
-            res.append(ds["pk"])
-        return res  # noqa: B901
+        self.add_civ_sets(values=display_sets, reader_study_slug=reader_study)
 
     def add_civ_sets(
         self,
-        values: list[ComponentDict],
+        *,
+        values: list[ValueDict],
         archive_slug: Optional[str] = None,
         reader_study_slug: Optional[str] = None,
     ):
@@ -928,9 +895,11 @@ class ClientBase(ApiDefinitions, ClientInterface):
                     interface = fetch_cached_interface(slug=interface)
 
                 proto_civ_set.append(
-                    get_proto_civ_class(interface)(
+                    ProtoCIV(
                         client=self,
-                        interface=interface,
+                        interface=cast(
+                            gcapi.models.ComponentInterface, interface
+                        ),
                         source=source,
                     )
                 )
