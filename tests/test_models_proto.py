@@ -1,9 +1,10 @@
 from contextlib import nullcontext
 from pathlib import Path
+from unittest.mock import MagicMock
 
 import pytest
 
-from gcapi.upload_sources import (
+from gcapi.models_proto import (
     FileProtoCIV,
     ImageProtoCIV,
     ProtoCIV,
@@ -19,8 +20,6 @@ from tests.factories import (
 from tests.utils import sync_generator_test
 
 TESTDATA = Path(__file__).parent / "testdata"
-
-from unittest.mock import MagicMock
 
 
 @pytest.mark.parametrize(
@@ -108,7 +107,7 @@ def test_clean_file_source(source, maximum_number, context):
         ),
     ),
 )
-def test_proto_civ_class(init_cls, interface, cls, context):
+def test_proto_civ_typing(init_cls, interface, cls, context):
     with context:
         proto_civ = init_cls(
             source=[],

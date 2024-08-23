@@ -150,9 +150,6 @@ class ImageProtoCIV(ProtoCIV):
         else:
             self.content = clean_file_source(self.source)
 
-    def _get_image_detail(self, pk):
-        return
-
     def get_post_value(self, civ_set=None):
         post = yield from super().get_post_value()
 

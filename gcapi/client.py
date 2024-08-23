@@ -17,10 +17,10 @@ from httpx import URL, HTTPStatusError, Timeout
 import gcapi.models
 from gcapi.apibase import APIBase, ClientInterface, ModifiableMixin
 from gcapi.exceptions import ObjectNotFound
+from gcapi.models_proto import ProtoCIV
 from gcapi.retries import BaseRetryStrategy, SelectiveBackoffStrategy
 from gcapi.sync_async_hybrid_support import CapturedCall, mark_generator
 from gcapi.typing import CIVSet, CIVSetDescription
-from gcapi.upload_sources import ProtoCIV
 
 logger = logging.getLogger(__name__)
 
