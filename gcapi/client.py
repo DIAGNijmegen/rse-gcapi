@@ -3,7 +3,7 @@ import os
 import re
 import uuid
 from collections.abc import Generator
-from functools import cache, partial
+from functools import partial
 from io import BytesIO
 from pathlib import Path
 from random import randint
@@ -777,11 +777,24 @@ class ClientBase(ApiDefinitions, ClientInterface):
             )
         )
 
-    def _fetch_interface(self, slug):
+    def _fetch_interface(
+        self,
+        slug,
+        cache=None,
+    ):
+        if isinstance(slug, gcapi.models.ComponentInterface):
+            return slug
+
+        if cache and slug in cache:
+            return cache[slug]
         try:
             interface = yield from self.__org_api_meta.interfaces.detail(
                 slug=slug
             )
+
+            if cache:
+                cache[slug] = interface
+
             return interface
         except ObjectNotFound as e:
             raise ValueError(
@@ -826,13 +839,13 @@ class ClientBase(ApiDefinitions, ClientInterface):
         -------
         The pks of the newly created display sets.
         """
-        civ_sets = self.add_civ_sets(
+        civ_sets = yield from self.add_civ_sets(
             values=display_sets, reader_study_slug=reader_study
         )
 
         return [civ_set.pk for civ_set in civ_sets]
 
-    def add_civ_sets(
+    def add_civ_sets(  # noqa: C901
         self,
         *,
         values: list[CIVSetDescription],
@@ -841,18 +854,18 @@ class ClientBase(ApiDefinitions, ClientInterface):
     ):
 
         if reader_study_slug:
-            civ_set_api_create = partial(
+            api_create = partial(
                 self.__org_api_meta.reader_studies.display_sets.create,
                 reader_study=reader_study_slug,
             )
-            civ_set_api_update = (
+            api_partial_update = (
                 self.__org_api_meta.reader_studies.display_sets.partial_update
             )
         elif archive_slug:
-            civ_set_api_create = partial(
+            api_create = partial(
                 self.__org_api_meta.archive_items.create, archive=archive_slug
             )
-            civ_set_api_update = (
+            api_partial_update = (
                 self.__org_api_meta.archive_items.partial_update
             )
         else:
@@ -860,19 +873,20 @@ class ClientBase(ApiDefinitions, ClientInterface):
                 "Provide either an archive or a reader-study slug"
             )
 
-        fetch_cached_interface = cache(self._fetch_interface)
+        interface_cache: dict[str, gcapi.models.ComponentInterface] = {}
 
-        # First, get handlers which include early validation
+        # First, get handlers
         proto_civ_sets: list[list[ProtoCIV]] = []
         for value in values:
             proto_civ_set = []
             for interface, source in value.items():
-                if not isinstance(interface, gcapi.models.ComponentInterface):
-                    interface = fetch_cached_interface(slug=interface)
-
+                interface = yield from self._fetch_interface(
+                    slug=interface,
+                    cache=interface_cache,
+                )
                 proto_civ_set.append(
                     ProtoCIV(
-                        client=self,
+                        client_api=self.__org_api_meta,
                         interface=cast(
                             gcapi.models.ComponentInterface, interface
                         ),
@@ -881,17 +895,22 @@ class ClientBase(ApiDefinitions, ClientInterface):
                 )
             proto_civ_sets.append(proto_civ_set)
 
-        # Second, create the civ_sets
+        # Second, clean the to-be CIV sets
+        for proto_civ_set in proto_civ_sets:
+            for proto_civ in proto_civ_set:
+                yield from proto_civ.clean()
+
         civ_sets: list[CIVSet] = []
         for proto_civ_set in proto_civ_sets:
-            civ_set = yield from civ_set_api_create()
+            civ_set = yield from api_create()
             post_values = []
             for proto_civ in proto_civ_set:
-                post_value = proto_civ.get_post_value(civ_set)
-                post_values.append(post_value)
-            civ_set = yield from civ_set_api_update(
+                post_value = yield from proto_civ.get_post_value(civ_set)
+                if post_value is not None:
+                    post_values.append(post_value)
+            civ_set = yield from api_partial_update(
                 pk=civ_set.pk, values=post_values
             )
             civ_sets.append(civ_set)
 
-        return civ_sets
+        return civ_sets  # noqa B901

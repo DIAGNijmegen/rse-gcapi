@@ -3,12 +3,9 @@ import json
 from pathlib import Path
 from typing import Optional, Union
 
-from httpx import AsyncClient, Client
-
 from gcapi.models import (
     ArchiveItem,
     ComponentInterface,
-    ComponentInterfaceValuePostRequest,
     DisplaySet,
     HyperlinkedImage,
     SimpleImage,
@@ -76,36 +73,32 @@ class ProtoCIV:
         *,
         source: Union[FileSource, SimpleImage, HyperlinkedImage],
         interface: ComponentInterface,
-        client: Union[Client, AsyncClient],
+        client_api,
     ):
         self.source = source
         self.interface = interface
-        self.client = client
+        self.client_api = client_api
         self.cleaned = False
 
     def clean(self):
         self.cleaned = True
+        return
+        yield
 
     def get_post_value(
         self,
         civ_set: Optional[Union[DisplaySet, ArchiveItem]] = None,
-    ) -> ComponentInterfaceValuePostRequest:
+    ):
         if not self.cleaned:
-            self.clean()
-        return ComponentInterfaceValuePostRequest(
-            interface=self.interface.slug,
-            value=None,
-            file=None,
-            image=None,
-            upload_session=None,
-            user_upload=None,
-        )
+            yield from self.clean()
+
+        return {"interface": self.interface.slug}  # noqa: B901
 
 
 class FileProtoCIV(ProtoCIV):
 
     def clean(self):
-        super().clean()
+        yield from super().clean()
 
         try:
             cleaned_sources = clean_file_source(self.source, maximum_number=1)
@@ -132,13 +125,13 @@ class FileProtoCIV(ProtoCIV):
             self.content_name = self.interface.relative_path
 
     def get_post_value(self, *_, **__):
-        post = super().process()
+        post = yield from super().get_post_value()
 
         with open(self.content, "rb") as f:
-            user_upload = yield from self.client.uploads.upload_fileobj(
+            user_upload = yield from self.client_api.uploads.upload_fileobj(
                 fileobj=f, filename=self.content_name
             )
-        post.user_upload = user_upload.api_url
+        post["user_upload"] = user_upload.api_url
 
         return post
 
@@ -146,24 +139,26 @@ class FileProtoCIV(ProtoCIV):
 class ImageProtoCIV(ProtoCIV):
 
     def clean(self):
-        super().clean()
+        yield from super().clean()
 
         if isinstance(self.source, HyperlinkedImage):
             self.content = self.source
         elif isinstance(self.source, SimpleImage):
-            self.content = self._get_image_detail(self.source.pk)
+            self.content = yield from self.client_api.images.detail(
+                pk=self.source.pk
+            )
         else:
             self.content = clean_file_source(self.source)
 
     def _get_image_detail(self, pk):
-        return (yield from self.client.images.detail(pk=pk))
+        return
 
     def get_post_value(self, civ_set=None):
-        post = super().get_post_value()
+        post = yield from super().get_post_value()
 
         if isinstance(self.content, HyperlinkedImage):
             # Reuse the existing image
-            post.image = self.content.api_url
+            post["image"] = self.content.api_url
             return post
 
         # Upload the image
@@ -183,30 +178,28 @@ class ImageProtoCIV(ProtoCIV):
             with open(file, "rb") as f:
                 uploads.append(
                     (
-                        yield from self.client.uploads.upload_fileobj(
+                        yield from self.client_api.uploads.upload_fileobj(
                             fileobj=f, filename=file.name
                         )
                     )
                 )
-
         upload_session_data["interface"] = self.interface.slug
         raw_image_upload_session = (
-            yield from self.client.raw_image_upload_sessions.create(
+            yield from self.client_api.raw_image_upload_sessions.create(
                 uploads=[u.api_url for u in uploads],
                 **upload_session_data,
             )
         )
 
         if civ_set is None:
-            post.session_upload = raw_image_upload_session
-
-        return post
+            post["session_upload"] = raw_image_upload_session
+            return post
 
 
 class ValueProtoCIV(ProtoCIV):
 
     def clean(self):
-        super().clean()
+        yield from super().clean()
 
         try:
             cleaned_sources = clean_file_source(self.source, maximum_number=1)
@@ -221,6 +214,6 @@ class ValueProtoCIV(ProtoCIV):
                 self.content = json.load(fp)
 
     def get_post_value(self, *_, **__):
-        data = super().get_post_value()
-        data.value = self.content
-        return data
+        post = yield from super().get_post_value()
+        post["value"] = self.content
+        return post
