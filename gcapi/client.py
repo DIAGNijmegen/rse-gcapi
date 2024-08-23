@@ -264,11 +264,10 @@ class UploadsAPI(APIBase[gcapi.models.UserUpload]):
             )
             raise
 
-        return (  # noqa: B901
-            yield from self.complete_multipart_upload(
-                pk=pk, s3_upload_id=s3_upload_id, parts=parts
-            )
+        result = yield from self.complete_multipart_upload(
+            pk=pk, s3_upload_id=s3_upload_id, parts=parts
         )
+        return self.model(**result)  # noqa: B901
 
     def _put_fileobj(self, *, fileobj, pk, s3_upload_id):
         part_number = 1  # s3 uses 1-indexed chunks

@@ -21,7 +21,7 @@ def anyio_backend():
 
 @pytest.fixture(scope="session")
 def local_grand_challenge() -> Generator[str, None, None]:
-    local_api_url = "https://gc.localhost/api/v1/"
+    local_api_url = "http://gc.localhost:8000/api/v1/"
 
     try:
         r = httpx.get(
