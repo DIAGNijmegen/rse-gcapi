@@ -1,8 +1,10 @@
 import contextlib
+from functools import wraps
 from time import sleep
 
 from httpx import AsyncHTTPTransport, HTTPStatusError, HTTPTransport
 
+import gcapi
 from tests.scripts.constants import USER_TOKENS
 
 ADMIN_TOKEN = USER_TOKENS["admin"]
@@ -86,3 +88,28 @@ def mock_transport_responses(transport, responses):
         yield ResponseMetaData
     finally:
         transport.__class__ = old_class
+
+
+def sync_generator_test(test):
+    """
+    Decorator allowing for unit testing the synchronous generators that
+    are the core of the syc and async hybrid constructs.
+
+    Example
+    ________
+
+    def a_function()
+        yield from another_function()
+
+    @sync_generator_test
+    def test_request():
+        with pytest.raises(ValueError):
+            yield from a_function()
+    """
+
+    @wraps(test)
+    def wrapper(*args, **kwargs):
+        client = gcapi.Client(token="foo")
+        client._wrap_function(test)(*args, **kwargs)
+
+    return wrapper

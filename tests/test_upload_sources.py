@@ -16,6 +16,7 @@ from tests.factories import (
     HyperlinkedImageFactory,
     SimpleImageFactory,
 )
+from tests.utils import sync_generator_test
 
 TESTDATA = Path(__file__).parent / "testdata"
 
@@ -69,7 +70,7 @@ from unittest.mock import MagicMock
 )
 def test_clean_file_source(source, maximum_number, context):
     with context:
-        clean_file_source(source, maximum_number=1)
+        clean_file_source(source, maximum_number=maximum_number)
 
 
 @pytest.mark.parametrize(
@@ -112,7 +113,7 @@ def test_proto_civ_class(init_cls, interface, cls, context):
         proto_civ = init_cls(
             source=[],
             interface=interface,
-            client=MagicMock(),
+            client_api=MagicMock(),
         )
 
     if cls:
@@ -144,15 +145,17 @@ def test_proto_civ_class(init_cls, interface, cls, context):
         ),
     ),
 )
+@sync_generator_test
 def test_file_civ_clean(source, context, interface_kind):
+    proto_civ = FileProtoCIV(
+        source=source,
+        interface=ComponentInterfaceFactory(
+            super_kind="File", kind=interface_kind
+        ),
+        client_api=MagicMock(),
+    )
     with context:
-        FileProtoCIV(
-            source=source,
-            interface=ComponentInterfaceFactory(
-                super_kind="File", kind=interface_kind
-            ),
-            client=MagicMock(),
-        ).clean()
+        yield from proto_civ.clean()
 
 
 @pytest.mark.parametrize(
@@ -170,13 +173,15 @@ def test_file_civ_clean(source, context, interface_kind):
         (HyperlinkedImageFactory(), nullcontext()),
     ),
 )
+@sync_generator_test
 def test_image_civ_clean(source, context):
+    proto_civ = ImageProtoCIV(
+        source=source,
+        interface=ComponentInterfaceFactory(super_kind="Image"),
+        client_api=MagicMock(),
+    )
     with context:
-        ImageProtoCIV(
-            source=source,
-            interface=ComponentInterfaceFactory(super_kind="Image"),
-            client=MagicMock(),
-        ).clean()
+        yield from proto_civ.clean()
 
 
 @pytest.mark.parametrize(
@@ -199,10 +204,12 @@ def test_image_civ_clean(source, context):
         (object(), pytest.raises(TypeError)),
     ),
 )
+@sync_generator_test
 def test_value_civ_clean(source, context):
+    proto_civ = ValueProtoCIV(
+        source=source,
+        interface=ComponentInterfaceFactory(super_kind="Value"),
+        client_api=MagicMock(),
+    )
     with context:
-        ValueProtoCIV(
-            source=source,
-            interface=ComponentInterfaceFactory(super_kind="Value"),
-            client=MagicMock(),
-        ).clean()
+        yield from proto_civ.clean()

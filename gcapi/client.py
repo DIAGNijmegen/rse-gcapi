@@ -145,6 +145,7 @@ class ReaderStudyDisplaySetsAPI(
 ):
     base_path = "reader-studies/display-sets/"
     model = gcapi.models.DisplaySet
+    update_model = gcapi.models.DisplaySetPost
 
 
 class ReaderStudiesAPI(APIBase[gcapi.models.ReaderStudy]):
