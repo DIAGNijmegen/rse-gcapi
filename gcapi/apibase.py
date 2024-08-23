@@ -188,13 +188,16 @@ class ModifiableMixin(Common):
         return (yield from self._execute_request(method, data, pk))
 
     def create(self, **kwargs):
-        return (yield from self.perform_request("POST", data=kwargs))
+        result = yield from self.perform_request("POST", data=kwargs)
+        return self.model(**result)
 
     def update(self, pk, **kwargs):
-        return (yield from self.perform_request("PUT", pk=pk, data=kwargs))
+        result = yield from self.perform_request("PUT", pk=pk, data=kwargs)
+        return self.model(**result)
 
     def partial_update(self, pk, **kwargs):
-        return (yield from self.perform_request("PATCH", pk=pk, data=kwargs))
+        result = yield from self.perform_request("PATCH", pk=pk, data=kwargs)
+        return self.model(**result)
 
     def delete(self, pk):
         return (yield from self.perform_request("DELETE", pk=pk))
