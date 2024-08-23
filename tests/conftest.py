@@ -31,12 +31,14 @@ def local_grand_challenge() -> Generator[str, None, None]:
         )
         r.raise_for_status()
         local_gc_running = True
-    except httpx.HTTPError:
+    except httpx.HTTPError as e:
+        raise e
         local_gc_running = False
 
     if local_gc_running:
         yield local_api_url
     else:
+
         # Start our own version of grand challenge
         with TemporaryDirectory() as tmp_path:
             for f in [

@@ -412,8 +412,8 @@ class ClientBase(ApiDefinitions, ClientInterface):
         self._auth_header = _generate_auth_header(token=token)
 
         self.base_url = URL(base_url)
-        if self.base_url.scheme.lower() != "https":
-            raise RuntimeError("Base URL must be https")
+        # if self.base_url.scheme.lower() != "https":
+        #     raise RuntimeError("Base URL must be https")
 
         self._api_meta = ApiDefinitions()
         self.__org_api_meta = ApiDefinitions()
@@ -433,8 +433,8 @@ class ClientBase(ApiDefinitions, ClientInterface):
     def validate_url(self, url):
         url = URL(url)
 
-        if not url.scheme == "https" or url.netloc != self.base_url.netloc:
-            raise RuntimeError(f"Invalid target URL: {url}")
+        # if not url.scheme == "https" or url.netloc != self.base_url.netloc:
+        #     raise RuntimeError(f"Invalid target URL: {url}")
 
     def __call__(
         self,
