@@ -99,6 +99,7 @@ class UploadSessionsAPI(
 ):
     base_path = "cases/upload-sessions/"
     model = gcapi.models.RawImageUploadSession
+    response_model = gcapi.models.RawImageUploadSession
 
 
 class WorkstationSessionsAPI(APIBase[gcapi.models.Session]):
@@ -111,9 +112,7 @@ class ReaderStudyQuestionsAPI(APIBase[gcapi.models.Question]):
     model = gcapi.models.Question
 
 
-class ReaderStudyMineAnswersAPI(
-    ModifiableMixin, APIBase[gcapi.models.ReaderStudy]
-):
+class ReaderStudyMineAnswersAPI(APIBase[gcapi.models.ReaderStudy]):
     base_path = "reader-studies/answers/mine/"
     model = gcapi.models.ReaderStudy
 
@@ -121,6 +120,7 @@ class ReaderStudyMineAnswersAPI(
 class ReaderStudyAnswersAPI(ModifiableMixin, APIBase[gcapi.models.Answer]):
     base_path = "reader-studies/answers/"
     model = gcapi.models.Answer
+    response_model = gcapi.models.Answer
 
     sub_apis = {"mine": ReaderStudyMineAnswersAPI}
 
@@ -145,7 +145,7 @@ class ReaderStudyDisplaySetsAPI(
 ):
     base_path = "reader-studies/display-sets/"
     model = gcapi.models.DisplaySet
-    update_model = gcapi.models.DisplaySetPost
+    response_model = gcapi.models.DisplaySetPost
 
 
 class ReaderStudiesAPI(APIBase[gcapi.models.ReaderStudy]):
@@ -181,6 +181,7 @@ class AlgorithmsAPI(APIBase[gcapi.models.Algorithm]):
 class AlgorithmJobsAPI(ModifiableMixin, APIBase[gcapi.models.HyperlinkedJob]):
     base_path = "algorithms/jobs/"
     model = gcapi.models.HyperlinkedJob
+    response_model = gcapi.models.JobPost
 
     @mark_generator
     def by_input_image(self, pk):
@@ -195,6 +196,7 @@ class ArchivesAPI(APIBase[gcapi.models.Archive]):
 class ArchiveItemsAPI(ModifiableMixin, APIBase[gcapi.models.ArchiveItem]):
     base_path = "archives/items/"
     model = gcapi.models.ArchiveItem
+    response_model = gcapi.models.ArchiveItemPost
 
 
 class ComponentInterfacesAPI(APIBase[gcapi.models.ComponentInterface]):
@@ -901,7 +903,8 @@ class ClientBase(ApiDefinitions, ClientInterface):
             for proto_civ in proto_civ_set:
                 yield from proto_civ.clean()
 
-        civ_sets: list[CIVSet] = []
+        # Lastly, get to creating
+        civ_set_posts: list[CIVSet] = []
         for proto_civ_set in proto_civ_sets:
             civ_set = yield from api_create()
             post_values = []
@@ -909,9 +912,9 @@ class ClientBase(ApiDefinitions, ClientInterface):
                 post_value = yield from proto_civ.get_post_value(civ_set)
                 if post_value is not None:
                     post_values.append(post_value)
-            civ_set = yield from api_partial_update(
+            civ_set_post = yield from api_partial_update(
                 pk=civ_set.pk, values=post_values
             )
-            civ_sets.append(civ_set)
+            civ_set_posts.append(civ_set_post)
 
-        return civ_sets  # noqa B901
+        return civ_set_posts  # noqa B901

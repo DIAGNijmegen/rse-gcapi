@@ -4,9 +4,9 @@ from pathlib import Path
 from typing import Optional, Union
 
 from gcapi.models import (
-    ArchiveItem,
+    ArchiveItemPost,
     ComponentInterface,
-    DisplaySet,
+    DisplaySetPost,
     HyperlinkedImage,
     SimpleImage,
 )
@@ -87,7 +87,7 @@ class ProtoCIV:
 
     def get_post_value(
         self,
-        civ_set: Optional[Union[DisplaySet, ArchiveItem]] = None,
+        civ_set: Optional[Union[DisplaySetPost, ArchiveItemPost]] = None,
     ):
         if not self.cleaned:
             yield from self.clean()
@@ -161,9 +161,9 @@ class ImageProtoCIV(ProtoCIV):
         # Upload the image
         if civ_set is None:
             upload_session_data = {}  # No need to specify target
-        elif isinstance(civ_set, DisplaySet):
+        elif isinstance(civ_set, DisplaySetPost):
             upload_session_data = {"display_set": civ_set.pk}
-        elif isinstance(civ_set, ArchiveItem):
+        elif isinstance(civ_set, ArchiveItemPost):
             upload_session_data = {"archive_item": civ_set.pk}
         else:
             raise NotImplementedError(

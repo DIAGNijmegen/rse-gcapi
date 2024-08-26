@@ -170,7 +170,7 @@ class APIBase(Generic[T], Common[T]):
 
 
 class ModifiableMixin(Common):
-    update_model: Any  # TODO, type this correctly
+    response_model: type
 
     def _process_request_arguments(self, data):
         if data is None:
@@ -191,15 +191,15 @@ class ModifiableMixin(Common):
 
     def create(self, **kwargs):
         result = yield from self.perform_request("POST", data=kwargs)
-        return self.model(**result)
+        return self.response_model(**result)
 
     def update(self, pk, **kwargs):
         result = yield from self.perform_request("PUT", pk=pk, data=kwargs)
-        return self.update_model(**result)
+        return self.response_model(**result)
 
     def partial_update(self, pk, **kwargs):
         result = yield from self.perform_request("PATCH", pk=pk, data=kwargs)
-        return self.update_model(**result)
+        return self.response_model(**result)
 
     def delete(self, pk):
         return (yield from self.perform_request("DELETE", pk=pk))

@@ -15,14 +15,16 @@ ARCHIVE_TOKEN = USER_TOKENS["archive"]
 
 def recurse_call(func):
     def wrapper(*args, **kwargs):
-        for _ in range(60):
+        last_error = None
+        for _ in range(5):
             try:
                 result = func(*args, **kwargs)
                 break
-            except (HTTPStatusError, ValueError):
+            except (HTTPStatusError, ValueError) as e:
+                last_error = e
                 sleep(0.5)
         else:
-            raise TimeoutError
+            raise TimeoutError from last_error
         return result
 
     return wrapper
@@ -30,14 +32,16 @@ def recurse_call(func):
 
 def async_recurse_call(func):
     async def wrapper(*args, **kwargs):
+        last_error = None
         for _ in range(60):
             try:
                 result = await func(*args, **kwargs)
                 break
-            except (HTTPStatusError, ValueError):
+            except (HTTPStatusError, ValueError) as e:
+                last_error = e
                 sleep(0.5)
         else:
-            raise TimeoutError
+            raise TimeoutError from last_error
         return result
 
     return wrapper
