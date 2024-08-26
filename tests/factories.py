@@ -1,6 +1,7 @@
 import uuid
 
 from gcapi.models import (
+    Algorithm,
     ColorSpaceEnum,
     ComponentInterface,
     HyperlinkedImage,
@@ -71,7 +72,7 @@ def HyperlinkedImageFactory(**kwargs) -> HyperlinkedImage:  # noqa: N802
         voxel_width_mm=None,
         voxel_height_mm=None,
         voxel_depth_mm=None,
-        api_url=f"https://grand-challenge.org/api/v1/cases/images/{pk}",
+        api_url=f"https://grand-challenge.org/api/v1/cases/images/{pk}/",
         patient_id=None,
         patient_name=None,
         patient_birth_date=None,
@@ -91,3 +92,27 @@ def HyperlinkedImageFactory(**kwargs) -> HyperlinkedImage:  # noqa: N802
         setattr(image, key, value)
 
     return image
+
+
+def AlgorithmFactory(**kwargs) -> Algorithm:  # noqa: N802
+
+    pk = kwargs.get("pk") or str(uuid.uuid4())
+    slug = kwargs.get("slug") or "a-slug"
+
+    alg = Algorithm(
+        api_url=f"https://grand-challenge.org/api/v1/algorithms/{pk}/",
+        url=f"https://grand-challenge.org/algorithms/{slug}",
+        description=None,
+        pk=pk,
+        title="A title",
+        logo="foo",
+        slug=slug,
+        average_duration=None,
+        inputs=[],
+        outputs=[],
+    )
+
+    for key, value in kwargs.items():
+        setattr(alg, key, value)
+
+    return alg

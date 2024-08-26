@@ -8,11 +8,13 @@ from gcapi.models_proto import (
     FileProtoCIV,
     ImageProtoCIV,
     ProtoCIV,
+    ProtoJob,
     TooManyFiles,
     ValueProtoCIV,
     clean_file_source,
 )
 from tests.factories import (
+    AlgorithmFactory,
     ComponentInterfaceFactory,
     HyperlinkedImageFactory,
     SimpleImageFactory,
@@ -145,7 +147,7 @@ def test_proto_civ_typing(init_cls, interface, cls, context):
     ),
 )
 @sync_generator_test
-def test_file_civ_clean(source, context, interface_kind):
+def test_file_civ_validation(source, context, interface_kind):
     proto_civ = FileProtoCIV(
         source=source,
         interface=ComponentInterfaceFactory(
@@ -154,7 +156,7 @@ def test_file_civ_clean(source, context, interface_kind):
         client_api=MagicMock(),
     )
     with context:
-        yield from proto_civ.clean()
+        yield from proto_civ.validate()
 
 
 @pytest.mark.parametrize(
@@ -173,14 +175,14 @@ def test_file_civ_clean(source, context, interface_kind):
     ),
 )
 @sync_generator_test
-def test_image_civ_clean(source, context):
+def test_image_civ_validation(source, context):
     proto_civ = ImageProtoCIV(
         source=source,
         interface=ComponentInterfaceFactory(super_kind="Image"),
         client_api=MagicMock(),
     )
     with context:
-        yield from proto_civ.clean()
+        yield from proto_civ.validate()
 
 
 @pytest.mark.parametrize(
@@ -204,11 +206,63 @@ def test_image_civ_clean(source, context):
     ),
 )
 @sync_generator_test
-def test_value_civ_clean(source, context):
+def test_value_civ_validation(source, context):
     proto_civ = ValueProtoCIV(
         source=source,
         interface=ComponentInterfaceFactory(super_kind="Value"),
         client_api=MagicMock(),
     )
     with context:
-        yield from proto_civ.clean()
+        yield from proto_civ.validate()
+
+
+@pytest.mark.parametrize(
+    "algorithm,inputs,context",
+    (
+        (  # algo ci < input ci
+            AlgorithmFactory(inputs=[]),
+            {
+                "foo": TESTDATA / "image10x10x101.mha",
+            },
+            pytest.raises(ValueError),
+        ),
+        (  # algo ci > input ci
+            AlgorithmFactory(
+                inputs=[
+                    ComponentInterfaceFactory(),
+                ]
+            ),
+            {},
+            pytest.raises(ValueError),
+        ),
+        (  # algo ci > input ci, but default
+            AlgorithmFactory(
+                inputs=[
+                    ComponentInterfaceFactory(default_value="bar"),
+                ]
+            ),
+            {},
+            nullcontext(),
+        ),
+        (  # algo ci = input ci
+            AlgorithmFactory(
+                inputs=[
+                    ComponentInterfaceFactory(slug="a-slug"),
+                ]
+            ),
+            {
+                "a-slug": TESTDATA / "image10x10x101.mha",
+            },
+            nullcontext(),
+        ),
+    ),
+)
+@sync_generator_test
+def test_proto_job_validation(algorithm, inputs, context):
+    job = ProtoJob(
+        algorithm=algorithm,
+        inputs=inputs,
+        client_api=MagicMock(),
+    )
+    with context:
+        yield from job.validate()

@@ -4,13 +4,14 @@ from pathlib import Path
 from typing import Optional, Union
 
 from gcapi.models import (
+    Algorithm,
     ArchiveItemPost,
     ComponentInterface,
     DisplaySetPost,
     HyperlinkedImage,
     SimpleImage,
 )
-from gcapi.typing import FileSource
+from gcapi.typing import CIVSetDescription, FileSource
 
 
 class TooManyFiles(ValueError):
@@ -44,7 +45,22 @@ def clean_file_source(
     return cleaned
 
 
-class ProtoCIV:
+class BaseProtoModel:
+    def __init__(self, *, client_api):
+        self.client_api = client_api
+        self.validated = False
+
+    def validate(self):
+        self.validated = True
+        return
+        yield
+
+    def create(self, *_, **__):
+        if not self.validated:
+            yield from self.validate()
+
+
+class ProtoCIV(BaseProtoModel):
     def __new__(cls, *, interface: ComponentInterface, **__):
         # Determine the class specialization based on the interface's super_kind
         handler_class = {
@@ -73,32 +89,26 @@ class ProtoCIV:
         *,
         source: Union[FileSource, SimpleImage, HyperlinkedImage],
         interface: ComponentInterface,
-        client_api,
+        **kwargs,
     ):
+        super().__init__(**kwargs)
+
         self.source = source
         self.interface = interface
-        self.client_api = client_api
-        self.cleaned = False
 
-    def clean(self):
-        self.cleaned = True
-        return
-        yield
-
-    def get_post_value(
+    def create(
         self,
         civ_set: Optional[Union[DisplaySetPost, ArchiveItemPost]] = None,
     ):
-        if not self.cleaned:
-            yield from self.clean()
+        yield from super().create(civ_set)
 
         return {"interface": self.interface.slug}  # noqa: B901
 
 
 class FileProtoCIV(ProtoCIV):
 
-    def clean(self):
-        yield from super().clean()
+    def validate(self):
+        yield from super().validate()
 
         try:
             cleaned_sources = clean_file_source(self.source, maximum_number=1)
@@ -124,22 +134,22 @@ class FileProtoCIV(ProtoCIV):
             self.content = io.StringIO(json_str)
             self.content_name = self.interface.relative_path
 
-    def get_post_value(self, *_, **__):
-        post = yield from super().get_post_value()
+    def create(self, *_, **__):
+        item = yield from super().create()
 
         with open(self.content, "rb") as f:
             user_upload = yield from self.client_api.uploads.upload_fileobj(
                 fileobj=f, filename=self.content_name
             )
-        post["user_upload"] = user_upload.api_url
+        item["user_upload"] = user_upload.api_url
 
-        return post
+        return item
 
 
 class ImageProtoCIV(ProtoCIV):
 
-    def clean(self):
-        yield from super().clean()
+    def validate(self):
+        yield from super().validate()
 
         if isinstance(self.source, HyperlinkedImage):
             self.content = self.source
@@ -150,21 +160,28 @@ class ImageProtoCIV(ProtoCIV):
         else:
             self.content = clean_file_source(self.source)
 
-    def get_post_value(self, civ_set=None):
-        post = yield from super().get_post_value()
+    def create(self, civ_set=None):
+        item = yield from super().create()
 
         if isinstance(self.content, HyperlinkedImage):
             # Reuse the existing image
-            post["image"] = self.content.api_url
-            return post
+            item["image"] = self.content.api_url
+            return item
 
         # Upload the image
         if civ_set is None:
             upload_session_data = {}  # No need to specify target
         elif isinstance(civ_set, DisplaySetPost):
-            upload_session_data = {"display_set": civ_set.pk}
+            upload_session_data = {
+                "display_set": civ_set.pk,
+                "interface": self.interface.slug,
+            }
+
         elif isinstance(civ_set, ArchiveItemPost):
-            upload_session_data = {"archive_item": civ_set.pk}
+            upload_session_data = {
+                "archive_item": civ_set.pk,
+                "interface": self.interface.slug,
+            }
         else:
             raise NotImplementedError(
                 f"{type(civ_set)} not supported for uploading images"
@@ -180,7 +197,6 @@ class ImageProtoCIV(ProtoCIV):
                         )
                     )
                 )
-        upload_session_data["interface"] = self.interface.slug
         raw_image_upload_session = (
             yield from self.client_api.raw_image_upload_sessions.create(
                 uploads=[u.api_url for u in uploads],
@@ -189,14 +205,14 @@ class ImageProtoCIV(ProtoCIV):
         )
 
         if civ_set is None:
-            post["session_upload"] = raw_image_upload_session
-            return post
+            item["upload_session"] = raw_image_upload_session.api_url
+            return item
 
 
 class ValueProtoCIV(ProtoCIV):
 
-    def clean(self):
-        yield from super().clean()
+    def validate(self):
+        yield from super().validate()
 
         try:
             cleaned_sources = clean_file_source(self.source, maximum_number=1)
@@ -210,7 +226,67 @@ class ValueProtoCIV(ProtoCIV):
             with open(clean_source) as fp:
                 self.content = json.load(fp)
 
-    def get_post_value(self, *_, **__):
-        post = yield from super().get_post_value()
-        post["value"] = self.content
-        return post
+    def create(self, *_, **__):
+        item = yield from super().create()
+        item["value"] = self.content
+        return item
+
+
+class ProtoJob(BaseProtoModel):
+    def __init__(
+        self,
+        *,
+        algorithm: Union[str, Algorithm],
+        inputs: CIVSetDescription,
+        **kwargs,
+    ):
+        super().__init__(**kwargs)
+
+        self.algorithm = algorithm
+        self.inputs = inputs
+
+        self.civs: list[ProtoCIV] = []
+
+    def validate(self):
+        yield from super().validate()
+
+        if isinstance(self.algorithm, str):
+            self.algorithm = yield from self.client_api.algorithms.detail(
+                slug=self.algorithm
+            )
+
+        interface_lookup = {ci.slug: ci for ci in self.algorithm.inputs}
+
+        for ci in self.algorithm.inputs:
+            if ci.slug not in self.inputs and ci.default_value is None:
+                raise ValueError(f"{ci} is not provided")
+
+        for ci_slug in self.inputs.keys():
+            if ci_slug not in interface_lookup:
+                raise ValueError(
+                    f"{ci_slug} is not an input interface for this algorithm"
+                )
+
+        for ci_slug, source in self.inputs.items():
+            civ = ProtoCIV(
+                source=source,
+                interface=interface_lookup[ci_slug],
+                client_api=self.client_api,
+            )
+            yield from civ.validate()
+
+            self.civs.append(civ)
+
+    def create(self):
+        yield from super().create()
+
+        inputs = []
+        for civ in self.civs:
+            inputs.append((yield from civ.create()))
+
+        return (  # noqa: B901
+            yield from self.client_api.algorithm_jobs.create(
+                algorithm=self.algorithm.api_url,
+                inputs=inputs,
+            )
+        )

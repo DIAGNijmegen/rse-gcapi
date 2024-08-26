@@ -17,7 +17,7 @@ from httpx import URL, HTTPStatusError, Timeout
 import gcapi.models
 from gcapi.apibase import APIBase, ClientInterface, ModifiableMixin
 from gcapi.exceptions import ObjectNotFound
-from gcapi.models_proto import ProtoCIV
+from gcapi.models_proto import ProtoCIV, ProtoJob
 from gcapi.retries import BaseRetryStrategy, SelectiveBackoffStrategy
 from gcapi.sync_async_hybrid_support import CapturedCall, mark_generator
 from gcapi.typing import CIVSet, CIVSetDescription
@@ -619,7 +619,12 @@ class ClientBase(ApiDefinitions, ClientInterface):
 
         return raw_image_upload_session
 
-    def run_external_job(self, *, algorithm: str, inputs: dict[str, Any]):
+    def run_external_job(
+        self,
+        *,
+        algorithm: Union[str, gcapi.models.Algorithm],
+        inputs: CIVSetDescription,
+    ):
         """
         Starts an algorithm job with the provided inputs.
         You will need to provide the slug of the algorithm. You can find this in the
@@ -658,45 +663,12 @@ class ClientBase(ApiDefinitions, ClientInterface):
         -------
         The created job
         """
-        alg = yield from self.__org_api_meta.algorithms.detail(slug=algorithm)
-        input_interfaces = {ci.slug: ci for ci in alg.inputs}
-
-        for ci in input_interfaces:
-            if (
-                ci not in inputs
-                and input_interfaces[ci]["default_value"] is None
-            ):
-                raise ValueError(f"{ci} is not provided")
-
-        job = {"algorithm": alg.api_url, "inputs": []}
-        for input_title, value in inputs.items():
-            ci = input_interfaces.get(input_title, None)  # type: ignore
-            if not ci:
-                raise ValueError(
-                    f"{input_title} is not an input interface for this algorithm"
-                )
-
-            i = {"interface": ci.slug}  # type: ignore
-            if ci.super_kind.lower() == "image":  # type: ignore
-                if isinstance(value, list):
-                    raw_image_upload_session = (
-                        yield from self._upload_image_files(files=value)
-                    )
-                    i["upload_session"] = raw_image_upload_session["api_url"]
-                elif isinstance(value, str):
-                    i["image"] = value
-            elif ci["super_kind"].lower() == "file":  # type: ignore
-                if len(value) != 1:
-                    raise ValueError(
-                        f"Only a single file can be provided for {ci['title']}."  # type: ignore
-                    )
-                upload = yield from self._upload_file(value)
-                i["user_upload"] = upload["api_url"]
-            else:
-                i["value"] = value
-            job["inputs"].append(i)  # type: ignore
-
-        return (yield from self.__org_api_meta.algorithm_jobs.create(**job))
+        job = ProtoJob(
+            algorithm=algorithm,
+            inputs=inputs,
+            client_api=self.__org_api_meta,
+        )
+        return (yield from job.create())
 
     def update_archive_item(
         self, *, archive_item_pk: str, values: dict[str, Any]
@@ -843,7 +815,12 @@ class ClientBase(ApiDefinitions, ClientInterface):
         The pks of the newly created display sets.
         """
         civ_sets = yield from self.add_civ_sets(
-            values=display_sets, reader_study_slug=reader_study
+            values=display_sets,
+            api_create_civ_set=partial(
+                self.__org_api_meta.reader_studies.display_sets.create,
+                reader_study=reader_study,
+            ),
+            api_partial_update_civ_set=self.__org_api_meta.reader_studies.display_sets.partial_update,
         )
 
         return [civ_set.pk for civ_set in civ_sets]
@@ -852,30 +829,9 @@ class ClientBase(ApiDefinitions, ClientInterface):
         self,
         *,
         values: list[CIVSetDescription],
-        archive_slug: Optional[str] = None,
-        reader_study_slug: Optional[str] = None,
+        api_create_civ_set: Callable,
+        api_partial_update_civ_set: Callable,
     ):
-
-        if reader_study_slug:
-            api_create = partial(
-                self.__org_api_meta.reader_studies.display_sets.create,
-                reader_study=reader_study_slug,
-            )
-            api_partial_update = (
-                self.__org_api_meta.reader_studies.display_sets.partial_update
-            )
-        elif archive_slug:
-            api_create = partial(
-                self.__org_api_meta.archive_items.create, archive=archive_slug
-            )
-            api_partial_update = (
-                self.__org_api_meta.archive_items.partial_update
-            )
-        else:
-            raise ValueError(
-                "Provide either an archive or a reader-study slug"
-            )
-
         interface_cache: dict[str, gcapi.models.ComponentInterface] = {}
 
         # First, get handlers
@@ -901,18 +857,18 @@ class ClientBase(ApiDefinitions, ClientInterface):
         # Second, clean the to-be CIV sets
         for proto_civ_set in proto_civ_sets:
             for proto_civ in proto_civ_set:
-                yield from proto_civ.clean()
+                yield from proto_civ.validate()
 
         # Lastly, get to creating
         civ_set_posts: list[CIVSet] = []
         for proto_civ_set in proto_civ_sets:
-            civ_set = yield from api_create()
+            civ_set = yield from api_create_civ_set()
             post_values = []
             for proto_civ in proto_civ_set:
-                post_value = yield from proto_civ.get_post_value(civ_set)
+                post_value = yield from proto_civ.create(civ_set)
                 if post_value is not None:
                     post_values.append(post_value)
-            civ_set_post = yield from api_partial_update(
+            civ_set_post = yield from api_partial_update_civ_set(
                 pk=civ_set.pk, values=post_values
             )
             civ_set_posts.append(civ_set_post)
