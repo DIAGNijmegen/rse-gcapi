@@ -1,3 +1,4 @@
+import json
 from io import BytesIO
 from pathlib import Path
 
@@ -13,6 +14,8 @@ from tests.utils import (
     READERSTUDY_TOKEN,
     async_recurse_call,
 )
+
+TESTDATA = Path(__file__).parent / "testdata"
 
 
 @async_recurse_call
@@ -56,7 +59,7 @@ async def test_local_response(local_grand_challenge):
 
 @pytest.mark.anyio
 async def test_chunked_uploads(local_grand_challenge):
-    file_to_upload = Path(__file__).parent / "testdata" / "rnddata"
+    file_to_upload = TESTDATA / "rnddata"
 
     # admin
     async with AsyncClient(
@@ -128,7 +131,7 @@ async def test_upload_cases_to_archive(
         us = await c.upload_cases(
             archive="archive",
             interface=interface,
-            files=[Path(__file__).parent / "testdata" / f for f in files],
+            files=[TESTDATA / f for f in files],
         )
 
         us = await get_upload_session(c, us["pk"])
@@ -188,9 +191,7 @@ async def test_upload_cases_to_archive_item_without_interface(
         with pytest.raises(ValueError) as e:
             _ = await c.upload_cases(
                 archive_item=item.pk,
-                files=[
-                    Path(__file__).parent / "testdata" / "image10x10x101.mha"
-                ],
+                files=[TESTDATA / "image10x10x101.mha"],
             )
         assert (
             "You need to define an interface for archive item uploads"
@@ -215,7 +216,7 @@ async def test_upload_cases_to_archive_item_with_existing_interface(
         # create new archive item
         us = await c.upload_cases(
             archive="archive",
-            files=[Path(__file__).parent / "testdata" / "image10x10x101.mha"],
+            files=[TESTDATA / "image10x10x101.mha"],
         )
 
         # retrieve existing archive item pk
@@ -226,7 +227,7 @@ async def test_upload_cases_to_archive_item_with_existing_interface(
         us = await c.upload_cases(
             archive_item=items_list[-1].pk,
             interface="generic-medical-image",
-            files=[Path(__file__).parent / "testdata" / "image10x10x101.mha"],
+            files=[TESTDATA / "image10x10x101.mha"],
         )
 
         us = await get_upload_session(c, us["pk"])
@@ -261,7 +262,7 @@ async def test_upload_cases_to_archive_item_with_new_interface(
         # create new archive item
         us = await c.upload_cases(
             archive="archive",
-            files=[Path(__file__).parent / "testdata" / "image10x10x101.mha"],
+            files=[TESTDATA / "image10x10x101.mha"],
         )
 
         items_list = await get_archive_items(
@@ -271,7 +272,7 @@ async def test_upload_cases_to_archive_item_with_new_interface(
         us = await c.upload_cases(
             archive_item=items_list[-1].pk,
             interface="generic-overlay",
-            files=[Path(__file__).parent / "testdata" / "image10x10x101.mha"],
+            files=[TESTDATA / "image10x10x101.mha"],
         )
 
         us = await get_upload_session(c, us["pk"])
@@ -298,7 +299,7 @@ async def test_download_cases(local_grand_challenge, files, tmpdir):
     ) as c:
         us = await c.upload_cases(
             archive="archive",
-            files=[Path(__file__).parent / "testdata" / f for f in files],
+            files=[TESTDATA / f for f in files],
         )
 
         us = await get_upload_session(c, us["pk"])
@@ -348,11 +349,7 @@ async def test_create_job_with_upload(
         async def run_job():
             return await c.run_external_job(
                 algorithm=algorithm,
-                inputs={
-                    interface: [
-                        Path(__file__).parent / "testdata" / f for f in files
-                    ]
-                },
+                inputs={interface: [TESTDATA / f for f in files]},
             )
 
         # algorithm might not be ready yet
@@ -369,13 +366,13 @@ async def test_create_job_with_upload(
     "files",
     (
         # Path based
-        [Path(__file__).parent / "testdata" / "image10x10x101.mha"],
+        [TESTDATA / "image10x10x101.mha"],
         # str based
-        [str(Path(__file__).parent / "testdata" / "image10x10x101.mha")],
+        [str(TESTDATA / "image10x10x101.mha")],
         # mixed str and Path
         [
-            str(Path(__file__).parent / "testdata" / "image10x10x10.mhd"),
-            Path(__file__).parent / "testdata" / "image10x10x10.zraw",
+            str(TESTDATA / "image10x10x10.mhd"),
+            TESTDATA / "image10x10x10.zraw",
         ],
     ),
 )
@@ -464,7 +461,7 @@ async def test_add_and_update_file_to_archive_item(local_grand_challenge):
         # create new archive item
         _ = await c.upload_cases(
             archive="archive",
-            files=[Path(__file__).parent / "testdata" / "image10x10x101.mha"],
+            files=[TESTDATA / "image10x10x101.mha"],
         )
 
         # retrieve existing archive item pk
@@ -479,8 +476,7 @@ async def test_add_and_update_file_to_archive_item(local_grand_challenge):
                 archive_item_pk=items_list[-1].pk,
                 values={
                     "predictions-csv-file": [
-                        Path(__file__).parent / "testdata" / f
-                        for f in ["test.csv", "test.csv"]
+                        TESTDATA / f for f in ["test.csv", "test.csv"]
                     ]
                 },
             )
@@ -491,11 +487,7 @@ async def test_add_and_update_file_to_archive_item(local_grand_challenge):
 
         _ = await c.update_archive_item(
             archive_item_pk=items_list[-1].pk,
-            values={
-                "predictions-csv-file": [
-                    Path(__file__).parent / "testdata" / "test.csv"
-                ]
-            },
+            values={"predictions-csv-file": [TESTDATA / "test.csv"]},
         )
 
         @async_recurse_call
@@ -516,11 +508,7 @@ async def test_add_and_update_file_to_archive_item(local_grand_challenge):
         # a new pdf upload will overwrite the old pdf interface value
         _ = await c.update_archive_item(
             archive_item_pk=items_list[-1].pk,
-            values={
-                "predictions-csv-file": [
-                    Path(__file__).parent / "testdata" / "test.csv"
-                ]
-            },
+            values={"predictions-csv-file": [TESTDATA / "test.csv"]},
         )
 
         @async_recurse_call
@@ -553,7 +541,7 @@ async def test_add_and_update_value_to_archive_item(local_grand_challenge):
         # create new archive item
         _ = await c.upload_cases(
             archive="archive",
-            files=[Path(__file__).parent / "testdata" / "image10x10x101.mha"],
+            files=[TESTDATA / "image10x10x101.mha"],
         )
 
         # retrieve existing archive item pk
@@ -652,12 +640,10 @@ async def test_update_archive_item_without_value(local_grand_challenge):
     (
         [
             {
-                "generic-medical-image": [
-                    Path(__file__).parent / "testdata" / "image10x10x101.mha"
-                ],
+                "generic-medical-image": [TESTDATA / "image10x10x101.mha"],
                 "generic-overlay": [
-                    Path(__file__).parent / "testdata" / "image10x10x10.mhd",
-                    Path(__file__).parent / "testdata" / "image10x10x10.zraw",
+                    TESTDATA / "image10x10x10.mhd",
+                    TESTDATA / "image10x10x10.zraw",
                 ],
                 "annotation": {
                     "name": "forearm",
@@ -670,25 +656,13 @@ async def test_update_archive_item_without_value(local_grand_challenge):
                     ],
                     "version": {"major": 1, "minor": 0},
                 },
-                "predictions-csv-file": [
-                    Path(__file__).parent / "testdata" / "test.csv"
-                ],
+                "predictions-csv-file": [TESTDATA / "test.csv"],
             },
             {
-                "generic-medical-image": [
-                    Path(__file__).parent / "testdata" / "image10x10x101.mha"
-                ],
-                "annotation": {
-                    "name": "forearm",
-                    "type": "2D bounding box",
-                    "corners": [
-                        [20, 88, 0.5],
-                        [83, 88, 0.5],
-                        [83, 175, 0.5],
-                        [20, 175, 0.5],
-                    ],
-                    "version": {"major": 1, "minor": 0},
-                },
+                "generic-medical-image": [TESTDATA / "image10x10x101.mha"],
+                "annotation": Path(__file__).parent
+                / "testdata"
+                / "annotation.json",
             },
             {
                 "annotation": {
@@ -702,9 +676,9 @@ async def test_update_archive_item_without_value(local_grand_challenge):
                     ],
                     "version": {"major": 1, "minor": 0},
                 },
-                "predictions-csv-file": [
-                    Path(__file__).parent / "testdata" / "test.csv"
-                ],
+                "predictions-csv-file": Path(__file__).parent
+                / "testdata"
+                / "test.csv",
             },
             {
                 "annotation": {
@@ -723,7 +697,9 @@ async def test_update_archive_item_without_value(local_grand_challenge):
     ),
 )
 @pytest.mark.anyio
-async def test_add_cases_to_reader_study(display_sets, local_grand_challenge):
+async def test_add_cases_to_reader_study(  # noqa: C901
+    display_sets, local_grand_challenge
+):
     async with AsyncClient(
         base_url=local_grand_challenge, verify=False, token=READERSTUDY_TOKEN
     ) as c:
@@ -773,10 +749,14 @@ async def test_add_cases_to_reader_study(display_sets, local_grand_challenge):
 
                 if civ.interface.super_kind == "Image":
                     file_name = value[0].name
-                    await check_image(civ, file_name)
+                    check_image(civ, file_name)
                 elif civ.interface.kind == "2D bounding box":
+                    if isinstance(value, (str, Path)):
+                        with open(value, "rb") as fd:
+                            value = json.load(fd)
                     check_annotation(civ, value)
-                    pass
                 elif civ.interface.super_kind == "File":
-                    file_name = value[0].name
-                    await check_file(civ, file_name)
+                    if isinstance(value, list):
+                        value = value[0]
+                    file_name = value.name
+                    check_file(civ, file_name)

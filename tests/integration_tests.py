@@ -1,3 +1,4 @@
+import json
 from io import BytesIO
 from pathlib import Path
 
@@ -13,6 +14,8 @@ from tests.utils import (
     READERSTUDY_TOKEN,
     recurse_call,
 )
+
+TESTDATA = Path(__file__).parent / "testdata"
 
 
 @recurse_call
@@ -42,13 +45,13 @@ def get_archive_items(client, archive_pk, min_size):
     "files",
     (
         # Path based
-        [Path(__file__).parent / "testdata" / "image10x10x101.mha"],
+        [TESTDATA / "image10x10x101.mha"],
         # str based
-        [str(Path(__file__).parent / "testdata" / "image10x10x101.mha")],
+        [str(TESTDATA / "image10x10x101.mha")],
         # mixed str and Path
         [
-            str(Path(__file__).parent / "testdata" / "image10x10x10.mhd"),
-            Path(__file__).parent / "testdata" / "image10x10x10.zraw",
+            str(TESTDATA / "image10x10x10.mhd"),
+            TESTDATA / "image10x10x10.zraw",
         ],
     ),
 )
@@ -71,7 +74,7 @@ def test_local_response(local_grand_challenge):
 
 
 def test_chunked_uploads(local_grand_challenge):
-    file_to_upload = Path(__file__).parent / "testdata" / "rnddata"
+    file_to_upload = TESTDATA / "rnddata"
 
     # admin
     c_admin = Client(
@@ -120,7 +123,7 @@ def test_upload_cases_to_archive(local_grand_challenge, files, interface):
     us = c.upload_cases(
         archive="archive",
         interface=interface,
-        files=[Path(__file__).parent / "testdata" / f for f in files],
+        files=[TESTDATA / f for f in files],
     )
 
     us = get_upload_session(c, us["pk"])
@@ -167,7 +170,7 @@ def test_upload_cases_to_archive_item_without_interface(local_grand_challenge):
     with pytest.raises(ValueError) as e:
         _ = c.upload_cases(
             archive_item=item.pk,
-            files=[Path(__file__).parent / "testdata" / "image10x10x101.mha"],
+            files=[TESTDATA / "image10x10x101.mha"],
         )
     assert "You need to define an interface for archive item uploads" in str(e)
 
@@ -197,7 +200,7 @@ def test_upload_cases_to_archive_item_with_existing_interface(
     us = c.upload_cases(
         archive_item=item.pk,
         interface="generic-medical-image",
-        files=[Path(__file__).parent / "testdata" / "image10x10x101.mha"],
+        files=[TESTDATA / "image10x10x101.mha"],
     )
 
     us = get_upload_session(c, us["pk"])
@@ -228,7 +231,7 @@ def test_upload_cases_to_archive_item_with_new_interface(
     us = c.upload_cases(
         archive_item=item.pk,
         interface="generic-overlay",
-        files=[Path(__file__).parent / "testdata" / "image10x10x101.mha"],
+        files=[TESTDATA / "image10x10x101.mha"],
     )
 
     us = get_upload_session(c, us["pk"])
@@ -253,7 +256,7 @@ def test_download_cases(local_grand_challenge, files, tmpdir):
 
     us = c.upload_cases(
         archive="archive",
-        files=[Path(__file__).parent / "testdata" / f for f in files],
+        files=[TESTDATA / f for f in files],
     )
 
     us = get_upload_session(c, us["pk"])
@@ -306,11 +309,7 @@ def test_create_job_with_upload(
     def run_job():
         return c.run_external_job(
             algorithm=algorithm,
-            inputs={
-                interface: [
-                    Path(__file__).parent / "testdata" / f for f in files
-                ]
-            },
+            inputs={interface: [TESTDATA / f for f in files]},
         )
 
     # algorithm might not be ready yet
@@ -389,7 +388,7 @@ def test_add_and_update_file_to_archive_item(local_grand_challenge):
     # create new archive item
     _ = c.upload_cases(
         archive="archive",
-        files=[Path(__file__).parent / "testdata" / "image10x10x101.mha"],
+        files=[TESTDATA / "image10x10x101.mha"],
     )
 
     # retrieve existing archive item pk
@@ -402,8 +401,7 @@ def test_add_and_update_file_to_archive_item(local_grand_challenge):
             archive_item_pk=items[-1].pk,
             values={
                 "predictions-csv-file": [
-                    Path(__file__).parent / "testdata" / f
-                    for f in ["test.csv", "test.csv"]
+                    TESTDATA / f for f in ["test.csv", "test.csv"]
                 ]
             },
         )
@@ -414,11 +412,7 @@ def test_add_and_update_file_to_archive_item(local_grand_challenge):
 
     _ = c.update_archive_item(
         archive_item_pk=items[-1].pk,
-        values={
-            "predictions-csv-file": [
-                Path(__file__).parent / "testdata" / "test.csv"
-            ]
-        },
+        values={"predictions-csv-file": [TESTDATA / "test.csv"]},
     )
 
     @recurse_call
@@ -439,11 +433,7 @@ def test_add_and_update_file_to_archive_item(local_grand_challenge):
     # a new pdf upload will overwrite the old pdf interface value
     _ = c.update_archive_item(
         archive_item_pk=items[-1].pk,
-        values={
-            "predictions-csv-file": [
-                Path(__file__).parent / "testdata" / "test.csv"
-            ]
-        },
+        values={"predictions-csv-file": [TESTDATA / "test.csv"]},
     )
 
     @recurse_call
@@ -474,7 +464,7 @@ def test_add_and_update_value_to_archive_item(local_grand_challenge):
     # create new archive item
     _ = c.upload_cases(
         archive="archive",
-        files=[Path(__file__).parent / "testdata" / "image10x10x101.mha"],
+        files=[TESTDATA / "image10x10x101.mha"],
     )
 
     # retrieve existing archive item pk
@@ -561,12 +551,10 @@ def test_update_archive_item_without_value(local_grand_challenge):
     (
         [
             {
-                "generic-medical-image": [
-                    Path(__file__).parent / "testdata" / "image10x10x101.mha"
-                ],
+                "generic-medical-image": [TESTDATA / "image10x10x101.mha"],
                 "generic-overlay": [
-                    Path(__file__).parent / "testdata" / "image10x10x10.mhd",
-                    Path(__file__).parent / "testdata" / "image10x10x10.zraw",
+                    TESTDATA / "image10x10x10.mhd",
+                    TESTDATA / "image10x10x10.zraw",
                 ],
                 "annotation": {
                     "name": "forearm",
@@ -579,25 +567,13 @@ def test_update_archive_item_without_value(local_grand_challenge):
                     ],
                     "version": {"major": 1, "minor": 0},
                 },
-                "predictions-csv-file": [
-                    Path(__file__).parent / "testdata" / "test.csv"
-                ],
+                "predictions-csv-file": [TESTDATA / "test.csv"],
             },
             {
-                "generic-medical-image": [
-                    Path(__file__).parent / "testdata" / "image10x10x101.mha"
-                ],
-                "annotation": {
-                    "name": "forearm",
-                    "type": "2D bounding box",
-                    "corners": [
-                        [20, 88, 0.5],
-                        [83, 88, 0.5],
-                        [83, 175, 0.5],
-                        [20, 175, 0.5],
-                    ],
-                    "version": {"major": 1, "minor": 0},
-                },
+                "generic-medical-image": [TESTDATA / "image10x10x101.mha"],
+                "annotation": Path(__file__).parent
+                / "testdata"
+                / "annotation.json",
             },
             {
                 "annotation": {
@@ -611,9 +587,9 @@ def test_update_archive_item_without_value(local_grand_challenge):
                     ],
                     "version": {"major": 1, "minor": 0},
                 },
-                "predictions-csv-file": [
-                    Path(__file__).parent / "testdata" / "test.csv"
-                ],
+                "predictions-csv-file": Path(__file__).parent
+                / "testdata"
+                / "test.csv",
             },
             {
                 "annotation": {
@@ -631,7 +607,9 @@ def test_update_archive_item_without_value(local_grand_challenge):
         ],
     ),
 )
-def test_add_cases_to_reader_study(display_sets, local_grand_challenge):
+def test_add_cases_to_reader_study(  # noqa: C901
+    display_sets, local_grand_challenge
+):
     c = Client(
         base_url=local_grand_challenge, verify=False, token=READERSTUDY_TOKEN
     )
@@ -683,10 +661,15 @@ def test_add_cases_to_reader_study(display_sets, local_grand_challenge):
                 file_name = value[0].name
                 check_image(civ, file_name)
             elif civ.interface.kind == "2D bounding box":
+                if isinstance(value, (str, Path)):
+                    with open(value, "rb") as fd:
+                        value = json.load(fd)
                 check_annotation(civ, value)
                 pass
             elif civ.interface.super_kind == "File":
-                file_name = value[0].name
+                if isinstance(value, list):
+                    value = value[0]
+                file_name = value.name
                 check_file(civ, file_name)
 
 
@@ -696,11 +679,7 @@ def test_add_cases_to_reader_study_invalid_interface(local_grand_challenge):
     )
 
     display_sets = [
-        {
-            "very-specific-medical-image": [
-                Path(__file__).parent / "testdata" / "image10x10x101.mha"
-            ]
-        },
+        {"very-specific-medical-image": [TESTDATA / "image10x10x101.mha"]},
     ]
 
     with pytest.raises(ValueError) as e:
