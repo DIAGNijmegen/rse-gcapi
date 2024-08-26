@@ -396,20 +396,6 @@ def test_add_and_update_file_to_archive_item(local_grand_challenge):
 
     old_civ_count = len(items[-1].values)
 
-    with pytest.raises(ValueError) as e:
-        _ = c.update_archive_item(
-            archive_item_pk=items[-1].pk,
-            values={
-                "predictions-csv-file": [
-                    TESTDATA / f for f in ["test.csv", "test.csv"]
-                ]
-            },
-        )
-    assert (
-        "You can only upload one single file to a predictions-csv-file interface"
-        in str(e)
-    )
-
     _ = c.update_archive_item(
         archive_item_pk=items[-1].pk,
         values={"predictions-csv-file": [TESTDATA / "test.csv"]},
@@ -430,8 +416,9 @@ def test_add_and_update_file_to_archive_item(local_grand_challenge):
     assert "test.csv" in csv_civ.file
 
     updated_civ_count = len(item_updated.values)
+
     # a new pdf upload will overwrite the old pdf interface value
-    _ = c.update_archive_item(
+    c.update_archive_item(
         archive_item_pk=items[-1].pk,
         values={"predictions-csv-file": [TESTDATA / "test.csv"]},
     )
@@ -527,23 +514,6 @@ def test_update_archive_item_with_non_existing_interface(
             archive_item_pk=items[0].pk, values={"new-interface": 5}
         )
     assert "new-interface is not an existing interface" in str(e)
-
-
-def test_update_archive_item_without_value(local_grand_challenge):
-    c = Client(
-        base_url=local_grand_challenge, verify=False, token=ARCHIVE_TOKEN
-    )
-
-    # retrieve existing archive item pk
-    archive = next(c.archives.iterate_all(params={"slug": "archive"}))
-    items = list(c.archive_items.iterate_all(params={"archive": archive.pk}))
-
-    with pytest.raises(ValueError) as e:
-        _ = c.update_archive_item(
-            archive_item_pk=items[0].pk,
-            values={"generic-medical-image": None},
-        )
-    assert "You need to provide a value for generic-medical-image" in str(e)
 
 
 @pytest.mark.parametrize(

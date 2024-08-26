@@ -5,8 +5,10 @@ from typing import Optional, Union
 
 from gcapi.models import (
     Algorithm,
+    ArchiveItem,
     ArchiveItemPost,
     ComponentInterface,
+    DisplaySet,
     DisplaySetPost,
     HyperlinkedImage,
     SimpleImage,
@@ -16,6 +18,9 @@ from gcapi.typing import CIVSetDescription, FileSource
 
 class TooManyFiles(ValueError):
     pass
+
+
+Empty = object()
 
 
 def clean_file_source(
@@ -55,7 +60,7 @@ class BaseProtoModel:
         return
         yield
 
-    def create(self, *_, **__):
+    def save(self):
         if not self.validated:
             yield from self.validate()
 
@@ -89,18 +94,19 @@ class ProtoCIV(BaseProtoModel):
         *,
         source: Union[FileSource, SimpleImage, HyperlinkedImage],
         interface: ComponentInterface,
+        parent: Optional[
+            Union[ArchiveItem, ArchiveItemPost, DisplaySet, DisplaySetPost]
+        ] = None,
         **kwargs,
     ):
         super().__init__(**kwargs)
 
         self.source = source
         self.interface = interface
+        self.parent = parent
 
-    def create(
-        self,
-        civ_set: Optional[Union[DisplaySetPost, ArchiveItemPost]] = None,
-    ):
-        yield from super().create(civ_set)
+    def save(self):
+        yield from super().save()
 
         return {"interface": self.interface.slug}  # noqa: B901
 
@@ -134,8 +140,8 @@ class FileProtoCIV(ProtoCIV):
             self.content = io.StringIO(json_str)
             self.content_name = self.interface.relative_path
 
-    def create(self, *_, **__):
-        item = yield from super().create()
+    def save(self):
+        item = yield from super().save()
 
         with open(self.content, "rb") as f:
             user_upload = yield from self.client_api.uploads.upload_fileobj(
@@ -160,8 +166,8 @@ class ImageProtoCIV(ProtoCIV):
         else:
             self.content = clean_file_source(self.source)
 
-    def create(self, civ_set=None):
-        item = yield from super().create()
+    def save(self):
+        item = yield from super().save()
 
         if isinstance(self.content, HyperlinkedImage):
             # Reuse the existing image
@@ -169,22 +175,22 @@ class ImageProtoCIV(ProtoCIV):
             return item
 
         # Upload the image
-        if civ_set is None:
-            upload_session_data = {}  # No need to specify target
-        elif isinstance(civ_set, DisplaySetPost):
+        if self.parent is None:
+            # No need to specify target
+            upload_session_data = {}
+        elif isinstance(self.parent, (DisplaySet, DisplaySetPost)):
             upload_session_data = {
-                "display_set": civ_set.pk,
+                "display_set": self.parent.pk,
                 "interface": self.interface.slug,
             }
-
-        elif isinstance(civ_set, ArchiveItemPost):
+        elif isinstance(self.parent, (ArchiveItem, ArchiveItemPost)):
             upload_session_data = {
-                "archive_item": civ_set.pk,
+                "archive_item": self.parent.pk,
                 "interface": self.interface.slug,
             }
         else:
             raise NotImplementedError(
-                f"{type(civ_set)} not supported for uploading images"
+                f"{type(self.parent)} not supported for uploading images"
             )
 
         uploads = []
@@ -204,9 +210,11 @@ class ImageProtoCIV(ProtoCIV):
             )
         )
 
-        if civ_set is None:
+        if self.parent is None:
             item["upload_session"] = raw_image_upload_session.api_url
             return item
+        else:
+            return Empty
 
 
 class ValueProtoCIV(ProtoCIV):
@@ -226,8 +234,8 @@ class ValueProtoCIV(ProtoCIV):
             with open(clean_source) as fp:
                 self.content = json.load(fp)
 
-    def create(self, *_, **__):
-        item = yield from super().create()
+    def save(self):
+        item = yield from super().save()
         item["value"] = self.content
         return item
 
@@ -277,12 +285,14 @@ class ProtoJob(BaseProtoModel):
 
             self.civs.append(civ)
 
-    def create(self):
-        yield from super().create()
+    def save(self):
+        yield from super().save()
 
         inputs = []
         for civ in self.civs:
-            inputs.append((yield from civ.create()))
+            saved_civ = yield from civ.save()
+            if saved_civ is not Empty:
+                inputs.append((yield from civ.save()))
 
         return (  # noqa: B901
             yield from self.client_api.algorithm_jobs.create(

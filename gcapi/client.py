@@ -17,7 +17,7 @@ from httpx import URL, HTTPStatusError, Timeout
 import gcapi.models
 from gcapi.apibase import APIBase, ClientInterface, ModifiableMixin
 from gcapi.exceptions import ObjectNotFound
-from gcapi.models_proto import ProtoCIV, ProtoJob
+from gcapi.models_proto import Empty, ProtoCIV, ProtoJob
 from gcapi.retries import BaseRetryStrategy, SelectiveBackoffStrategy
 from gcapi.sync_async_hybrid_support import CapturedCall, mark_generator
 from gcapi.typing import CIVSet, CIVSetDescription
@@ -511,12 +511,32 @@ class ClientBase(ApiDefinitions, ClientInterface):
             )
         )
 
-    def _upload_file(self, value):
-        with open(value[0], "rb") as f:
-            upload = yield from self.__org_api_meta.uploads.upload_fileobj(
-                fileobj=f, filename=value[0].name
+    def _fetch_interface(
+        self,
+        slug,
+        cache=None,
+        ref_url="https://grand-challenge.org/components/interfaces/reader-studies/",
+    ):
+        if isinstance(slug, gcapi.models.ComponentInterface):
+            return slug
+
+        if cache and slug in cache:
+            return cache[slug]
+        try:
+            interface = yield from self.__org_api_meta.interfaces.detail(
+                slug=slug
             )
-        return upload
+
+            if cache:
+                cache[slug] = interface
+
+            return interface
+        except ObjectNotFound as e:
+            raise ValueError(
+                f"{slug} is not an existing interface. "
+                f"Please provide one from this list: "
+                f"{ref_url}"
+            ) from e
 
     def upload_cases(  # noqa: C901
         self,
@@ -668,7 +688,8 @@ class ClientBase(ApiDefinitions, ClientInterface):
             inputs=inputs,
             client_api=self.__org_api_meta,
         )
-        return (yield from job.create())
+        yield from job.validate()
+        return (yield from job.save())  # noqa: B901
 
     def update_archive_item(
         self, *, archive_item_pk: str, values: dict[str, Any]
@@ -708,78 +729,39 @@ class ClientBase(ApiDefinitions, ClientInterface):
         item = yield from self.__org_api_meta.archive_items.detail(
             pk=archive_item_pk
         )
-        civs: dict[str, list] = {"values": []}
+        civs = []
 
         for civ_slug, value in values.items():
-            try:
-                ci = yield from self.__org_api_meta.interfaces.detail(
-                    slug=civ_slug
-                )
-            except ObjectNotFound as e:
-                raise ValueError(
-                    f"{civ_slug} is not an existing interface. "
-                    f"Please provide one from this list: "
-                    f"https://grand-challenge.org/algorithms/interfaces/"
-                ) from e
-            i = {"interface": ci.slug}
+            ci = yield from self._fetch_interface(
+                slug=civ_slug,
+                ref_url="https://grand-challenge.org/algorithms/interfaces/",
+            )
+            civ = ProtoCIV(
+                source=value,
+                interface=ci,
+                client_api=self.__org_api_meta,
+                parent=item,
+            )
+            yield from civ.validate()
+            civs.append(civ)
 
-            if not value:
-                raise ValueError(f"You need to provide a value for {ci.slug}")
+        update_values = []
+        for civ in civs:
+            update_value = yield from civ.save()
+            if update_value is not Empty:
+                update_values.append(update_value)
 
-            if ci.super_kind.lower() == "image":
-                if isinstance(value, list):
-                    raw_image_upload_session = (
-                        yield from self._upload_image_files(files=value)
-                    )
-                    i["upload_session"] = raw_image_upload_session["api_url"]
-                elif isinstance(value, str):
-                    i["image"] = value
-            elif ci.super_kind.lower() == "file":
-                if len(value) != 1:
-                    raise ValueError(
-                        f"You can only upload one single file "
-                        f"to a {ci.slug} interface."
-                    )
-                upload = yield from self._upload_file(value)
-                i["user_upload"] = upload["api_url"]
-            else:
-                i["value"] = value
-            civs["values"].append(i)
-
-        return (
+        return (  # noqa: B901
             yield from self.__org_api_meta.archive_items.partial_update(
-                pk=item.pk, **civs
+                pk=item.pk, values=update_values
             )
         )
 
-    def _fetch_interface(
-        self,
-        slug,
-        cache=None,
-    ):
-        if isinstance(slug, gcapi.models.ComponentInterface):
-            return slug
-
-        if cache and slug in cache:
-            return cache[slug]
-        try:
-            interface = yield from self.__org_api_meta.interfaces.detail(
-                slug=slug
-            )
-
-            if cache:
-                cache[slug] = interface
-
-            return interface
-        except ObjectNotFound as e:
-            raise ValueError(
-                f"{slug} is not an existing interface. "
-                f"Please provide one from this list: "
-                f"https://grand-challenge.org/components/interfaces/reader-studies/"
-            ) from e
-
     def add_cases_to_reader_study(
-        self, *, reader_study: str, display_sets: list[CIVSetDescription]
+        self,
+        *,
+        reader_study: str,
+        display_sets: list[CIVSetDescription],
     ):
         """
         This function takes a reader-study slug and a list of display set
@@ -789,7 +771,11 @@ class ClientBase(ApiDefinitions, ClientInterface):
         Parameters
         ----------
         reader_study
-            slug for the reader study (e.g. "i-am-a-reader-study")
+            slug for the reader study (e.g. "i-am-a-reader-study"). You can find this
+            readily in the URL you use to visit the reader-study page:
+
+                https://grand-challenge.org/reader-studies/i-am-a-reader-study/
+
         display_sets
             The format for the description of display sets is as follows:
 
@@ -807,14 +793,14 @@ class ClientBase(ApiDefinitions, ClientInterface):
 
             Where the file paths are local paths to the files making up a
             single image. For file type interfaces the file path can only
-            contain a single file. For json type interfaces any value that
-            is valid for the interface can be passed.`
+            reference a single file. For json type interfaces any value that
+            is valid for the interface can directly be passed.`
 
         Returns
         -------
         The pks of the newly created display sets.
         """
-        civ_sets = yield from self.add_civ_sets(
+        created_display_sets = yield from self._create_civ_sets(
             values=display_sets,
             api_create_civ_set=partial(
                 self.__org_api_meta.reader_studies.display_sets.create,
@@ -823,9 +809,9 @@ class ClientBase(ApiDefinitions, ClientInterface):
             api_partial_update_civ_set=self.__org_api_meta.reader_studies.display_sets.partial_update,
         )
 
-        return [civ_set.pk for civ_set in civ_sets]
+        return [ds.pk for ds in created_display_sets]
 
-    def add_civ_sets(  # noqa: C901
+    def _create_civ_sets(
         self,
         *,
         values: list[CIVSetDescription],
@@ -834,43 +820,37 @@ class ClientBase(ApiDefinitions, ClientInterface):
     ):
         interface_cache: dict[str, gcapi.models.ComponentInterface] = {}
 
-        # First, get handlers
-        proto_civ_sets: list[list[ProtoCIV]] = []
+        # Firstly, handlers + validation
+        civ_sets: list[list[ProtoCIV]] = []
         for value in values:
-            proto_civ_set = []
+            civ_set = []
             for interface, source in value.items():
                 interface = yield from self._fetch_interface(
                     slug=interface,
                     cache=interface_cache,
                 )
-                proto_civ_set.append(
-                    ProtoCIV(
-                        client_api=self.__org_api_meta,
-                        interface=cast(
-                            gcapi.models.ComponentInterface, interface
-                        ),
-                        source=source,
-                    )
+                civ = ProtoCIV(
+                    client_api=self.__org_api_meta,
+                    interface=cast(gcapi.models.ComponentInterface, interface),
+                    source=source,
                 )
-            proto_civ_sets.append(proto_civ_set)
+                civ.validate()
+                civ_set.append(civ)
+            civ_sets.append(civ_set)
 
-        # Second, clean the to-be CIV sets
-        for proto_civ_set in proto_civ_sets:
-            for proto_civ in proto_civ_set:
-                yield from proto_civ.validate()
-
-        # Lastly, get to creating
-        civ_set_posts: list[CIVSet] = []
-        for proto_civ_set in proto_civ_sets:
-            civ_set = yield from api_create_civ_set()
-            post_values = []
-            for proto_civ in proto_civ_set:
-                post_value = yield from proto_civ.create(civ_set)
-                if post_value is not None:
-                    post_values.append(post_value)
-            civ_set_post = yield from api_partial_update_civ_set(
-                pk=civ_set.pk, values=post_values
+        # Secondly, create civs
+        updated_civ_sets: list[CIVSet] = []
+        for civ_set in civ_sets:
+            created_civ_set = yield from api_create_civ_set()
+            update_values = []
+            for civ in civ_set:
+                civ.parent = created_civ_set
+                post_value = yield from civ.save()
+                if post_value is not Empty:
+                    update_values.append(post_value)
+            updated_civ_set = yield from api_partial_update_civ_set(
+                pk=created_civ_set.pk, values=update_values
             )
-            civ_set_posts.append(civ_set_post)
+            updated_civ_sets.append(updated_civ_set)
 
-        return civ_set_posts  # noqa B901
+        return updated_civ_sets

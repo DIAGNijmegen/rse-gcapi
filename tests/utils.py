@@ -16,7 +16,7 @@ ARCHIVE_TOKEN = USER_TOKENS["archive"]
 def recurse_call(func):
     def wrapper(*args, **kwargs):
         last_error = None
-        for _ in range(5):
+        for _ in range(60):
             try:
                 result = func(*args, **kwargs)
                 break

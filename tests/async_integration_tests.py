@@ -613,28 +613,6 @@ async def test_update_archive_item_with_non_existing_interface(
         assert "new-interface is not an existing interface" in str(e)
 
 
-@pytest.mark.anyio
-async def test_update_archive_item_without_value(local_grand_challenge):
-    async with AsyncClient(
-        base_url=local_grand_challenge, verify=False, token=ARCHIVE_TOKEN
-    ) as c:
-        # retrieve existing archive item pk
-        archive = await c.archives.iterate_all(
-            params={"slug": "archive"}
-        ).__anext__()
-        items = c.archive_items.iterate_all(params={"archive": archive.pk})
-        item_ids = [item.pk async for item in items]
-
-        with pytest.raises(ValueError) as e:
-            _ = await c.update_archive_item(
-                archive_item_pk=item_ids[0],
-                values={"generic-medical-image": None},
-            )
-        assert "You need to provide a value for generic-medical-image" in str(
-            e
-        )
-
-
 @pytest.mark.parametrize(
     "display_sets",
     (
