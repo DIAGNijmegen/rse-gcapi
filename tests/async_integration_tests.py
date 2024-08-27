@@ -41,6 +41,17 @@ async def get_archive_items(client, archive_pk, min_size):
     return il
 
 
+@async_recurse_call
+async def get_display_items(client, reader_study_pk, min_size):
+    i = client.reader_studies.display_sets.iterate_all(
+        params={"reader-study": reader_study_pk}
+    )
+    il = [item async for item in i]
+    if len(il) <= min_size:
+        raise ValueError
+    return il
+
+
 @pytest.mark.anyio
 async def test_raw_image_and_upload_session(local_grand_challenge):
     async with AsyncClient(
@@ -577,6 +588,70 @@ async def test_add_and_update_value_to_archive_item(local_grand_challenge):
         item_updated_again = await get_updated_archive_detail()
 
         assert len(item_updated_again.values) == updated_civ_count
+        new_json_civ = item_updated_again.values[-1]
+        assert new_json_civ.interface.slug == "results-json-file"
+        assert new_json_civ.value == {"foo": 0.8}
+
+
+@pytest.mark.anyio
+async def test_add_and_update_value_to_display_set(local_grand_challenge):
+    async with AsyncClient(
+        base_url=local_grand_challenge, verify=False, token=READERSTUDY_TOKEN
+    ) as c:
+        # create new display set
+        added_display_sets = await c.add_cases_to_reader_study(
+            reader_study="reader-study",
+            display_sets=[
+                {"generic-medical-image": [TESTDATA / "image10x10x101.mha"]}
+            ],
+        )
+
+        assert len(added_display_sets) == 1
+        display_set_pk = added_display_sets[0]
+
+        # Add a CIV (partially update)
+        _ = await c.update_display_set(
+            display_set_pk=display_set_pk,
+            values={"results-json-file": {"foo": 0.5}},
+        )
+
+        @async_recurse_call
+        async def get_display_set_detail(expected_num_values):
+            item = await c.reader_studies.display_sets.detail(
+                pk=display_set_pk
+            )
+            if len(item.values) != expected_num_values:
+                # csv interface value has not yet been added to item
+                raise ValueError
+            return item
+
+        item_updated = await get_display_set_detail(expected_num_values=2)
+
+        json_civ = item_updated.values[-1]
+        assert json_civ.interface.slug == "results-json-file"
+        assert json_civ.value == {"foo": 0.5}
+
+        # Overwrite a CIV (update)
+        _ = await c.update_display_set(
+            display_set_pk=display_set_pk,
+            values={"results-json-file": {"foo": 0.8}},
+        )
+
+        @async_recurse_call
+        async def get_updated_display_set_detail():
+            item = await c.reader_studies.display_sets.detail(
+                pk=display_set_pk
+            )
+            if json_civ in item.values:
+                # results json interface value has been added to the item and
+                # the previously added json civ is no longer attached
+                # to this archive item
+                raise ValueError
+            return item
+
+        item_updated_again = await get_updated_display_set_detail()
+
+        assert len(item_updated_again.values) == 2
         new_json_civ = item_updated_again.values[-1]
         assert new_json_civ.interface.slug == "results-json-file"
         assert new_json_civ.value == {"foo": 0.8}

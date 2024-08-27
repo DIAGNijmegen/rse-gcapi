@@ -20,7 +20,9 @@ CIVSetDescription = dict[
     ],
 ]
 
-ArchiveItemOrPk = Union[str, gcapi.models.ArchiveItem]
-DisplaySetOrPk = Union[str, gcapi.models.DisplaySet]
-
-CIVSet = Union[gcapi.models.DisplaySet, gcapi.models.ArchiveItem]
+CIVSet = Union[
+    gcapi.models.DisplaySet,
+    gcapi.models.DisplaySetPost,
+    gcapi.models.ArchiveItem,
+    gcapi.models.ArchiveItemPost,
+]

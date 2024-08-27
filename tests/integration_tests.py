@@ -501,6 +501,66 @@ def test_add_and_update_value_to_archive_item(local_grand_challenge):
     assert new_json_civ.value == {"foo": 0.8}
 
 
+def test_add_and_update_value_to_display_set(local_grand_challenge):
+    c = Client(
+        base_url=local_grand_challenge, verify=False, token=READERSTUDY_TOKEN
+    )
+
+    # create new display set
+    added_display_sets = c.add_cases_to_reader_study(
+        reader_study="reader-study",
+        display_sets=[
+            {"generic-medical-image": [TESTDATA / "image10x10x101.mha"]}
+        ],
+    )
+
+    assert len(added_display_sets) == 1
+    display_set_pk = added_display_sets[0]
+
+    # Add a CIV (partially update)
+    _ = c.update_display_set(
+        display_set_pk=display_set_pk,
+        values={"results-json-file": {"foo": 0.5}},
+    )
+
+    @recurse_call
+    def get_display_set_detail(expected_num_values):
+        item = c.reader_studies.display_sets.detail(pk=display_set_pk)
+        if len(item.values) != expected_num_values:
+            # csv interface value has not yet been added to item
+            raise ValueError
+        return item
+
+    item_updated = get_display_set_detail(expected_num_values=2)
+
+    json_civ = item_updated.values[-1]
+    assert json_civ.interface.slug == "results-json-file"
+    assert json_civ.value == {"foo": 0.5}
+
+    # Overwrite a CIV (update)
+    _ = c.update_display_set(
+        display_set_pk=display_set_pk,
+        values={"results-json-file": {"foo": 0.8}},
+    )
+
+    @recurse_call
+    def get_updated_display_set_detail():
+        item = c.reader_studies.display_sets.detail(pk=display_set_pk)
+        if json_civ in item.values:
+            # results json interface value has been added to the item and
+            # the previously added json civ is no longer attached
+            # to this archive item
+            raise ValueError
+        return item
+
+    item_updated_again = get_updated_display_set_detail()
+
+    assert len(item_updated_again.values) == 2
+    new_json_civ = item_updated_again.values[-1]
+    assert new_json_civ.interface.slug == "results-json-file"
+    assert new_json_civ.value == {"foo": 0.8}
+
+
 def test_update_archive_item_with_non_existing_interface(
     local_grand_challenge,
 ):

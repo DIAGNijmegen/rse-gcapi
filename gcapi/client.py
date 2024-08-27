@@ -692,7 +692,7 @@ class ClientBase(ApiDefinitions, ClientInterface):
         return (yield from job.save())  # noqa: B901
 
     def update_archive_item(
-        self, *, archive_item_pk: str, values: dict[str, Any]
+        self, *, archive_item_pk: str, values: CIVSetDescription
     ):
         """
         This function updates an existing archive item with the provided values
@@ -729,31 +729,14 @@ class ClientBase(ApiDefinitions, ClientInterface):
         item = yield from self.__org_api_meta.archive_items.detail(
             pk=archive_item_pk
         )
-        civs = []
-
-        for civ_slug, value in values.items():
-            ci = yield from self._fetch_interface(
-                slug=civ_slug,
-                ref_url="https://grand-challenge.org/algorithms/interfaces/",
-            )
-            civ = ProtoCIV(
-                source=value,
-                interface=ci,
-                client_api=self.__org_api_meta,
-                parent=item,
-            )
-            yield from civ.validate()
-            civs.append(civ)
-
-        update_values = []
-        for civ in civs:
-            update_value = yield from civ.save()
-            if update_value is not Empty:
-                update_values.append(update_value)
-
-        return (  # noqa: B901
-            yield from self.__org_api_meta.archive_items.partial_update(
-                pk=item.pk, values=update_values
+        return (
+            yield from self._update_civ_set(
+                civ_set=item,
+                values=values,
+                api_partial_update_civ_set=partial(
+                    self.__org_api_meta.archive_items.partial_update,
+                    pk=item.pk,
+                ),
             )
         )
 
@@ -818,6 +801,28 @@ class ClientBase(ApiDefinitions, ClientInterface):
         )
 
         return [ai.pk for ai in created_archive_items]
+
+    def update_display_set(
+        self,
+        *,
+        display_set_pk: str,
+        values: CIVSetDescription,
+    ):
+        item = (
+            yield from self.__org_api_meta.reader_studies.display_sets.detail(
+                pk=display_set_pk
+            )
+        )
+        return (
+            yield from self._update_civ_set(
+                civ_set=item,
+                values=values,
+                api_partial_update_civ_set=partial(
+                    self.__org_api_meta.reader_studies.display_sets.partial_update,
+                    pk=item.pk,
+                ),
+            )
+        )
 
     def add_cases_to_reader_study(
         self,
@@ -916,3 +921,36 @@ class ClientBase(ApiDefinitions, ClientInterface):
             updated_civ_sets.append(updated_civ_set)
 
         return updated_civ_sets
+
+    def _update_civ_set(
+        self,
+        *,
+        civ_set: CIVSet,
+        values: CIVSetDescription,
+        api_partial_update_civ_set: Callable,
+    ):
+        civs = []
+
+        for civ_slug, value in values.items():
+            ci = yield from self._fetch_interface(
+                slug=civ_slug,
+                ref_url="https://grand-challenge.org/algorithms/interfaces/",
+            )
+            civ = ProtoCIV(
+                source=value,
+                interface=ci,
+                client_api=self.__org_api_meta,
+                parent=civ_set,
+            )
+            yield from civ.validate()
+            civs.append(civ)
+
+        update_values = []
+        for civ in civs:
+            update_value = yield from civ.save()
+            if update_value is not Empty:
+                update_values.append(update_value)
+
+        return (  # noqa: B901
+            yield from api_partial_update_civ_set(values=update_values)
+        )
