@@ -16,8 +16,8 @@ from gcapi.models_proto import (
 from tests.factories import (
     AlgorithmFactory,
     ComponentInterfaceFactory,
+    HyperlinkedComponentInterfaceValueFactory,
     HyperlinkedImageFactory,
-    SimpleImageFactory,
 )
 from tests.utils import sync_generator_test
 
@@ -170,8 +170,13 @@ def test_file_civ_validation(source, context, interface_kind):
             ],
             nullcontext(),
         ),
-        (SimpleImageFactory(), nullcontext()),
         (HyperlinkedImageFactory(), nullcontext()),
+        (
+            HyperlinkedComponentInterfaceValueFactory(
+                image=HyperlinkedImageFactory().api_url
+            ),
+            nullcontext(),
+        ),
     ),
 )
 @sync_generator_test

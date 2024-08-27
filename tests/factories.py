@@ -4,8 +4,8 @@ from gcapi.models import (
     Algorithm,
     ColorSpaceEnum,
     ComponentInterface,
+    HyperlinkedComponentInterfaceValue,
     HyperlinkedImage,
-    SimpleImage,
 )
 
 pk_counter = 0
@@ -41,15 +41,23 @@ def ComponentInterfaceFactory(**kwargs) -> ComponentInterface:  # noqa: N802
     return ci
 
 
-def SimpleImageFactory(**kwargs) -> SimpleImage:  # noqa: N802
+def HyperlinkedComponentInterfaceValueFactory(  # noqa: N802
+    **kwargs,
+) -> HyperlinkedComponentInterfaceValue:
+    pk = kwargs.get("pk") or _get_int_pk()
 
-    pk = kwargs.get("pk") or str(uuid.uuid4())
-    si = SimpleImage(pk=pk, name=f"a_filename_{pk}.mha")
+    hciv = HyperlinkedComponentInterfaceValue(
+        pk=pk,
+        interface=ComponentInterfaceFactory(),
+        value=None,
+        file=None,
+        image=None,
+    )
 
     for key, value in kwargs.items():
-        setattr(si, key, value)
+        setattr(hciv, key, value)
 
-    return si
+    return hciv
 
 
 def HyperlinkedImageFactory(**kwargs) -> HyperlinkedImage:  # noqa: N802
