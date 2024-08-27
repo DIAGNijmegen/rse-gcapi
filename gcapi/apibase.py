@@ -146,8 +146,10 @@ class APIBase(Generic[T], Common[T]):
     def detail(
         self, pk=None, api_url=None, **params
     ) -> Generator[T, dict[Any, Any], T]:
-        if all((pk, params)):
-            raise ValueError("Only one of pk or params must be specified")
+        if all((pk, api_url, params)):
+            raise ValueError(
+                "Only one of pk or api_url, params must be specified"
+            )
 
         if pk is not None or api_url is not None:
             if pk is not None:
