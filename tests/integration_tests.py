@@ -1,4 +1,5 @@
 import json
+from functools import partial
 from io import BytesIO
 from pathlib import Path
 
@@ -39,6 +40,26 @@ def get_archive_items(client, archive_pk, min_size):
     if len(items) <= min_size:
         raise ValueError
     return items
+
+
+@recurse_call
+def get_complete_civ_set(get_func, complete_num_civ):
+    civ_set = get_func()
+    num_civ = len(civ_set.values)
+    if num_civ != complete_num_civ:
+        raise ValueError(
+            f"Found {num_civ}, expected {complete_num_civ} values"
+        )
+    for civ in civ_set.values:
+        if all(
+            [
+                civ.file is None,
+                civ.image is None,
+                civ.value is None,
+            ]
+        ):
+            raise ValueError(f"Null values: {civ}")
+    return civ_set
 
 
 @pytest.mark.parametrize(
@@ -688,10 +709,13 @@ def test_add_cases_to_reader_study(  # noqa: C901
         assert response.url.path.endswith(expected_name)
 
     for display_set_pk, display_set in zip(added_display_sets, display_sets):
-        ds = c.reader_studies.display_sets.detail(pk=display_set_pk)
-        # may take a while for the images to be added
-        while len(ds.values) != len(display_set):
-            ds = c.reader_studies.display_sets.detail(pk=display_set_pk)
+
+        ds = get_complete_civ_set(
+            get_func=partial(
+                c.reader_studies.display_sets.detail, pk=display_set_pk
+            ),
+            complete_num_civ=len(display_set),
+        )
 
         for interface, value in display_set.items():
             civ = [
@@ -742,7 +766,7 @@ def test_add_cases_to_archive(  # noqa: C901
 
     @recurse_call
     def check_image(interface_value, expected_name):
-        image = get_image(c, interface_value.image)
+        image = get_image(c, image_url=interface_value.image)
         assert image.name == expected_name
 
     def check_annotation(interface_value, expected):
@@ -756,18 +780,20 @@ def test_add_cases_to_archive(  # noqa: C901
     for archive_item_pk, archive_item in zip(
         added_archive_items, archive_items
     ):
-        ds = c.archive_items.detail(pk=archive_item_pk)
-        # may take a while for the images to be added
-        while len(ds.values) != len(archive_item):
-            ds = c.archive_items.detail(pk=archive_item_pk)
+        ai = get_complete_civ_set(
+            get_func=partial(c.archive_items.detail, pk=archive_item_pk),
+            complete_num_civ=len(archive_item),
+        )
 
         for interface, value in archive_item.items():
             civ = [
-                civ for civ in ds.values if civ.interface.slug == interface
+                civ for civ in ai.values if civ.interface.slug == interface
             ][0]
 
             if civ.interface.super_kind == "Image":
-                file_name = value[0].name
+                if isinstance(value, list):
+                    value = value[0]
+                file_name = value.name
                 check_image(civ, file_name)
             elif civ.interface.kind == "2D bounding box":
                 if isinstance(value, (str, Path)):

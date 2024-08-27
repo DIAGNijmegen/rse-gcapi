@@ -1,4 +1,5 @@
 import json
+from functools import partial
 from io import BytesIO
 from pathlib import Path
 
@@ -50,6 +51,26 @@ async def get_display_items(client, reader_study_pk, min_size):
     if len(il) <= min_size:
         raise ValueError
     return il
+
+
+@async_recurse_call
+async def get_complete_civ_set(get_func, complete_num_civ):
+    civ_set = await get_func()
+    num_civ = len(civ_set.values)
+    if num_civ != complete_num_civ:
+        raise ValueError(
+            f"Found {num_civ}, expected {complete_num_civ} values"
+        )
+    for civ in civ_set.values:
+        if all(
+            [
+                civ.file is None,
+                civ.image is None,
+                civ.value is None,
+            ]
+        ):
+            raise ValueError(f"Null values: {civ}")
+    return civ_set
 
 
 @pytest.mark.anyio
@@ -707,12 +728,13 @@ async def test_add_cases_to_reader_study(  # noqa: C901
         for display_set_pk, display_set in zip(
             added_display_sets, display_sets
         ):
-            ds = await c.reader_studies.display_sets.detail(pk=display_set_pk)
-            # may take a while for the images to be added
-            while len(ds.values) != len(display_set):
-                ds = await c.reader_studies.display_sets.detail(
-                    pk=display_set_pk
-                )
+
+            ds = await get_complete_civ_set(
+                partial(
+                    c.reader_studies.display_sets.detail, pk=display_set_pk
+                ),
+                complete_num_civ=len(display_set),
+            )
 
             for interface, value in display_set.items():
                 civ = [
@@ -777,14 +799,15 @@ async def test_add_cases_to_archive(  # noqa: C901
         for archive_item_pk, archive_item in zip(
             added_archive_items, archive_items
         ):
-            ds = await c.archive_items.detail(pk=archive_item_pk)
-            # may take a while for the images to be added
-            while len(ds.values) != len(archive_item):
-                ds = await c.archive_items.detail(pk=archive_item_pk)
+
+            ai = await get_complete_civ_set(
+                partial(c.archive_items.detail, pk=archive_item_pk),
+                complete_num_civ=len(archive_item),
+            )
 
             for interface, value in archive_item.items():
                 civ = [
-                    civ for civ in ds.values if civ.interface.slug == interface
+                    civ for civ in ai.values if civ.interface.slug == interface
                 ][0]
 
                 if civ.interface.super_kind == "Image":
