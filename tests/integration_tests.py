@@ -645,6 +645,131 @@ def test_add_cases_to_reader_study(  # noqa: C901
                 check_file(civ, file_name)
 
 
+@pytest.mark.parametrize(
+    "archive_items",
+    (
+        [
+            {
+                "generic-medical-image": [TESTDATA / "image10x10x101.mha"],
+                "generic-overlay": [
+                    TESTDATA / "image10x10x10.mhd",
+                    TESTDATA / "image10x10x10.zraw",
+                ],
+                "annotation": {
+                    "name": "forearm",
+                    "type": "2D bounding box",
+                    "corners": [
+                        [20, 88, 0.5],
+                        [83, 88, 0.5],
+                        [83, 175, 0.5],
+                        [20, 175, 0.5],
+                    ],
+                    "version": {"major": 1, "minor": 0},
+                },
+                "predictions-csv-file": [TESTDATA / "test.csv"],
+            },
+            {
+                "generic-medical-image": [TESTDATA / "image10x10x101.mha"],
+                "annotation": Path(__file__).parent
+                / "testdata"
+                / "annotation.json",
+            },
+            {
+                "annotation": {
+                    "name": "forearm",
+                    "type": "2D bounding box",
+                    "corners": [
+                        [20, 88, 0.5],
+                        [83, 88, 0.5],
+                        [83, 175, 0.5],
+                        [20, 175, 0.5],
+                    ],
+                    "version": {"major": 1, "minor": 0},
+                },
+                "predictions-csv-file": Path(__file__).parent
+                / "testdata"
+                / "test.csv",
+            },
+            {
+                "annotation": {
+                    "name": "forearm",
+                    "type": "2D bounding box",
+                    "corners": [
+                        [20, 88, 0.5],
+                        [83, 88, 0.5],
+                        [83, 175, 0.5],
+                        [20, 175, 0.5],
+                    ],
+                    "version": {"major": 1, "minor": 0},
+                },
+            },
+        ],
+    ),
+)
+def test_add_cases_to_archive(  # noqa: C901
+    archive_items, local_grand_challenge
+):
+    c = Client(
+        base_url=local_grand_challenge, verify=False, token=ARCHIVE_TOKEN
+    )
+
+    added_archive_items = c.add_cases_to_archive(
+        archive="archive", archive_items=archive_items
+    )
+
+    assert len(added_archive_items) == len(archive_items)
+
+    archive = next(c.archives.iterate_all(params={"slug": "archive"}))
+    all_archive_items = list(
+        c.archive_items.iterate_all(params={"archive": archive.pk})
+    )
+
+    assert all(
+        [x in [y.pk for y in all_archive_items] for x in added_archive_items]
+    )
+
+    @recurse_call
+    def check_image(interface_value, expected_name):
+        image = get_file(c, interface_value.image)
+        assert image["name"] == expected_name
+
+    def check_annotation(interface_value, expected):
+        assert interface_value.value == expected
+
+    @recurse_call
+    def check_file(interface_value, expected_name):
+        response = get_file(c, interface_value.file)
+        assert response.url.path.endswith(expected_name)
+
+    for archive_item_pk, archive_item in zip(
+        added_archive_items, archive_items
+    ):
+        ds = c.archive_items.detail(pk=archive_item_pk)
+        # may take a while for the images to be added
+        while len(ds.values) != len(archive_item):
+            ds = c.archive_items.detail(pk=archive_item_pk)
+
+        for interface, value in archive_item.items():
+            civ = [
+                civ for civ in ds.values if civ.interface.slug == interface
+            ][0]
+
+            if civ.interface.super_kind == "Image":
+                file_name = value[0].name
+                check_image(civ, file_name)
+            elif civ.interface.kind == "2D bounding box":
+                if isinstance(value, (str, Path)):
+                    with open(value, "rb") as fd:
+                        value = json.load(fd)
+                check_annotation(civ, value)
+                pass
+            elif civ.interface.super_kind == "File":
+                if isinstance(value, list):
+                    value = value[0]
+                file_name = value.name
+                check_file(civ, file_name)
+
+
 def test_add_cases_to_reader_study_reuse_objects(local_grand_challenge):
     c = Client(
         base_url=local_grand_challenge, verify=False, token=READERSTUDY_TOKEN

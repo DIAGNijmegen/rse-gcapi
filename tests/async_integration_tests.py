@@ -742,6 +742,134 @@ async def test_add_cases_to_reader_study(  # noqa: C901
                     check_file(civ, file_name)
 
 
+@pytest.mark.parametrize(
+    "archive_items",
+    (
+        [
+            {
+                "generic-medical-image": [TESTDATA / "image10x10x101.mha"],
+                "generic-overlay": [
+                    TESTDATA / "image10x10x10.mhd",
+                    TESTDATA / "image10x10x10.zraw",
+                ],
+                "annotation": {
+                    "name": "forearm",
+                    "type": "2D bounding box",
+                    "corners": [
+                        [20, 88, 0.5],
+                        [83, 88, 0.5],
+                        [83, 175, 0.5],
+                        [20, 175, 0.5],
+                    ],
+                    "version": {"major": 1, "minor": 0},
+                },
+                "predictions-csv-file": [TESTDATA / "test.csv"],
+            },
+            {
+                "generic-medical-image": [TESTDATA / "image10x10x101.mha"],
+                "annotation": Path(__file__).parent
+                / "testdata"
+                / "annotation.json",
+            },
+            {
+                "annotation": {
+                    "name": "forearm",
+                    "type": "2D bounding box",
+                    "corners": [
+                        [20, 88, 0.5],
+                        [83, 88, 0.5],
+                        [83, 175, 0.5],
+                        [20, 175, 0.5],
+                    ],
+                    "version": {"major": 1, "minor": 0},
+                },
+                "predictions-csv-file": Path(__file__).parent
+                / "testdata"
+                / "test.csv",
+            },
+            {
+                "annotation": {
+                    "name": "forearm",
+                    "type": "2D bounding box",
+                    "corners": [
+                        [20, 88, 0.5],
+                        [83, 88, 0.5],
+                        [83, 175, 0.5],
+                        [20, 175, 0.5],
+                    ],
+                    "version": {"major": 1, "minor": 0},
+                },
+            },
+        ],
+    ),
+)
+@pytest.mark.anyio
+async def test_add_cases_to_archive(  # noqa: C901
+    archive_items, local_grand_challenge
+):
+    async with AsyncClient(
+        base_url=local_grand_challenge, verify=False, token=ARCHIVE_TOKEN
+    ) as c:
+
+        added_archive_items = await c.add_cases_to_archive(
+            archive="archive", archive_items=archive_items
+        )
+
+        assert len(added_archive_items) == len(archive_items)
+
+        archive = await c.archives.iterate_all(
+            params={"slug": "archive"}
+        ).__anext__()
+
+        all_archive_items = c.archive_items.iterate_all(
+            params={"archive": archive.pk}
+        )
+        all_archive_items = {x.pk: x async for x in all_archive_items}
+
+        assert all([x in all_archive_items for x in added_archive_items])
+
+        @async_recurse_call
+        async def check_image(interface_value, expected_name):
+            image = await get_file(c, interface_value.image)
+            assert image["name"] == expected_name
+
+        def check_annotation(interface_value, expected):
+            assert interface_value.value == expected
+
+        @async_recurse_call
+        async def check_file(interface_value, expected_name):
+            response = await get_file(c, interface_value.file)
+            assert response.url.path.endswith(expected_name)
+
+        for archive_item_pk, archive_item in zip(
+            added_archive_items, archive_items
+        ):
+            ds = await c.archive_items.detail(pk=archive_item_pk)
+            # may take a while for the images to be added
+            while len(ds.values) != len(archive_item):
+                ds = await c.archive_items.detail(pk=archive_item_pk)
+
+            for interface, value in archive_item.items():
+                civ = [
+                    civ for civ in ds.values if civ.interface.slug == interface
+                ][0]
+
+                if civ.interface.super_kind == "Image":
+                    file_name = value[0].name
+                    check_image(civ, file_name)
+                elif civ.interface.kind == "2D bounding box":
+                    if isinstance(value, (str, Path)):
+                        with open(value, "rb") as fd:
+                            value = json.load(fd)
+                    check_annotation(civ, value)
+                    pass
+                elif civ.interface.super_kind == "File":
+                    if isinstance(value, list):
+                        value = value[0]
+                    file_name = value.name
+                    check_file(civ, file_name)
+
+
 @pytest.mark.anyio
 async def test_add_cases_to_reader_study_reuse_objects(local_grand_challenge):
     async with AsyncClient(

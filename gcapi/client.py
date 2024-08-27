@@ -757,6 +757,68 @@ class ClientBase(ApiDefinitions, ClientInterface):
             )
         )
 
+    def add_cases_to_archive(
+        self,
+        *,
+        archive: Union[str, gcapi.models.Archive],
+        archive_items: list[CIVSetDescription],
+    ):
+        """
+        This function takes an archive slug or model and a list of archive item
+        descriptions and creates the archive item to be used on the platform.
+
+        Parameters
+        ----------
+        archive
+            slug for the reader study (e.g. "i-am-an-archive"). You can find this
+            readily in the URL you use to visit the reader-study page:
+
+                https://grand-challenge.org/archives/i-am-an-archive/
+
+        archive_items
+            The format for the description of display sets is as follows:
+
+            [
+                {
+                    "slug_0": ["filepath_0", ...],
+                    "slug_1": "filepath_0",
+                    "slug_2": pathlib.Path("filepath_0"),
+                    ...
+                    "slug_n": {"json": "value"}
+
+                },
+                ...
+            ]
+
+            Where the file paths are local paths to the files making up a
+            single image. For file type interfaces the file path can only
+            reference a single file. For json type interfaces any value that
+            is valid for the interface can directly be passed.
+
+        Returns
+        -------
+        The pks of the newly created archive items.
+        """
+
+        if isinstance(archive, str):
+            archive = yield from self.__org_api_meta.archives.detail(
+                slug=archive
+            )
+
+        archive_api_url = archive.api_url
+
+        created_archive_items = yield from self._create_civ_sets(
+            values=archive_items,
+            api_create_civ_set=partial(
+                self.__org_api_meta.archive_items.create,
+                archive=archive_api_url,
+                values=[],
+            ),
+            api_partial_update_civ_set=self.__org_api_meta.archive_items.partial_update,
+        )
+
+        return [ai.pk for ai in created_archive_items]
+
     def add_cases_to_reader_study(
         self,
         *,
@@ -794,7 +856,7 @@ class ClientBase(ApiDefinitions, ClientInterface):
             Where the file paths are local paths to the files making up a
             single image. For file type interfaces the file path can only
             reference a single file. For json type interfaces any value that
-            is valid for the interface can directly be passed.`
+            is valid for the interface can directly be passed.
 
         Returns
         -------
