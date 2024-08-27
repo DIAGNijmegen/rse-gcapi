@@ -721,7 +721,7 @@ async def test_add_cases_to_reader_study(  # noqa: C901
 
                 if civ.interface.super_kind == "Image":
                     file_name = value[0].name
-                    check_image(civ, file_name)
+                    await check_image(civ, file_name)
                 elif civ.interface.kind == "2D bounding box":
                     if isinstance(value, (str, Path)):
                         with open(value, "rb") as fd:
@@ -731,7 +731,7 @@ async def test_add_cases_to_reader_study(  # noqa: C901
                     if isinstance(value, list):
                         value = value[0]
                     file_name = value.name
-                    check_file(civ, file_name)
+                    await check_file(civ, file_name)
 
 
 @pytest.mark.parametrize(
@@ -764,7 +764,7 @@ async def test_add_cases_to_archive(  # noqa: C901
         @async_recurse_call
         async def check_image(interface_value, expected_name):
             image = await get_image(c, interface_value.image)
-            assert image["name"] == expected_name
+            assert image.name == expected_name
 
         def check_annotation(interface_value, expected):
             assert interface_value.value == expected
@@ -789,7 +789,7 @@ async def test_add_cases_to_archive(  # noqa: C901
 
                 if civ.interface.super_kind == "Image":
                     file_name = value[0].name
-                    check_image(civ, file_name)
+                    await check_image(civ, file_name)
                 elif civ.interface.kind == "2D bounding box":
                     if isinstance(value, (str, Path)):
                         with open(value, "rb") as fd:
@@ -800,7 +800,7 @@ async def test_add_cases_to_archive(  # noqa: C901
                     if isinstance(value, list):
                         value = value[0]
                     file_name = value.name
-                    check_file(civ, file_name)
+                    await check_file(civ, file_name)
 
 
 @pytest.mark.anyio
