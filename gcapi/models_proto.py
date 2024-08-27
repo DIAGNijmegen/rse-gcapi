@@ -13,7 +13,7 @@ from gcapi.models import (
     HyperlinkedComponentInterfaceValue,
     HyperlinkedImage,
 )
-from gcapi.typing import CIVSetDescription, FileSource
+from gcapi.typing import CIVSet, CIVSetDescription, FileSource
 
 
 class TooManyFiles(ValueError):
@@ -96,9 +96,7 @@ class ProtoCIV(BaseProtoModel):
             FileSource, HyperlinkedComponentInterfaceValue, HyperlinkedImage
         ],
         interface: ComponentInterface,
-        parent: Optional[
-            Union[ArchiveItem, ArchiveItemPost, DisplaySet, DisplaySetPost]
-        ] = None,
+        parent: Optional[CIVSet] = None,
         **kwargs,
     ):
         super().__init__(**kwargs)
