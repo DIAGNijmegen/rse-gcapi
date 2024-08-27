@@ -27,8 +27,8 @@ def get_upload_session(client, upload_pk):
 
 
 @recurse_call
-def get_file(client, image_url):
-    return client(url=image_url, follow_redirects=True)
+def get_image(client, image_url):
+    return client.images.detail(api_url=image_url)
 
 
 @recurse_call
@@ -131,12 +131,12 @@ def test_upload_cases_to_archive(local_grand_challenge, files, interface):
     # Check that only one image was created
     assert len(us.image_set) == 1
 
-    image = get_file(c, us.image_set[0])
+    image = get_image(c, us.image_set[0])
 
     # And that it was added to the archive
     archive = next(c.archives.iterate_all(params={"slug": "archive"}))
     archive_images = c.images.iterate_all(params={"archive": archive.pk})
-    assert image["pk"] in [im.pk for im in archive_images]
+    assert image.pk in [im.pk for im in archive_images]
     archive_items = c.archive_items.iterate_all(params={"archive": archive.pk})
     # with the correct interface
     image_url_to_interface_slug_dict = {
@@ -146,10 +146,10 @@ def test_upload_cases_to_archive(local_grand_challenge, files, interface):
         if value.image
     }
     if interface:
-        assert image_url_to_interface_slug_dict[image["api_url"]] == interface
+        assert image_url_to_interface_slug_dict[image.api_url] == interface
     else:
         assert (
-            image_url_to_interface_slug_dict[image["api_url"]]
+            image_url_to_interface_slug_dict[image.api_url]
             == "generic-medical-image"
         )
 
@@ -208,14 +208,14 @@ def test_upload_cases_to_archive_item_with_existing_interface(
     # Check that only one image was created
     assert len(us.image_set) == 1
 
-    image = get_file(c, us.image_set[0])
+    image = get_image(c, us.image_set[0])
 
     # And that it was added to the archive item
     item = c.archive_items.detail(pk=item.pk)
-    assert image["api_url"] in [civ.image for civ in item.values if civ.image]
+    assert image.api_url in [civ.image for civ in item.values if civ.image]
     # with the correct interface
     im_to_interface = {civ.image: civ.interface.slug for civ in item.values}
-    assert im_to_interface[image["api_url"]] == "generic-medical-image"
+    assert im_to_interface[image.api_url] == "generic-medical-image"
 
 
 def test_upload_cases_to_archive_item_with_new_interface(
@@ -238,14 +238,14 @@ def test_upload_cases_to_archive_item_with_new_interface(
     # Check that only one image was created
     assert len(us.image_set) == 1
 
-    image = get_file(c, us.image_set[0])
+    image = get_image(c, us.image_set[0])
 
     # And that it was added to the archive item
     item = c.archive_items.detail(pk=item.pk)
-    assert image["api_url"] in [civ.image for civ in item.values if civ.image]
+    assert image.api_url in [civ.image for civ in item.values if civ.image]
     # with the correct interface
     im_to_interface = {civ.image: civ.interface.slug for civ in item.values}
-    assert im_to_interface[image["api_url"]] == "generic-overlay"
+    assert im_to_interface[image.api_url] == "generic-overlay"
 
 
 @pytest.mark.parametrize("files", (["image10x10x101.mha"],))
@@ -677,15 +677,15 @@ def test_add_cases_to_reader_study(  # noqa: C901
 
     @recurse_call
     def check_image(interface_value, expected_name):
-        image = get_file(c, interface_value.image)
-        assert image["name"] == expected_name
+        image = get_image(c, interface_value.image)
+        assert image.name == expected_name
 
     def check_annotation(interface_value, expected):
         assert interface_value.value == expected
 
     @recurse_call
     def check_file(interface_value, expected_name):
-        response = get_file(c, interface_value.file)
+        response = c(url=interface_value.file, follow_redirects=True)
         assert response.url.path.endswith(expected_name)
 
     for display_set_pk, display_set in zip(added_display_sets, display_sets):
@@ -743,15 +743,15 @@ def test_add_cases_to_archive(  # noqa: C901
 
     @recurse_call
     def check_image(interface_value, expected_name):
-        image = get_file(c, interface_value.image)
-        assert image["name"] == expected_name
+        image = get_image(c, interface_value.image)
+        assert image.name == expected_name
 
     def check_annotation(interface_value, expected):
         assert interface_value.value == expected
 
     @recurse_call
     def check_file(interface_value, expected_name):
-        response = get_file(c, interface_value.file)
+        response = c(url=interface_value.file, follow_redicts=True)
         assert response.url.path.endswith(expected_name)
 
     for archive_item_pk, archive_item in zip(
