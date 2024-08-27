@@ -476,8 +476,11 @@ def test_add_and_update_value_to_archive_item(local_grand_challenge):
     item_updated = get_archive_item_detail()
 
     json_civ = item_updated.values[-1]
-    assert json_civ.interface.slug == "results-json-file"
+    json_civ = {v.interface.slug: v for v in item_updated.values}[
+        "results-json-file"
+    ]
     assert json_civ.value == {"foo": 0.5}
+
     updated_civ_count = len(item_updated.values)
 
     _ = c.update_archive_item(
@@ -496,9 +499,10 @@ def test_add_and_update_value_to_archive_item(local_grand_challenge):
     item_updated_again = get_updated_archive_item_detail()
 
     assert len(item_updated_again.values) == updated_civ_count
-    new_json_civ = item_updated_again.values[-1]
-    assert new_json_civ.interface.slug == "results-json-file"
-    assert new_json_civ.value == {"foo": 0.8}
+    json_civ = {v.interface.slug: v for v in item_updated_again.values}[
+        "results-json-file"
+    ]
+    assert json_civ.value == {"foo": 0.8}
 
 
 def test_add_and_update_value_to_display_set(local_grand_challenge):
@@ -533,8 +537,9 @@ def test_add_and_update_value_to_display_set(local_grand_challenge):
 
     item_updated = get_display_set_detail(expected_num_values=2)
 
-    json_civ = item_updated.values[-1]
-    assert json_civ.interface.slug == "results-json-file"
+    json_civ = {v.interface.slug: v for v in item_updated.values}[
+        "results-json-file"
+    ]
     assert json_civ.value == {"foo": 0.5}
 
     # Overwrite a CIV (update)
@@ -556,8 +561,10 @@ def test_add_and_update_value_to_display_set(local_grand_challenge):
     item_updated_again = get_updated_display_set_detail()
 
     assert len(item_updated_again.values) == 2
-    new_json_civ = item_updated_again.values[-1]
-    assert new_json_civ.interface.slug == "results-json-file"
+
+    new_json_civ = {v.interface.slug: v for v in item_updated_again.values}[
+        "results-json-file"
+    ]
     assert new_json_civ.value == {"foo": 0.8}
 
 
