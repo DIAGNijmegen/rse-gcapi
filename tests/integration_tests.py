@@ -751,7 +751,7 @@ def test_add_cases_to_archive(  # noqa: C901
 
     @recurse_call
     def check_file(interface_value, expected_name):
-        response = c(url=interface_value.file, follow_redicts=True)
+        response = c(url=interface_value.file, follow_redirects=True)
         assert response.url.path.endswith(expected_name)
 
     for archive_item_pk, archive_item in zip(
