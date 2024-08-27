@@ -213,13 +213,12 @@ class UploadsAPI(APIBase[gcapi.models.UserUpload]):
     max_retries = 10
 
     def create(self, *, filename):
-        return (
-            yield self.yield_request(
-                method="POST",
-                path=self.base_path,
-                json={"filename": str(filename)},
-            )
+        result = yield self.yield_request(
+            method="POST",
+            path=self.base_path,
+            json={"filename": str(filename)},
         )
+        return self.model(**result)
 
     def generate_presigned_urls(self, *, pk, s3_upload_id, part_numbers):
         url = urljoin(
@@ -254,8 +253,8 @@ class UploadsAPI(APIBase[gcapi.models.UserUpload]):
     def upload_fileobj(self, *, fileobj, filename):
         user_upload = yield from self.create(filename=filename)
 
-        pk = user_upload["pk"]
-        s3_upload_id = user_upload["s3_upload_id"]
+        pk = user_upload.pk
+        s3_upload_id = user_upload.s3_upload_id
 
         try:
             parts = yield from self._put_fileobj(
@@ -507,7 +506,7 @@ class ClientBase(ApiDefinitions, ClientInterface):
 
         return (
             yield from self.__org_api_meta.raw_image_upload_sessions.create(
-                uploads=[u["api_url"] for u in uploads], **kwargs
+                uploads=[u.api_url for u in uploads], **kwargs
             )
         )
 

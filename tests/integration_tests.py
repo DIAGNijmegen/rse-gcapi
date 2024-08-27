@@ -147,7 +147,7 @@ def test_upload_cases_to_archive(local_grand_challenge, files, interface):
         files=[TESTDATA / f for f in files],
     )
 
-    us = get_upload_session(c, us["pk"])
+    us = get_upload_session(c, us.pk)
 
     # Check that only one image was created
     assert len(us.image_set) == 1
@@ -175,7 +175,7 @@ def test_upload_cases_to_archive(local_grand_challenge, files, interface):
         )
 
     # And that we can download it
-    response = c(url=image["files"][0]["file"], follow_redirects=True)
+    response = c(url=image.files[0].file, follow_redirects=True)
     assert response.status_code == 200
 
 
@@ -224,7 +224,7 @@ def test_upload_cases_to_archive_item_with_existing_interface(
         files=[TESTDATA / "image10x10x101.mha"],
     )
 
-    us = get_upload_session(c, us["pk"])
+    us = get_upload_session(c, us.pk)
 
     # Check that only one image was created
     assert len(us.image_set) == 1
@@ -255,7 +255,7 @@ def test_upload_cases_to_archive_item_with_new_interface(
         files=[TESTDATA / "image10x10x101.mha"],
     )
 
-    us = get_upload_session(c, us["pk"])
+    us = get_upload_session(c, us.pk)
     # Check that only one image was created
     assert len(us.image_set) == 1
 
@@ -280,7 +280,7 @@ def test_download_cases(local_grand_challenge, files, tmpdir):
         files=[TESTDATA / f for f in files],
     )
 
-    us = get_upload_session(c, us["pk"])
+    us = get_upload_session(c, us.pk)
 
     # Check that we can download the uploaded image
     tmpdir = Path(tmpdir)
@@ -336,9 +336,9 @@ def test_create_job_with_upload(
     # algorithm might not be ready yet
     job = run_job()
 
-    assert job["status"] == "Queued"
-    assert len(job["inputs"]) == 1
-    job = c.algorithm_jobs.detail(job["pk"])
+    assert job.status == "Queued"
+    assert len(job.inputs) == 1
+    job = c.algorithm_jobs.detail(job.pk)
     assert job.status in {"Queued", "Started"}
 
 

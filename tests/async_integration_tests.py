@@ -167,7 +167,7 @@ async def test_upload_cases_to_archive(
             files=[TESTDATA / f for f in files],
         )
 
-        us = await get_upload_session(c, us["pk"])
+        us = await get_upload_session(c, us.pk)
 
         # Check that only one image was created
         assert len(us.image_set) == 1
@@ -255,7 +255,7 @@ async def test_upload_cases_to_archive_item_with_existing_interface(
             files=[TESTDATA / "image10x10x101.mha"],
         )
 
-        us = await get_upload_session(c, us["pk"])
+        us = await get_upload_session(c, us.pk)
 
         # Check that only one image was created
         assert len(us.image_set) == 1
@@ -298,7 +298,7 @@ async def test_upload_cases_to_archive_item_with_new_interface(
             files=[TESTDATA / "image10x10x101.mha"],
         )
 
-        us = await get_upload_session(c, us["pk"])
+        us = await get_upload_session(c, us.pk)
 
         # Check that only one image was created
         assert len(us.image_set) == 1
@@ -325,7 +325,7 @@ async def test_download_cases(local_grand_challenge, files, tmpdir):
             files=[TESTDATA / f for f in files],
         )
 
-        us = await get_upload_session(c, us["pk"])
+        us = await get_upload_session(c, us.pk)
 
         # Check that we can download the uploaded image
         tmpdir = Path(tmpdir)
@@ -378,10 +378,10 @@ async def test_create_job_with_upload(
         # algorithm might not be ready yet
         job = await run_job()
 
-        assert job["status"] == "Queued"
-        assert len(job["inputs"]) == 1
+        assert job.status == "Queued"
+        assert len(job.inputs) == 1
 
-        job = await c.algorithm_jobs.detail(job["pk"])
+        job = await c.algorithm_jobs.detail(job.pk)
         assert job.status in {"Queued", "Started"}
 
 
