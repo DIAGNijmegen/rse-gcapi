@@ -38,7 +38,7 @@ class BaseRetryTransport:
         if retry_strategy is None:
             if self.retry_strategy is None:
                 return None, None
-            retry_strategy = self.retry_strategy()  # type: ignore
+            retry_strategy = self.retry_strategy()
 
         retry_delay = retry_strategy.get_delay(response)
         if retry_delay is not None:
