@@ -518,66 +518,69 @@ def test_update_archive_item_with_non_existing_interface(
     assert "new-interface is not an existing interface" in str(e)
 
 
+CIV_SET_PARAMS = (
+    [
+        {
+            "generic-medical-image": [TESTDATA / "image10x10x101.mha"],
+            "generic-overlay": [
+                TESTDATA / "image10x10x10.mhd",
+                TESTDATA / "image10x10x10.zraw",
+            ],
+            "annotation": {
+                "name": "forearm",
+                "type": "2D bounding box",
+                "corners": [
+                    [20, 88, 0.5],
+                    [83, 88, 0.5],
+                    [83, 175, 0.5],
+                    [20, 175, 0.5],
+                ],
+                "version": {"major": 1, "minor": 0},
+            },
+            "predictions-csv-file": [TESTDATA / "test.csv"],
+        },
+        {
+            "generic-medical-image": [TESTDATA / "image10x10x101.mha"],
+            "annotation": Path(__file__).parent
+            / "testdata"
+            / "annotation.json",
+        },
+        {
+            "annotation": {
+                "name": "forearm",
+                "type": "2D bounding box",
+                "corners": [
+                    [20, 88, 0.5],
+                    [83, 88, 0.5],
+                    [83, 175, 0.5],
+                    [20, 175, 0.5],
+                ],
+                "version": {"major": 1, "minor": 0},
+            },
+            "predictions-csv-file": Path(__file__).parent
+            / "testdata"
+            / "test.csv",
+        },
+        {
+            "annotation": {
+                "name": "forearm",
+                "type": "2D bounding box",
+                "corners": [
+                    [20, 88, 0.5],
+                    [83, 88, 0.5],
+                    [83, 175, 0.5],
+                    [20, 175, 0.5],
+                ],
+                "version": {"major": 1, "minor": 0},
+            },
+        },
+    ],
+)
+
+
 @pytest.mark.parametrize(
     "display_sets",
-    (
-        [
-            {
-                "generic-medical-image": [TESTDATA / "image10x10x101.mha"],
-                "generic-overlay": [
-                    TESTDATA / "image10x10x10.mhd",
-                    TESTDATA / "image10x10x10.zraw",
-                ],
-                "annotation": {
-                    "name": "forearm",
-                    "type": "2D bounding box",
-                    "corners": [
-                        [20, 88, 0.5],
-                        [83, 88, 0.5],
-                        [83, 175, 0.5],
-                        [20, 175, 0.5],
-                    ],
-                    "version": {"major": 1, "minor": 0},
-                },
-                "predictions-csv-file": [TESTDATA / "test.csv"],
-            },
-            {
-                "generic-medical-image": [TESTDATA / "image10x10x101.mha"],
-                "annotation": Path(__file__).parent
-                / "testdata"
-                / "annotation.json",
-            },
-            {
-                "annotation": {
-                    "name": "forearm",
-                    "type": "2D bounding box",
-                    "corners": [
-                        [20, 88, 0.5],
-                        [83, 88, 0.5],
-                        [83, 175, 0.5],
-                        [20, 175, 0.5],
-                    ],
-                    "version": {"major": 1, "minor": 0},
-                },
-                "predictions-csv-file": Path(__file__).parent
-                / "testdata"
-                / "test.csv",
-            },
-            {
-                "annotation": {
-                    "name": "forearm",
-                    "type": "2D bounding box",
-                    "corners": [
-                        [20, 88, 0.5],
-                        [83, 88, 0.5],
-                        [83, 175, 0.5],
-                        [20, 175, 0.5],
-                    ],
-                    "version": {"major": 1, "minor": 0},
-                },
-            },
-        ],
-    ),
+    CIV_SET_PARAMS,
 )
 def test_add_cases_to_reader_study(  # noqa: C901
     display_sets, local_grand_challenge
@@ -647,64 +650,7 @@ def test_add_cases_to_reader_study(  # noqa: C901
 
 @pytest.mark.parametrize(
     "archive_items",
-    (
-        [
-            {
-                "generic-medical-image": [TESTDATA / "image10x10x101.mha"],
-                "generic-overlay": [
-                    TESTDATA / "image10x10x10.mhd",
-                    TESTDATA / "image10x10x10.zraw",
-                ],
-                "annotation": {
-                    "name": "forearm",
-                    "type": "2D bounding box",
-                    "corners": [
-                        [20, 88, 0.5],
-                        [83, 88, 0.5],
-                        [83, 175, 0.5],
-                        [20, 175, 0.5],
-                    ],
-                    "version": {"major": 1, "minor": 0},
-                },
-                "predictions-csv-file": [TESTDATA / "test.csv"],
-            },
-            {
-                "generic-medical-image": [TESTDATA / "image10x10x101.mha"],
-                "annotation": Path(__file__).parent
-                / "testdata"
-                / "annotation.json",
-            },
-            {
-                "annotation": {
-                    "name": "forearm",
-                    "type": "2D bounding box",
-                    "corners": [
-                        [20, 88, 0.5],
-                        [83, 88, 0.5],
-                        [83, 175, 0.5],
-                        [20, 175, 0.5],
-                    ],
-                    "version": {"major": 1, "minor": 0},
-                },
-                "predictions-csv-file": Path(__file__).parent
-                / "testdata"
-                / "test.csv",
-            },
-            {
-                "annotation": {
-                    "name": "forearm",
-                    "type": "2D bounding box",
-                    "corners": [
-                        [20, 88, 0.5],
-                        [83, 88, 0.5],
-                        [83, 175, 0.5],
-                        [20, 175, 0.5],
-                    ],
-                    "version": {"major": 1, "minor": 0},
-                },
-            },
-        ],
-    ),
+    CIV_SET_PARAMS,
 )
 def test_add_cases_to_archive(  # noqa: C901
     archive_items, local_grand_challenge

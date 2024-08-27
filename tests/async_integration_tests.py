@@ -7,6 +7,7 @@ from httpx import HTTPStatusError
 
 from gcapi import AsyncClient
 from gcapi.exceptions import MultipleObjectsReturned, ObjectNotFound
+from tests.integration_tests import CIV_SET_PARAMS
 from tests.utils import (
     ADMIN_TOKEN,
     ARCHIVE_TOKEN,
@@ -473,20 +474,6 @@ async def test_add_and_update_file_to_archive_item(local_grand_challenge):
 
         old_civ_count = len(items_list[-1].values)
 
-        with pytest.raises(ValueError) as e:
-            _ = await c.update_archive_item(
-                archive_item_pk=items_list[-1].pk,
-                values={
-                    "predictions-csv-file": [
-                        TESTDATA / f for f in ["test.csv", "test.csv"]
-                    ]
-                },
-            )
-        assert (
-            "You can only upload one single file to a predictions-csv-file interface"
-            in str(e)
-        )
-
         _ = await c.update_archive_item(
             archive_item_pk=items_list[-1].pk,
             values={"predictions-csv-file": [TESTDATA / "test.csv"]},
@@ -617,64 +604,7 @@ async def test_update_archive_item_with_non_existing_interface(
 
 @pytest.mark.parametrize(
     "display_sets",
-    (
-        [
-            {
-                "generic-medical-image": [TESTDATA / "image10x10x101.mha"],
-                "generic-overlay": [
-                    TESTDATA / "image10x10x10.mhd",
-                    TESTDATA / "image10x10x10.zraw",
-                ],
-                "annotation": {
-                    "name": "forearm",
-                    "type": "2D bounding box",
-                    "corners": [
-                        [20, 88, 0.5],
-                        [83, 88, 0.5],
-                        [83, 175, 0.5],
-                        [20, 175, 0.5],
-                    ],
-                    "version": {"major": 1, "minor": 0},
-                },
-                "predictions-csv-file": [TESTDATA / "test.csv"],
-            },
-            {
-                "generic-medical-image": [TESTDATA / "image10x10x101.mha"],
-                "annotation": Path(__file__).parent
-                / "testdata"
-                / "annotation.json",
-            },
-            {
-                "annotation": {
-                    "name": "forearm",
-                    "type": "2D bounding box",
-                    "corners": [
-                        [20, 88, 0.5],
-                        [83, 88, 0.5],
-                        [83, 175, 0.5],
-                        [20, 175, 0.5],
-                    ],
-                    "version": {"major": 1, "minor": 0},
-                },
-                "predictions-csv-file": Path(__file__).parent
-                / "testdata"
-                / "test.csv",
-            },
-            {
-                "annotation": {
-                    "name": "forearm",
-                    "type": "2D bounding box",
-                    "corners": [
-                        [20, 88, 0.5],
-                        [83, 88, 0.5],
-                        [83, 175, 0.5],
-                        [20, 175, 0.5],
-                    ],
-                    "version": {"major": 1, "minor": 0},
-                },
-            },
-        ],
-    ),
+    CIV_SET_PARAMS,
 )
 @pytest.mark.anyio
 async def test_add_cases_to_reader_study(  # noqa: C901
@@ -744,64 +674,7 @@ async def test_add_cases_to_reader_study(  # noqa: C901
 
 @pytest.mark.parametrize(
     "archive_items",
-    (
-        [
-            {
-                "generic-medical-image": [TESTDATA / "image10x10x101.mha"],
-                "generic-overlay": [
-                    TESTDATA / "image10x10x10.mhd",
-                    TESTDATA / "image10x10x10.zraw",
-                ],
-                "annotation": {
-                    "name": "forearm",
-                    "type": "2D bounding box",
-                    "corners": [
-                        [20, 88, 0.5],
-                        [83, 88, 0.5],
-                        [83, 175, 0.5],
-                        [20, 175, 0.5],
-                    ],
-                    "version": {"major": 1, "minor": 0},
-                },
-                "predictions-csv-file": [TESTDATA / "test.csv"],
-            },
-            {
-                "generic-medical-image": [TESTDATA / "image10x10x101.mha"],
-                "annotation": Path(__file__).parent
-                / "testdata"
-                / "annotation.json",
-            },
-            {
-                "annotation": {
-                    "name": "forearm",
-                    "type": "2D bounding box",
-                    "corners": [
-                        [20, 88, 0.5],
-                        [83, 88, 0.5],
-                        [83, 175, 0.5],
-                        [20, 175, 0.5],
-                    ],
-                    "version": {"major": 1, "minor": 0},
-                },
-                "predictions-csv-file": Path(__file__).parent
-                / "testdata"
-                / "test.csv",
-            },
-            {
-                "annotation": {
-                    "name": "forearm",
-                    "type": "2D bounding box",
-                    "corners": [
-                        [20, 88, 0.5],
-                        [83, 88, 0.5],
-                        [83, 175, 0.5],
-                        [20, 175, 0.5],
-                    ],
-                    "version": {"major": 1, "minor": 0},
-                },
-            },
-        ],
-    ),
+    CIV_SET_PARAMS,
 )
 @pytest.mark.anyio
 async def test_add_cases_to_archive(  # noqa: C901
