@@ -697,17 +697,21 @@ class ClientBase(ApiDefinitions, ClientInterface):
         """
         This function updates an existing archive item with the provided values
         and returns the updated archive item.
+
         You can use this function, for example, to add metadata to an archive item.
+
         First, retrieve the archive items from your archive:
-        archive = next(client.archives.iterate_all(params={"slug": "..."}))
+
+        archive = client.archives.detail(slug="...")
         items = list(
-            client.archive_items.iterate_all(params={"archive": archive["pk"]})
+            client.archive_items.iterate_all(params={"archive": archive.pk})
         )
+
         To then add, for example, a PDF report and a lung volume
         value to the first archive item , provide the interface slugs together
         with the respective value or file path as follows:
         client.update_archive_item(
-            archive_item_pk=items[0]['id'],
+            archive_item_pk=items[0].id,
             values={
                 "report": [...],
                 "lung-volume": 1.9,
@@ -808,6 +812,44 @@ class ClientBase(ApiDefinitions, ClientInterface):
         display_set_pk: str,
         values: CIVSetDescription,
     ):
+        """
+        This function updates an existing display set with the provided values
+        and returns the updated display set.
+
+        You can use this function, for example, to add items to an display set.
+
+        First, retrieve the display set from your reader study:
+
+        reader_study = client.reader_studies.detail(slug="...")
+        items = list(
+            client.reader_studies.display_sets.iterate_all(
+                params={"reader_study": reader_study.pk}
+            )
+        )
+
+        To then add, for example, a PDF report and a lung volume
+        value to the first archive item , provide the interface slugs together
+        with the respective value or file path as follows:
+        client.update_display_set(
+            archive_item_pk=items[0].id,
+            values={
+                "report": [...],
+                "lung-volume": 1.9,
+            },
+        )
+        If you provide a value or file for an existing interface of the display
+        set, the old value will be overwritten by the new one, hence allowing you
+        to update existing display set values.
+
+        Parameters
+        ----------
+        display_set_pk
+        values
+
+        Returns
+        -------
+        The updated display set
+        """
         item = (
             yield from self.__org_api_meta.reader_studies.display_sets.detail(
                 pk=display_set_pk
