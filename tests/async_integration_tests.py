@@ -153,9 +153,7 @@ async def test_upload_cases_to_archive(
         image = await get_image(c, us.image_set[0])
 
         # And that it was added to the archive
-        archive = await c.archives.iterate_all(
-            params={"slug": "archive"}
-        ).__anext__()
+        archive = await c.archives.detail(slug="archive")
         archive_images = c.images.iterate_all(params={"archive": archive.pk})
         assert image.pk in [im.pk async for im in archive_images]
         archive_items = c.archive_items.iterate_all(
@@ -191,9 +189,7 @@ async def test_upload_cases_to_archive_item_without_interface(
         base_url=local_grand_challenge, verify=False, token=ARCHIVE_TOKEN
     ) as c:
         # retrieve existing archive item pk
-        archive = await c.archives.iterate_all(
-            params={"slug": "archive"}
-        ).__anext__()
+        archive = await c.archives.detail(slug="archive")
         item = await c.archive_items.iterate_all(
             params={"archive": archive.pk}
         ).__anext__()
@@ -217,9 +213,7 @@ async def test_upload_cases_to_archive_item_with_existing_interface(
         base_url=local_grand_challenge, verify=False, token=ARCHIVE_TOKEN
     ) as c:
         # retrieve existing archive item pk
-        archive = await c.archives.iterate_all(
-            params={"slug": "archive"}
-        ).__anext__()
+        archive = await c.archives.detail(slug="archive")
         items = c.archive_items.iterate_all(params={"archive": archive.pk})
         old_items_list = [item async for item in items]
 
@@ -263,9 +257,7 @@ async def test_upload_cases_to_archive_item_with_new_interface(
     async with AsyncClient(
         base_url=local_grand_challenge, verify=False, token=ARCHIVE_TOKEN
     ) as c:
-        archive = await c.archives.iterate_all(
-            params={"slug": "archive"}
-        ).__anext__()
+        archive = await c.archives.detail(slug="archive")
         items = c.archive_items.iterate_all(params={"archive": archive.pk})
         old_items_list = [item async for item in items]
 
@@ -464,9 +456,7 @@ async def test_add_and_update_file_to_archive_item(local_grand_challenge):
         base_url=local_grand_challenge, verify=False, token=ARCHIVE_TOKEN
     ) as c:
         # check number of archive items
-        archive = await c.archives.iterate_all(
-            params={"slug": "archive"}
-        ).__anext__()
+        archive = await c.archives.detail(slug="archive")
         items = c.archive_items.iterate_all(params={"archive": archive.pk})
         old_items_list = [item async for item in items]
 
@@ -530,9 +520,7 @@ async def test_add_and_update_value_to_archive_item(local_grand_challenge):
         base_url=local_grand_challenge, verify=False, token=ARCHIVE_TOKEN
     ) as c:
         # check number of archive items
-        archive = await c.archives.iterate_all(
-            params={"slug": "archive"}
-        ).__anext__()
+        archive = await c.archives.detail(slug="archive")
         items = c.archive_items.iterate_all(params={"archive": archive.pk})
         old_items_list = [item async for item in items]
 
@@ -668,9 +656,7 @@ async def test_update_archive_item_with_non_existing_interface(
         base_url=local_grand_challenge, verify=False, token=ARCHIVE_TOKEN
     ) as c:
         # retrieve existing archive item pk
-        archive = await c.archives.iterate_all(
-            params={"slug": "archive"}
-        ).__anext__()
+        archive = await c.archives.detail(slug="archive")
         items = c.archive_items.iterate_all(params={"archive": archive.pk})
         item_ids = [item.pk async for item in items]
         with pytest.raises(ValueError) as e:
@@ -697,9 +683,7 @@ async def test_add_cases_to_reader_study(  # noqa: C901
 
         assert len(added_display_sets) == len(display_sets)
 
-        reader_study = await c.reader_studies.iterate_all(
-            params={"slug": "reader-study"}
-        ).__anext__()
+        reader_study = await c.reader_studies.detail(slug="reader-study")
         all_display_sets = c.reader_studies.display_sets.iterate_all(
             params={"reader_study": reader_study.pk}
         )
@@ -768,9 +752,7 @@ async def test_add_cases_to_archive(  # noqa: C901
 
         assert len(added_archive_items) == len(archive_items)
 
-        archive = await c.archives.iterate_all(
-            params={"slug": "archive"}
-        ).__anext__()
+        archive = await c.archives.detail(slug="archive")
 
         all_archive_items = c.archive_items.iterate_all(
             params={"archive": archive.pk}

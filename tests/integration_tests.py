@@ -134,7 +134,7 @@ def test_upload_cases_to_archive(local_grand_challenge, files, interface):
     image = get_image(c, us.image_set[0])
 
     # And that it was added to the archive
-    archive = next(c.archives.iterate_all(params={"slug": "archive"}))
+    archive = c.archives.detail(slug="archive")
     archive_images = c.images.iterate_all(params={"archive": archive.pk})
     assert image.pk in [im.pk for im in archive_images]
     archive_items = c.archive_items.iterate_all(params={"archive": archive.pk})
@@ -163,7 +163,7 @@ def test_upload_cases_to_archive_item_without_interface(local_grand_challenge):
         base_url=local_grand_challenge, verify=False, token=ARCHIVE_TOKEN
     )
     # retrieve existing archive item pk
-    archive = next(c.archives.iterate_all(params={"slug": "archive"}))
+    archive = c.archives.detail(slug="archive")
     item = next(c.archive_items.iterate_all(params={"archive": archive.pk}))
 
     # try upload without providing interface
@@ -194,7 +194,7 @@ def test_upload_cases_to_archive_item_with_existing_interface(
         base_url=local_grand_challenge, verify=False, token=ARCHIVE_TOKEN
     )
     # retrieve existing archive item pk
-    archive = next(c.archives.iterate_all(params={"slug": "archive"}))
+    archive = c.archives.detail(slug="archive")
     item = next(c.archive_items.iterate_all(params={"archive": archive.pk}))
 
     us = c.upload_cases(
@@ -225,7 +225,7 @@ def test_upload_cases_to_archive_item_with_new_interface(
         base_url=local_grand_challenge, verify=False, token=ARCHIVE_TOKEN
     )
     # retrieve existing archive item pk
-    archive = next(c.archives.iterate_all(params={"slug": "archive"}))
+    archive = c.archives.detail(slug="archive")
     item = next(c.archive_items.iterate_all(params={"archive": archive.pk}))
 
     us = c.upload_cases(
@@ -382,7 +382,7 @@ def test_add_and_update_file_to_archive_item(local_grand_challenge):
     )
 
     # check number of archive items
-    archive = next(c.archives.iterate_all(params={"slug": "archive"}))
+    archive = c.archives.detail(slug="archive")
     old_items_list = list(
         c.archive_items.iterate_all(params={"archive": archive.pk})
     )
@@ -445,7 +445,7 @@ def test_add_and_update_value_to_archive_item(local_grand_challenge):
         base_url=local_grand_challenge, verify=False, token=ARCHIVE_TOKEN
     )
     # check number of archive items
-    archive = next(c.archives.iterate_all(params={"slug": "archive"}))
+    archive = c.archives.detail(slug="archive")
     old_items_list = list(
         c.archive_items.iterate_all(params={"archive": archive.pk})
     )
@@ -576,7 +576,7 @@ def test_update_archive_item_with_non_existing_interface(
     )
 
     # retrieve existing archive item pk
-    archive = next(c.archives.iterate_all(params={"slug": "archive"}))
+    archive = c.archives.detail(slug="archive")
     items = list(c.archive_items.iterate_all(params={"archive": archive.pk}))
     with pytest.raises(ValueError) as e:
         _ = c.update_archive_item(
@@ -662,9 +662,8 @@ def test_add_cases_to_reader_study(  # noqa: C901
 
     assert len(added_display_sets) == len(display_sets)
 
-    reader_study = next(
-        c.reader_studies.iterate_all(params={"slug": "reader-study"})
-    )
+    reader_study = c.reader_studies.detail(slug="reader-study")
+
     all_display_sets = list(
         c.reader_studies.display_sets.iterate_all(
             params={"reader_study": reader_study.pk}
@@ -732,7 +731,7 @@ def test_add_cases_to_archive(  # noqa: C901
 
     assert len(added_archive_items) == len(archive_items)
 
-    archive = next(c.archives.iterate_all(params={"slug": "archive"}))
+    archive = c.archives.detail(slug="archive")
     all_archive_items = list(
         c.archive_items.iterate_all(params={"archive": archive.pk})
     )
