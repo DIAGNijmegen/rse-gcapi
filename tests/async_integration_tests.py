@@ -395,8 +395,9 @@ async def test_get_algorithm_by_slug(local_grand_challenge):
             slug="test-algorithm-evaluation-image-1"
         )
         by_pk = await c.algorithms.detail(pk=by_slug.pk)
+        by_api_url = await c.algorithms.detail(api_url=by_slug.api_url)
 
-        assert by_pk == by_slug
+        assert by_pk == by_slug == by_api_url
 
 
 @pytest.mark.anyio
@@ -406,8 +407,9 @@ async def test_get_reader_study_by_slug(local_grand_challenge):
     ) as c:
         by_slug = await c.reader_studies.detail(slug="reader-study")
         by_pk = await c.reader_studies.detail(pk=by_slug.pk)
+        by_api_url = await c.reader_studies.detail(api_url=by_slug.api_url)
 
-        assert by_pk == by_slug
+        assert by_pk == by_slug == by_api_url
 
 
 @pytest.mark.parametrize("key", ["slug", "pk"])
@@ -738,3 +740,53 @@ async def test_add_cases_to_reader_study(  # noqa: C901
                         value = value[0]
                     file_name = value.name
                     check_file(civ, file_name)
+
+
+@pytest.mark.anyio
+async def test_add_cases_to_reader_study_reuse_objects(local_grand_challenge):
+    async with AsyncClient(
+        base_url=local_grand_challenge, verify=False, token=READERSTUDY_TOKEN
+    ) as c:
+
+        @async_recurse_call
+        async def wait_for_import(pk):
+            ds = await c.reader_studies.display_sets.detail(pk=pk)
+            if len(ds.values) != 1:
+                raise ValueError("No image imported yet")
+
+        # Create an image / civ
+        added_display_sets = await c.add_cases_to_reader_study(
+            reader_study="reader-study",
+            display_sets=[
+                {
+                    "generic-medical-image": [TESTDATA / "image10x10x101.mha"],
+                }
+            ],
+        )
+
+        assert len(added_display_sets) == 1
+        display_set_pk = added_display_sets[0]
+
+        await wait_for_import(display_set_pk)
+
+        ds = await c.reader_studies.display_sets.detail(pk=display_set_pk)
+
+        # Re-use both as a direct image and a CIV
+        civ = ds.values[0]
+        image = await c.images.detail(api_url=civ.image)
+
+        added_display_sets = await c.add_cases_to_reader_study(
+            reader_study="reader-study",
+            display_sets=[
+                {
+                    "generic-medical-image": image,
+                },
+                {
+                    "generic-medical-image": civ,
+                },
+            ],
+        )
+        assert len(added_display_sets) == 2
+        for ds_pk in added_display_sets:
+            ds = await c.reader_studies.display_sets.detail(pk=ds_pk)
+            assert len(ds.values) == 1

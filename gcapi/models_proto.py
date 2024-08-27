@@ -10,8 +10,8 @@ from gcapi.models import (
     ComponentInterface,
     DisplaySet,
     DisplaySetPost,
+    HyperlinkedComponentInterfaceValue,
     HyperlinkedImage,
-    SimpleImage,
 )
 from gcapi.typing import CIVSetDescription, FileSource
 
@@ -92,7 +92,9 @@ class ProtoCIV(BaseProtoModel):
     def __init__(
         self,
         *,
-        source: Union[FileSource, SimpleImage, HyperlinkedImage],
+        source: Union[
+            FileSource, HyperlinkedComponentInterfaceValue, HyperlinkedImage
+        ],
         interface: ComponentInterface,
         parent: Optional[
             Union[ArchiveItem, ArchiveItemPost, DisplaySet, DisplaySetPost]
@@ -159,9 +161,12 @@ class ImageProtoCIV(ProtoCIV):
 
         if isinstance(self.source, HyperlinkedImage):
             self.content = self.source
-        elif isinstance(self.source, SimpleImage):
+        elif (
+            isinstance(self.source, HyperlinkedComponentInterfaceValue)
+            and self.source.image is not None
+        ):
             self.content = yield from self.client_api.images.detail(
-                pk=self.source.pk
+                api_url=self.source.image
             )
         else:
             self.content = clean_file_source(self.source)

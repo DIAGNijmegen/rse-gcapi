@@ -13,7 +13,11 @@ FileSource = Union[
 
 CIVSetDescription = dict[
     Union[str, gcapi.models.ComponentInterface],
-    Union[FileSource, gcapi.models.SimpleImage, gcapi.models.HyperlinkedImage],
+    Union[
+        FileSource,
+        gcapi.models.HyperlinkedComponentInterfaceValue,
+        gcapi.models.HyperlinkedImage,
+    ],
 ]
 
 ArchiveItemOrPk = Union[str, gcapi.models.ArchiveItem]

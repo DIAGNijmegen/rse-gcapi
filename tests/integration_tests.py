@@ -330,8 +330,9 @@ def test_get_algorithm_by_slug(local_grand_challenge):
 
     by_slug = c.algorithms.detail(slug="test-algorithm-evaluation-image-1")
     by_pk = c.algorithms.detail(pk=by_slug.pk)
+    by_api_url = c.algorithms.detail(api_url=by_slug.api_url)
 
-    assert by_pk == by_slug
+    assert by_pk == by_slug == by_api_url
 
 
 def test_get_reader_study_by_slug(local_grand_challenge):
@@ -341,8 +342,9 @@ def test_get_reader_study_by_slug(local_grand_challenge):
 
     by_slug = c.reader_studies.detail(slug="reader-study")
     by_pk = c.reader_studies.detail(pk=by_slug.pk)
+    by_api_url = c.reader_studies.detail(api_url=by_slug.api_url)
 
-    assert by_pk == by_slug
+    assert by_pk == by_slug == by_api_url
 
 
 @pytest.mark.parametrize("key", ["slug", "pk"])
@@ -641,6 +643,55 @@ def test_add_cases_to_reader_study(  # noqa: C901
                     value = value[0]
                 file_name = value.name
                 check_file(civ, file_name)
+
+
+def test_add_cases_to_reader_study_reuse_objects(local_grand_challenge):
+    c = Client(
+        base_url=local_grand_challenge, verify=False, token=READERSTUDY_TOKEN
+    )
+
+    @recurse_call
+    def wait_for_import(pk):
+        ds = c.reader_studies.display_sets.detail(pk=pk)
+        if len(ds.values) != 1:
+            raise ValueError("No image imported yet")
+
+    # Create an image / civ
+    added_display_sets = c.add_cases_to_reader_study(
+        reader_study="reader-study",
+        display_sets=[
+            {
+                "generic-medical-image": [TESTDATA / "image10x10x101.mha"],
+            }
+        ],
+    )
+
+    assert len(added_display_sets) == 1
+    display_set_pk = added_display_sets[0]
+
+    wait_for_import(display_set_pk)
+
+    ds = c.reader_studies.display_sets.detail(pk=display_set_pk)
+
+    # Re-use both as a direct image and a CIV
+    civ = ds.values[0]
+    image = c.images.detail(api_url=civ.image)
+
+    added_display_sets = c.add_cases_to_reader_study(
+        reader_study="reader-study",
+        display_sets=[
+            {
+                "generic-medical-image": image,
+            },
+            {
+                "generic-medical-image": civ,
+            },
+        ],
+    )
+    assert len(added_display_sets) == 2
+    for ds_pk in added_display_sets:
+        ds = c.reader_studies.display_sets.detail(pk=ds_pk)
+        assert len(ds.values) == 1
 
 
 def test_add_cases_to_reader_study_invalid_interface(local_grand_challenge):
