@@ -5,6 +5,7 @@ from time import sleep
 from httpx import AsyncHTTPTransport, HTTPStatusError, HTTPTransport
 
 import gcapi
+from gcapi.exceptions import ObjectNotFound
 from tests.scripts.constants import USER_TOKENS
 
 ADMIN_TOKEN = USER_TOKENS["admin"]
@@ -20,7 +21,11 @@ def recurse_call(func):
             try:
                 result = func(*args, **kwargs)
                 break
-            except (HTTPStatusError, ValueError) as e:
+            except (
+                HTTPStatusError,
+                ValueError,
+                ObjectNotFound,  # Lagging permissions
+            ) as e:
                 last_error = e
                 sleep(0.5)
         else:
@@ -37,7 +42,11 @@ def async_recurse_call(func):
             try:
                 result = await func(*args, **kwargs)
                 break
-            except (HTTPStatusError, ValueError) as e:
+            except (
+                HTTPStatusError,
+                ValueError,
+                ObjectNotFound,  # Lagging permissions
+            ) as e:
                 last_error = e
                 sleep(0.5)
         else:
