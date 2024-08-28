@@ -3,11 +3,12 @@ import os
 import re
 import uuid
 from collections.abc import Generator
+from functools import partial
 from io import BytesIO
 from pathlib import Path
 from random import randint
 from time import sleep
-from typing import TYPE_CHECKING, Any, Callable, Optional, Union
+from typing import TYPE_CHECKING, Any, Callable, Optional, Union, cast
 from urllib.parse import urljoin
 
 import httpx
@@ -16,8 +17,10 @@ from httpx import URL, HTTPStatusError, Timeout
 import gcapi.models
 from gcapi.apibase import APIBase, ClientInterface, ModifiableMixin
 from gcapi.exceptions import ObjectNotFound
+from gcapi.models_proto import Empty, ProtoCIV, ProtoJob
 from gcapi.retries import BaseRetryStrategy, SelectiveBackoffStrategy
 from gcapi.sync_async_hybrid_support import CapturedCall, mark_generator
+from gcapi.typing import CIVSet, CIVSetDescription
 
 logger = logging.getLogger(__name__)
 
@@ -96,6 +99,7 @@ class UploadSessionsAPI(
 ):
     base_path = "cases/upload-sessions/"
     model = gcapi.models.RawImageUploadSession
+    response_model = gcapi.models.RawImageUploadSession
 
 
 class WorkstationSessionsAPI(APIBase[gcapi.models.Session]):
@@ -108,9 +112,7 @@ class ReaderStudyQuestionsAPI(APIBase[gcapi.models.Question]):
     model = gcapi.models.Question
 
 
-class ReaderStudyMineAnswersAPI(
-    ModifiableMixin, APIBase[gcapi.models.ReaderStudy]
-):
+class ReaderStudyMineAnswersAPI(APIBase[gcapi.models.ReaderStudy]):
     base_path = "reader-studies/answers/mine/"
     model = gcapi.models.ReaderStudy
 
@@ -118,6 +120,7 @@ class ReaderStudyMineAnswersAPI(
 class ReaderStudyAnswersAPI(ModifiableMixin, APIBase[gcapi.models.Answer]):
     base_path = "reader-studies/answers/"
     model = gcapi.models.Answer
+    response_model = gcapi.models.Answer
 
     sub_apis = {"mine": ReaderStudyMineAnswersAPI}
 
@@ -142,6 +145,7 @@ class ReaderStudyDisplaySetsAPI(
 ):
     base_path = "reader-studies/display-sets/"
     model = gcapi.models.DisplaySet
+    response_model = gcapi.models.DisplaySetPost
 
 
 class ReaderStudiesAPI(APIBase[gcapi.models.ReaderStudy]):
@@ -177,6 +181,7 @@ class AlgorithmsAPI(APIBase[gcapi.models.Algorithm]):
 class AlgorithmJobsAPI(ModifiableMixin, APIBase[gcapi.models.HyperlinkedJob]):
     base_path = "algorithms/jobs/"
     model = gcapi.models.HyperlinkedJob
+    response_model = gcapi.models.JobPost
 
     @mark_generator
     def by_input_image(self, pk):
@@ -191,6 +196,7 @@ class ArchivesAPI(APIBase[gcapi.models.Archive]):
 class ArchiveItemsAPI(ModifiableMixin, APIBase[gcapi.models.ArchiveItem]):
     base_path = "archives/items/"
     model = gcapi.models.ArchiveItem
+    response_model = gcapi.models.ArchiveItemPost
 
 
 class ComponentInterfacesAPI(APIBase[gcapi.models.ComponentInterface]):
@@ -207,13 +213,12 @@ class UploadsAPI(APIBase[gcapi.models.UserUpload]):
     max_retries = 10
 
     def create(self, *, filename):
-        return (
-            yield self.yield_request(
-                method="POST",
-                path=self.base_path,
-                json={"filename": str(filename)},
-            )
+        result = yield self.yield_request(
+            method="POST",
+            path=self.base_path,
+            json={"filename": str(filename)},
         )
+        return self.model(**result)
 
     def generate_presigned_urls(self, *, pk, s3_upload_id, part_numbers):
         url = urljoin(
@@ -248,8 +253,8 @@ class UploadsAPI(APIBase[gcapi.models.UserUpload]):
     def upload_fileobj(self, *, fileobj, filename):
         user_upload = yield from self.create(filename=filename)
 
-        pk = user_upload["pk"]
-        s3_upload_id = user_upload["s3_upload_id"]
+        pk = user_upload.pk
+        s3_upload_id = user_upload.s3_upload_id
 
         try:
             parts = yield from self._put_fileobj(
@@ -261,11 +266,10 @@ class UploadsAPI(APIBase[gcapi.models.UserUpload]):
             )
             raise
 
-        return (  # noqa: B901
-            yield from self.complete_multipart_upload(
-                pk=pk, s3_upload_id=s3_upload_id, parts=parts
-            )
+        result = yield from self.complete_multipart_upload(
+            pk=pk, s3_upload_id=s3_upload_id, parts=parts
         )
+        return self.model(**result)  # noqa: B901
 
     def _put_fileobj(self, *, fileobj, pk, s3_upload_id):
         part_number = 1  # s3 uses 1-indexed chunks
@@ -502,16 +506,36 @@ class ClientBase(ApiDefinitions, ClientInterface):
 
         return (
             yield from self.__org_api_meta.raw_image_upload_sessions.create(
-                uploads=[u["api_url"] for u in uploads], **kwargs
+                uploads=[u.api_url for u in uploads], **kwargs
             )
         )
 
-    def _upload_file(self, value):
-        with open(value[0], "rb") as f:
-            upload = yield from self.__org_api_meta.uploads.upload_fileobj(
-                fileobj=f, filename=value[0].name
+    def _fetch_interface(
+        self,
+        slug,
+        cache=None,
+        ref_url="https://grand-challenge.org/components/interfaces/reader-studies/",
+    ):
+        if isinstance(slug, gcapi.models.ComponentInterface):
+            return slug
+
+        if cache and slug in cache:
+            return cache[slug]
+        try:
+            interface = yield from self.__org_api_meta.interfaces.detail(
+                slug=slug
             )
-        return upload
+
+            if cache:
+                cache[slug] = interface
+
+            return interface
+        except ObjectNotFound as e:
+            raise ValueError(
+                f"{slug} is not an existing interface. "
+                f"Please provide one from this list: "
+                f"{ref_url}"
+            ) from e
 
     def upload_cases(  # noqa: C901
         self,
@@ -614,7 +638,12 @@ class ClientBase(ApiDefinitions, ClientInterface):
 
         return raw_image_upload_session
 
-    def run_external_job(self, *, algorithm: str, inputs: dict[str, Any]):
+    def run_external_job(
+        self,
+        *,
+        algorithm: Union[str, gcapi.models.Algorithm],
+        inputs: CIVSetDescription,
+    ):
         """
         Starts an algorithm job with the provided inputs.
         You will need to provide the slug of the algorithm. You can find this in the
@@ -653,63 +682,35 @@ class ClientBase(ApiDefinitions, ClientInterface):
         -------
         The created job
         """
-        alg = yield from self.__org_api_meta.algorithms.detail(slug=algorithm)
-        input_interfaces = {ci.slug: ci for ci in alg.inputs}
-
-        for ci in input_interfaces:
-            if (
-                ci not in inputs
-                and input_interfaces[ci]["default_value"] is None
-            ):
-                raise ValueError(f"{ci} is not provided")
-
-        job = {"algorithm": alg.api_url, "inputs": []}
-        for input_title, value in inputs.items():
-            ci = input_interfaces.get(input_title, None)  # type: ignore
-            if not ci:
-                raise ValueError(
-                    f"{input_title} is not an input interface for this algorithm"
-                )
-
-            i = {"interface": ci.slug}  # type: ignore
-            if ci.super_kind.lower() == "image":  # type: ignore
-                if isinstance(value, list):
-                    raw_image_upload_session = (
-                        yield from self._upload_image_files(files=value)
-                    )
-                    i["upload_session"] = raw_image_upload_session["api_url"]
-                elif isinstance(value, str):
-                    i["image"] = value
-            elif ci["super_kind"].lower() == "file":  # type: ignore
-                if len(value) != 1:
-                    raise ValueError(
-                        f"Only a single file can be provided for {ci['title']}."  # type: ignore
-                    )
-                upload = yield from self._upload_file(value)
-                i["user_upload"] = upload["api_url"]
-            else:
-                i["value"] = value
-            job["inputs"].append(i)  # type: ignore
-
-        return (yield from self.__org_api_meta.algorithm_jobs.create(**job))
+        job = ProtoJob(
+            algorithm=algorithm,
+            inputs=inputs,
+            client_api=self.__org_api_meta,
+        )
+        yield from job.validate()
+        return (yield from job.save())  # noqa: B901
 
     def update_archive_item(
-        self, *, archive_item_pk: str, values: dict[str, Any]
+        self, *, archive_item_pk: str, values: CIVSetDescription
     ):
         """
         This function updates an existing archive item with the provided values
         and returns the updated archive item.
+
         You can use this function, for example, to add metadata to an archive item.
+
         First, retrieve the archive items from your archive:
-        archive = next(client.archives.iterate_all(params={"slug": "..."}))
+
+        archive = client.archives.detail(slug="...")
         items = list(
-            client.archive_items.iterate_all(params={"archive": archive["pk"]})
+            client.archive_items.iterate_all(params={"archive": archive.pk})
         )
+
         To then add, for example, a PDF report and a lung volume
         value to the first archive item , provide the interface slugs together
         with the respective value or file path as follows:
         client.update_archive_item(
-            archive_item_pk=items[0]['id'],
+            archive_item_pk=items[0].id,
             values={
                 "report": [...],
                 "lung-volume": 1.9,
@@ -731,158 +732,266 @@ class ClientBase(ApiDefinitions, ClientInterface):
         item = yield from self.__org_api_meta.archive_items.detail(
             pk=archive_item_pk
         )
-        civs: dict[str, list] = {"values": []}
-
-        for civ_slug, value in values.items():
-            try:
-                ci = yield from self.__org_api_meta.interfaces.detail(
-                    slug=civ_slug
-                )
-            except ObjectNotFound as e:
-                raise ValueError(
-                    f"{civ_slug} is not an existing interface. "
-                    f"Please provide one from this list: "
-                    f"https://grand-challenge.org/algorithms/interfaces/"
-                ) from e
-            i = {"interface": ci.slug}
-
-            if not value:
-                raise ValueError(f"You need to provide a value for {ci.slug}")
-
-            if ci.super_kind.lower() == "image":
-                if isinstance(value, list):
-                    raw_image_upload_session = (
-                        yield from self._upload_image_files(files=value)
-                    )
-                    i["upload_session"] = raw_image_upload_session["api_url"]
-                elif isinstance(value, str):
-                    i["image"] = value
-            elif ci.super_kind.lower() == "file":
-                if len(value) != 1:
-                    raise ValueError(
-                        f"You can only upload one single file "
-                        f"to a {ci.slug} interface."
-                    )
-                upload = yield from self._upload_file(value)
-                i["user_upload"] = upload["api_url"]
-            else:
-                i["value"] = value
-            civs["values"].append(i)
-
         return (
-            yield from self.__org_api_meta.archive_items.partial_update(
-                pk=item.pk, **civs
+            yield from self._update_civ_set(
+                civ_set=item,
+                values=values,
+                api_partial_update_civ_set=partial(
+                    self.__org_api_meta.archive_items.partial_update,
+                    pk=item.pk,
+                ),
             )
         )
 
-    def _fetch_interface(self, slug):
-        try:
-            interface = yield from self.__org_api_meta.interfaces.detail(
-                slug=slug
-            )
-            return interface
-        except ObjectNotFound as e:
-            raise ValueError(
-                f"{slug} is not an existing interface. "
-                f"Please provide one from this list: "
-                f"https://grand-challenge.org/components/interfaces/reader-studies/"
-            ) from e
-        return interface
-
-    def _validate_display_set_values(self, values, interfaces):
-        invalid_file_paths = {}
-        for slug, value in values:
-            if interfaces.get(slug):
-                interface = interfaces[slug]
-            else:
-                interface = yield from self._fetch_interface(slug)
-                interfaces[slug] = interface
-            super_kind = interface.super_kind.casefold()
-            if super_kind != "value":
-                if not isinstance(value, list):
-                    raise ValueError(
-                        f"Values for {slug} ({super_kind}) "
-                        "should be a list of file paths."
-                    )
-                if super_kind != "image" and len(value) > 1:
-                    raise ValueError(
-                        f"You can only upload one single file "
-                        f"to interface {slug} ({super_kind})."
-                    )
-                for file_path in value:
-                    if not Path(file_path).exists():
-                        invalid_file_paths[slug] = invalid_file_paths.get(
-                            slug, []
-                        )
-                        invalid_file_paths[slug].append(str(file_path))
-        if invalid_file_paths:
-            raise ValueError(f"Invalid file paths: {invalid_file_paths}")
-
-        return interfaces
-
-    def add_cases_to_reader_study(
-        self, *, reader_study: str, display_sets: list[dict[str, Any]]
+    def add_cases_to_archive(
+        self,
+        *,
+        archive: Union[str, gcapi.models.Archive],
+        archive_items: list[CIVSetDescription],
     ):
         """
-        This function takes a reader study slug and a list of diplay sets
-        and creates the provided display sets and adds them to the reader
-        study. The format for the list of display sets is as follows:
-        [
-            {
-                "slug_0": ["filepath_0", ...]
+        This function takes an archive slug or model and a list of archive item
+        descriptions and creates the archive item to be used on the platform.
+
+        Parameters
+        ----------
+        archive
+            slug for the reader study (e.g. "i-am-an-archive"). You can find this
+            readily in the URL you use to visit the reader-study page:
+
+                https://grand-challenge.org/archives/i-am-an-archive/
+
+        archive_items
+            The format for the description of display sets is as follows:
+
+            [
+                {
+                    "slug_0": ["filepath_0", ...],
+                    "slug_1": "filepath_0",
+                    "slug_2": pathlib.Path("filepath_0"),
+                    ...
+                    "slug_n": {"json": "value"}
+
+                },
                 ...
-                "slug_n": {"json": "value"}
+            ]
 
+            Where the file paths are local paths to the files making up a
+            single image. For file type interfaces the file path can only
+            reference a single file. For json type interfaces any value that
+            is valid for the interface can directly be passed.
+
+        Returns
+        -------
+        The pks of the newly created archive items.
+        """
+
+        if isinstance(archive, str):
+            archive = yield from self.__org_api_meta.archives.detail(
+                slug=archive
+            )
+
+        archive_api_url = archive.api_url
+
+        created_archive_items = yield from self._create_civ_sets(
+            values=archive_items,
+            api_create_civ_set=partial(
+                self.__org_api_meta.archive_items.create,
+                archive=archive_api_url,
+                values=[],
+            ),
+            api_partial_update_civ_set=self.__org_api_meta.archive_items.partial_update,
+        )
+
+        return [ai.pk for ai in created_archive_items]
+
+    def update_display_set(
+        self,
+        *,
+        display_set_pk: str,
+        values: CIVSetDescription,
+    ):
+        """
+        This function updates an existing display set with the provided values
+        and returns the updated display set.
+
+        You can use this function, for example, to add items to an display set.
+
+        First, retrieve the display set from your reader study:
+
+        reader_study = client.reader_studies.detail(slug="...")
+        items = list(
+            client.reader_studies.display_sets.iterate_all(
+                params={"reader_study": reader_study.pk}
+            )
+        )
+
+        To then add, for example, a PDF report and a lung volume
+        value to the first archive item , provide the interface slugs together
+        with the respective value or file path as follows:
+        client.update_display_set(
+            archive_item_pk=items[0].id,
+            values={
+                "report": [...],
+                "lung-volume": 1.9,
             },
-            ...
-        ]
+        )
+        If you provide a value or file for an existing interface of the display
+        set, the old value will be overwritten by the new one, hence allowing you
+        to update existing display set values.
 
-        Where the file paths are local paths to the files making up a
-        single image. For file type interface the file path can only
-        contain a single file. For json type interfaces any value that
-        is valid for the interface can be passed.`
+        Parameters
+        ----------
+        display_set_pk
+        values
+
+        Returns
+        -------
+        The updated display set
+        """
+        item = (
+            yield from self.__org_api_meta.reader_studies.display_sets.detail(
+                pk=display_set_pk
+            )
+        )
+        return (
+            yield from self._update_civ_set(
+                civ_set=item,
+                values=values,
+                api_partial_update_civ_set=partial(
+                    self.__org_api_meta.reader_studies.display_sets.partial_update,
+                    pk=item.pk,
+                ),
+            )
+        )
+
+    def add_cases_to_reader_study(
+        self,
+        *,
+        reader_study: str,
+        display_sets: list[CIVSetDescription],
+    ):
+        """
+        This function takes a reader-study slug and a list of display set
+        descriptions and creates the display sets to be viewed via the reader
+        study.
 
         Parameters
         ----------
         reader_study
+            slug for the reader study (e.g. "i-am-a-reader-study"). You can find this
+            readily in the URL you use to visit the reader-study page:
+
+                https://grand-challenge.org/reader-studies/i-am-a-reader-study/
+
         display_sets
+            The format for the description of display sets is as follows:
+
+            [
+                {
+                    "slug_0": ["filepath_0", ...],
+                    "slug_1": "filepath_0",
+                    "slug_2": pathlib.Path("filepath_0"),
+                    ...
+                    "slug_n": {"json": "value"}
+
+                },
+                ...
+            ]
+
+            Where the file paths are local paths to the files making up a
+            single image. For file type interfaces the file path can only
+            reference a single file. For json type interfaces any value that
+            is valid for the interface can directly be passed.
 
         Returns
         -------
         The pks of the newly created display sets.
         """
-        res = []
-        interfaces: dict[str, gcapi.models.ComponentInterface] = {}
-        for display_set in display_sets:
-            new_interfaces = yield from self._validate_display_set_values(
-                display_set.items(), interfaces
-            )
-            interfaces.update(new_interfaces)
+        created_display_sets = yield from self._create_civ_sets(
+            values=display_sets,
+            api_create_civ_set=partial(
+                self.__org_api_meta.reader_studies.display_sets.create,
+                reader_study=reader_study,
+            ),
+            api_partial_update_civ_set=self.__org_api_meta.reader_studies.display_sets.partial_update,
+        )
 
-        for display_set in display_sets:
-            ds = yield from self.__org_api_meta.reader_studies.display_sets.create(
-                reader_study=reader_study
-            )
-            values = []
-            for slug, value in display_set.items():
-                interface = interfaces[slug]
-                data = {"interface": slug}
-                super_kind = interface.super_kind.casefold()
-                if super_kind == "image":
-                    yield from self._upload_image_files(
-                        display_set=ds["pk"], interface=slug, files=value
-                    )
-                    data = {}
-                elif super_kind == "file":
-                    upload = yield from self._upload_file(value)
-                    data["user_upload"] = upload["api_url"]
-                else:
-                    data["value"] = value
-                if data:
-                    values.append(data)
-            yield from self.__org_api_meta.reader_studies.display_sets.partial_update(
-                pk=ds["pk"], values=values
-            )
+        return [ds.pk for ds in created_display_sets]
 
-            res.append(ds["pk"])
-        return res  # noqa: B901
+    def _create_civ_sets(
+        self,
+        *,
+        values: list[CIVSetDescription],
+        api_create_civ_set: Callable,
+        api_partial_update_civ_set: Callable,
+    ):
+        interface_cache: dict[str, gcapi.models.ComponentInterface] = {}
+
+        # Firstly, handlers + validation
+        civ_sets: list[list[ProtoCIV]] = []
+        for value in values:
+            civ_set = []
+            for interface, source in value.items():
+                interface = yield from self._fetch_interface(
+                    slug=interface,
+                    cache=interface_cache,
+                )
+                civ = ProtoCIV(
+                    client_api=self.__org_api_meta,
+                    interface=cast(gcapi.models.ComponentInterface, interface),
+                    source=source,
+                )
+                civ.validate()
+                civ_set.append(civ)
+            civ_sets.append(civ_set)
+
+        # Secondly, create civs
+        updated_civ_sets: list[CIVSet] = []
+        for civ_set in civ_sets:
+            created_civ_set = yield from api_create_civ_set()
+            update_values = []
+            for civ in civ_set:
+                civ.parent = created_civ_set
+                post_value = yield from civ.save()
+                if post_value is not Empty:
+                    update_values.append(post_value)
+            updated_civ_set = yield from api_partial_update_civ_set(
+                pk=created_civ_set.pk, values=update_values
+            )
+            updated_civ_sets.append(updated_civ_set)
+
+        return updated_civ_sets
+
+    def _update_civ_set(
+        self,
+        *,
+        civ_set: CIVSet,
+        values: CIVSetDescription,
+        api_partial_update_civ_set: Callable,
+    ):
+        civs = []
+
+        for civ_slug, value in values.items():
+            ci = yield from self._fetch_interface(
+                slug=civ_slug,
+                ref_url="https://grand-challenge.org/algorithms/interfaces/",
+            )
+            civ = ProtoCIV(
+                source=value,
+                interface=ci,
+                client_api=self.__org_api_meta,
+                parent=civ_set,
+            )
+            yield from civ.validate()
+            civs.append(civ)
+
+        update_values = []
+        for civ in civs:
+            update_value = yield from civ.save()
+            if update_value is not Empty:
+                update_values.append(update_value)
+
+        return (  # noqa: B901
+            yield from api_partial_update_civ_set(values=update_values)
+        )

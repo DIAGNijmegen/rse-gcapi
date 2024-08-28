@@ -1,3 +1,5 @@
+import json
+from functools import partial
 from io import BytesIO
 from pathlib import Path
 
@@ -14,6 +16,8 @@ from tests.utils import (
     recurse_call,
 )
 
+TESTDATA = Path(__file__).parent / "testdata"
+
 
 @recurse_call
 def get_upload_session(client, upload_pk):
@@ -24,8 +28,8 @@ def get_upload_session(client, upload_pk):
 
 
 @recurse_call
-def get_file(client, image_url):
-    return client(url=image_url, follow_redirects=True)
+def get_image(client, image_url):
+    return client.images.detail(api_url=image_url)
 
 
 @recurse_call
@@ -38,17 +42,37 @@ def get_archive_items(client, archive_pk, min_size):
     return items
 
 
+@recurse_call
+def get_complete_civ_set(get_func, complete_num_civ):
+    civ_set = get_func()
+    num_civ = len(civ_set.values)
+    if num_civ != complete_num_civ:
+        raise ValueError(
+            f"Found {num_civ}, expected {complete_num_civ} values"
+        )
+    for civ in civ_set.values:
+        if all(
+            [
+                civ.file is None,
+                civ.image is None,
+                civ.value is None,
+            ]
+        ):
+            raise ValueError(f"Null values: {civ}")
+    return civ_set
+
+
 @pytest.mark.parametrize(
     "files",
     (
         # Path based
-        [Path(__file__).parent / "testdata" / "image10x10x101.mha"],
+        [TESTDATA / "image10x10x101.mha"],
         # str based
-        [str(Path(__file__).parent / "testdata" / "image10x10x101.mha")],
+        [str(TESTDATA / "image10x10x101.mha")],
         # mixed str and Path
         [
-            str(Path(__file__).parent / "testdata" / "image10x10x10.mhd"),
-            Path(__file__).parent / "testdata" / "image10x10x10.zraw",
+            str(TESTDATA / "image10x10x10.mhd"),
+            TESTDATA / "image10x10x10.zraw",
         ],
     ),
 )
@@ -71,7 +95,7 @@ def test_local_response(local_grand_challenge):
 
 
 def test_chunked_uploads(local_grand_challenge):
-    file_to_upload = Path(__file__).parent / "testdata" / "rnddata"
+    file_to_upload = TESTDATA / "rnddata"
 
     # admin
     c_admin = Client(
@@ -120,20 +144,20 @@ def test_upload_cases_to_archive(local_grand_challenge, files, interface):
     us = c.upload_cases(
         archive="archive",
         interface=interface,
-        files=[Path(__file__).parent / "testdata" / f for f in files],
+        files=[TESTDATA / f for f in files],
     )
 
-    us = get_upload_session(c, us["pk"])
+    us = get_upload_session(c, us.pk)
 
     # Check that only one image was created
     assert len(us.image_set) == 1
 
-    image = get_file(c, us.image_set[0])
+    image = get_image(c, us.image_set[0])
 
     # And that it was added to the archive
-    archive = next(c.archives.iterate_all(params={"slug": "archive"}))
+    archive = c.archives.detail(slug="archive")
     archive_images = c.images.iterate_all(params={"archive": archive.pk})
-    assert image["pk"] in [im.pk for im in archive_images]
+    assert image.pk in [im.pk for im in archive_images]
     archive_items = c.archive_items.iterate_all(params={"archive": archive.pk})
     # with the correct interface
     image_url_to_interface_slug_dict = {
@@ -143,15 +167,15 @@ def test_upload_cases_to_archive(local_grand_challenge, files, interface):
         if value.image
     }
     if interface:
-        assert image_url_to_interface_slug_dict[image["api_url"]] == interface
+        assert image_url_to_interface_slug_dict[image.api_url] == interface
     else:
         assert (
-            image_url_to_interface_slug_dict[image["api_url"]]
+            image_url_to_interface_slug_dict[image.api_url]
             == "generic-medical-image"
         )
 
     # And that we can download it
-    response = c(url=image["files"][0]["file"], follow_redirects=True)
+    response = c(url=image.files[0].file, follow_redirects=True)
     assert response.status_code == 200
 
 
@@ -160,14 +184,14 @@ def test_upload_cases_to_archive_item_without_interface(local_grand_challenge):
         base_url=local_grand_challenge, verify=False, token=ARCHIVE_TOKEN
     )
     # retrieve existing archive item pk
-    archive = next(c.archives.iterate_all(params={"slug": "archive"}))
+    archive = c.archives.detail(slug="archive")
     item = next(c.archive_items.iterate_all(params={"archive": archive.pk}))
 
     # try upload without providing interface
     with pytest.raises(ValueError) as e:
         _ = c.upload_cases(
             archive_item=item.pk,
-            files=[Path(__file__).parent / "testdata" / "image10x10x101.mha"],
+            files=[TESTDATA / "image10x10x101.mha"],
         )
     assert "You need to define an interface for archive item uploads" in str(e)
 
@@ -191,28 +215,28 @@ def test_upload_cases_to_archive_item_with_existing_interface(
         base_url=local_grand_challenge, verify=False, token=ARCHIVE_TOKEN
     )
     # retrieve existing archive item pk
-    archive = next(c.archives.iterate_all(params={"slug": "archive"}))
+    archive = c.archives.detail(slug="archive")
     item = next(c.archive_items.iterate_all(params={"archive": archive.pk}))
 
     us = c.upload_cases(
         archive_item=item.pk,
         interface="generic-medical-image",
-        files=[Path(__file__).parent / "testdata" / "image10x10x101.mha"],
+        files=[TESTDATA / "image10x10x101.mha"],
     )
 
-    us = get_upload_session(c, us["pk"])
+    us = get_upload_session(c, us.pk)
 
     # Check that only one image was created
     assert len(us.image_set) == 1
 
-    image = get_file(c, us.image_set[0])
+    image = get_image(c, us.image_set[0])
 
     # And that it was added to the archive item
     item = c.archive_items.detail(pk=item.pk)
-    assert image["api_url"] in [civ.image for civ in item.values if civ.image]
+    assert image.api_url in [civ.image for civ in item.values if civ.image]
     # with the correct interface
     im_to_interface = {civ.image: civ.interface.slug for civ in item.values}
-    assert im_to_interface[image["api_url"]] == "generic-medical-image"
+    assert im_to_interface[image.api_url] == "generic-medical-image"
 
 
 def test_upload_cases_to_archive_item_with_new_interface(
@@ -222,27 +246,27 @@ def test_upload_cases_to_archive_item_with_new_interface(
         base_url=local_grand_challenge, verify=False, token=ARCHIVE_TOKEN
     )
     # retrieve existing archive item pk
-    archive = next(c.archives.iterate_all(params={"slug": "archive"}))
+    archive = c.archives.detail(slug="archive")
     item = next(c.archive_items.iterate_all(params={"archive": archive.pk}))
 
     us = c.upload_cases(
         archive_item=item.pk,
         interface="generic-overlay",
-        files=[Path(__file__).parent / "testdata" / "image10x10x101.mha"],
+        files=[TESTDATA / "image10x10x101.mha"],
     )
 
-    us = get_upload_session(c, us["pk"])
+    us = get_upload_session(c, us.pk)
     # Check that only one image was created
     assert len(us.image_set) == 1
 
-    image = get_file(c, us.image_set[0])
+    image = get_image(c, us.image_set[0])
 
     # And that it was added to the archive item
     item = c.archive_items.detail(pk=item.pk)
-    assert image["api_url"] in [civ.image for civ in item.values if civ.image]
+    assert image.api_url in [civ.image for civ in item.values if civ.image]
     # with the correct interface
     im_to_interface = {civ.image: civ.interface.slug for civ in item.values}
-    assert im_to_interface[image["api_url"]] == "generic-overlay"
+    assert im_to_interface[image.api_url] == "generic-overlay"
 
 
 @pytest.mark.parametrize("files", (["image10x10x101.mha"],))
@@ -253,10 +277,10 @@ def test_download_cases(local_grand_challenge, files, tmpdir):
 
     us = c.upload_cases(
         archive="archive",
-        files=[Path(__file__).parent / "testdata" / f for f in files],
+        files=[TESTDATA / f for f in files],
     )
 
-    us = get_upload_session(c, us["pk"])
+    us = get_upload_session(c, us.pk)
 
     # Check that we can download the uploaded image
     tmpdir = Path(tmpdir)
@@ -306,19 +330,15 @@ def test_create_job_with_upload(
     def run_job():
         return c.run_external_job(
             algorithm=algorithm,
-            inputs={
-                interface: [
-                    Path(__file__).parent / "testdata" / f for f in files
-                ]
-            },
+            inputs={interface: [TESTDATA / f for f in files]},
         )
 
     # algorithm might not be ready yet
     job = run_job()
 
-    assert job["status"] == "Queued"
-    assert len(job["inputs"]) == 1
-    job = c.algorithm_jobs.detail(job["pk"])
+    assert job.status == "Queued"
+    assert len(job.inputs) == 1
+    job = c.algorithm_jobs.detail(job.pk)
     assert job.status in {"Queued", "Started"}
 
 
@@ -331,8 +351,9 @@ def test_get_algorithm_by_slug(local_grand_challenge):
 
     by_slug = c.algorithms.detail(slug="test-algorithm-evaluation-image-1")
     by_pk = c.algorithms.detail(pk=by_slug.pk)
+    by_api_url = c.algorithms.detail(api_url=by_slug.api_url)
 
-    assert by_pk == by_slug
+    assert by_pk == by_slug == by_api_url
 
 
 def test_get_reader_study_by_slug(local_grand_challenge):
@@ -342,8 +363,9 @@ def test_get_reader_study_by_slug(local_grand_challenge):
 
     by_slug = c.reader_studies.detail(slug="reader-study")
     by_pk = c.reader_studies.detail(pk=by_slug.pk)
+    by_api_url = c.reader_studies.detail(api_url=by_slug.api_url)
 
-    assert by_pk == by_slug
+    assert by_pk == by_slug == by_api_url
 
 
 @pytest.mark.parametrize("key", ["slug", "pk"])
@@ -381,7 +403,7 @@ def test_add_and_update_file_to_archive_item(local_grand_challenge):
     )
 
     # check number of archive items
-    archive = next(c.archives.iterate_all(params={"slug": "archive"}))
+    archive = c.archives.detail(slug="archive")
     old_items_list = list(
         c.archive_items.iterate_all(params={"archive": archive.pk})
     )
@@ -389,7 +411,7 @@ def test_add_and_update_file_to_archive_item(local_grand_challenge):
     # create new archive item
     _ = c.upload_cases(
         archive="archive",
-        files=[Path(__file__).parent / "testdata" / "image10x10x101.mha"],
+        files=[TESTDATA / "image10x10x101.mha"],
     )
 
     # retrieve existing archive item pk
@@ -397,28 +419,9 @@ def test_add_and_update_file_to_archive_item(local_grand_challenge):
 
     old_civ_count = len(items[-1].values)
 
-    with pytest.raises(ValueError) as e:
-        _ = c.update_archive_item(
-            archive_item_pk=items[-1].pk,
-            values={
-                "predictions-csv-file": [
-                    Path(__file__).parent / "testdata" / f
-                    for f in ["test.csv", "test.csv"]
-                ]
-            },
-        )
-    assert (
-        "You can only upload one single file to a predictions-csv-file interface"
-        in str(e)
-    )
-
     _ = c.update_archive_item(
         archive_item_pk=items[-1].pk,
-        values={
-            "predictions-csv-file": [
-                Path(__file__).parent / "testdata" / "test.csv"
-            ]
-        },
+        values={"predictions-csv-file": [TESTDATA / "test.csv"]},
     )
 
     @recurse_call
@@ -436,14 +439,11 @@ def test_add_and_update_file_to_archive_item(local_grand_challenge):
     assert "test.csv" in csv_civ.file
 
     updated_civ_count = len(item_updated.values)
+
     # a new pdf upload will overwrite the old pdf interface value
-    _ = c.update_archive_item(
+    c.update_archive_item(
         archive_item_pk=items[-1].pk,
-        values={
-            "predictions-csv-file": [
-                Path(__file__).parent / "testdata" / "test.csv"
-            ]
-        },
+        values={"predictions-csv-file": [TESTDATA / "test.csv"]},
     )
 
     @recurse_call
@@ -466,7 +466,7 @@ def test_add_and_update_value_to_archive_item(local_grand_challenge):
         base_url=local_grand_challenge, verify=False, token=ARCHIVE_TOKEN
     )
     # check number of archive items
-    archive = next(c.archives.iterate_all(params={"slug": "archive"}))
+    archive = c.archives.detail(slug="archive")
     old_items_list = list(
         c.archive_items.iterate_all(params={"archive": archive.pk})
     )
@@ -474,7 +474,7 @@ def test_add_and_update_value_to_archive_item(local_grand_challenge):
     # create new archive item
     _ = c.upload_cases(
         archive="archive",
-        files=[Path(__file__).parent / "testdata" / "image10x10x101.mha"],
+        files=[TESTDATA / "image10x10x101.mha"],
     )
 
     # retrieve existing archive item pk
@@ -497,8 +497,11 @@ def test_add_and_update_value_to_archive_item(local_grand_challenge):
     item_updated = get_archive_item_detail()
 
     json_civ = item_updated.values[-1]
-    assert json_civ.interface.slug == "results-json-file"
+    json_civ = {v.interface.slug: v for v in item_updated.values}[
+        "results-json-file"
+    ]
     assert json_civ.value == {"foo": 0.5}
+
     updated_civ_count = len(item_updated.values)
 
     _ = c.update_archive_item(
@@ -517,8 +520,72 @@ def test_add_and_update_value_to_archive_item(local_grand_challenge):
     item_updated_again = get_updated_archive_item_detail()
 
     assert len(item_updated_again.values) == updated_civ_count
-    new_json_civ = item_updated_again.values[-1]
-    assert new_json_civ.interface.slug == "results-json-file"
+    json_civ = {v.interface.slug: v for v in item_updated_again.values}[
+        "results-json-file"
+    ]
+    assert json_civ.value == {"foo": 0.8}
+
+
+def test_add_and_update_value_to_display_set(local_grand_challenge):
+    c = Client(
+        base_url=local_grand_challenge, verify=False, token=READERSTUDY_TOKEN
+    )
+
+    # create new display set
+    added_display_sets = c.add_cases_to_reader_study(
+        reader_study="reader-study",
+        display_sets=[
+            {"generic-medical-image": [TESTDATA / "image10x10x101.mha"]}
+        ],
+    )
+
+    assert len(added_display_sets) == 1
+    display_set_pk = added_display_sets[0]
+
+    # Add a CIV (partially update)
+    _ = c.update_display_set(
+        display_set_pk=display_set_pk,
+        values={"results-json-file": {"foo": 0.5}},
+    )
+
+    @recurse_call
+    def get_display_set_detail(expected_num_values):
+        item = c.reader_studies.display_sets.detail(pk=display_set_pk)
+        if len(item.values) != expected_num_values:
+            # csv interface value has not yet been added to item
+            raise ValueError
+        return item
+
+    item_updated = get_display_set_detail(expected_num_values=2)
+
+    json_civ = {v.interface.slug: v for v in item_updated.values}[
+        "results-json-file"
+    ]
+    assert json_civ.value == {"foo": 0.5}
+
+    # Overwrite a CIV (update)
+    _ = c.update_display_set(
+        display_set_pk=display_set_pk,
+        values={"results-json-file": {"foo": 0.8}},
+    )
+
+    @recurse_call
+    def get_updated_display_set_detail():
+        item = c.reader_studies.display_sets.detail(pk=display_set_pk)
+        if json_civ in item.values:
+            # results json interface value has been added to the item and
+            # the previously added json civ is no longer attached
+            # to this archive item
+            raise ValueError
+        return item
+
+    item_updated_again = get_updated_display_set_detail()
+
+    assert len(item_updated_again.values) == 2
+
+    new_json_civ = {v.interface.slug: v for v in item_updated_again.values}[
+        "results-json-file"
+    ]
     assert new_json_civ.value == {"foo": 0.8}
 
 
@@ -530,7 +597,7 @@ def test_update_archive_item_with_non_existing_interface(
     )
 
     # retrieve existing archive item pk
-    archive = next(c.archives.iterate_all(params={"slug": "archive"}))
+    archive = c.archives.detail(slug="archive")
     items = list(c.archive_items.iterate_all(params={"archive": archive.pk}))
     with pytest.raises(ValueError) as e:
         _ = c.update_archive_item(
@@ -539,99 +606,73 @@ def test_update_archive_item_with_non_existing_interface(
     assert "new-interface is not an existing interface" in str(e)
 
 
-def test_update_archive_item_without_value(local_grand_challenge):
-    c = Client(
-        base_url=local_grand_challenge, verify=False, token=ARCHIVE_TOKEN
-    )
-
-    # retrieve existing archive item pk
-    archive = next(c.archives.iterate_all(params={"slug": "archive"}))
-    items = list(c.archive_items.iterate_all(params={"archive": archive.pk}))
-
-    with pytest.raises(ValueError) as e:
-        _ = c.update_archive_item(
-            archive_item_pk=items[0].pk,
-            values={"generic-medical-image": None},
-        )
-    assert "You need to provide a value for generic-medical-image" in str(e)
+CIV_SET_PARAMS = (
+    [
+        {
+            "generic-medical-image": [TESTDATA / "image10x10x101.mha"],
+            "generic-overlay": [
+                TESTDATA / "image10x10x10.mhd",
+                TESTDATA / "image10x10x10.zraw",
+            ],
+            "annotation": {
+                "name": "forearm",
+                "type": "2D bounding box",
+                "corners": [
+                    [20, 88, 0.5],
+                    [83, 88, 0.5],
+                    [83, 175, 0.5],
+                    [20, 175, 0.5],
+                ],
+                "version": {"major": 1, "minor": 0},
+            },
+            "predictions-csv-file": [TESTDATA / "test.csv"],
+        },
+        {
+            "generic-medical-image": [TESTDATA / "image10x10x101.mha"],
+            "annotation": Path(__file__).parent
+            / "testdata"
+            / "annotation.json",
+        },
+        {
+            "annotation": {
+                "name": "forearm",
+                "type": "2D bounding box",
+                "corners": [
+                    [20, 88, 0.5],
+                    [83, 88, 0.5],
+                    [83, 175, 0.5],
+                    [20, 175, 0.5],
+                ],
+                "version": {"major": 1, "minor": 0},
+            },
+            "predictions-csv-file": Path(__file__).parent
+            / "testdata"
+            / "test.csv",
+        },
+        {
+            "annotation": {
+                "name": "forearm",
+                "type": "2D bounding box",
+                "corners": [
+                    [20, 88, 0.5],
+                    [83, 88, 0.5],
+                    [83, 175, 0.5],
+                    [20, 175, 0.5],
+                ],
+                "version": {"major": 1, "minor": 0},
+            },
+        },
+    ],
+)
 
 
 @pytest.mark.parametrize(
     "display_sets",
-    (
-        [
-            {
-                "generic-medical-image": [
-                    Path(__file__).parent / "testdata" / "image10x10x101.mha"
-                ],
-                "generic-overlay": [
-                    Path(__file__).parent / "testdata" / "image10x10x10.mhd",
-                    Path(__file__).parent / "testdata" / "image10x10x10.zraw",
-                ],
-                "annotation": {
-                    "name": "forearm",
-                    "type": "2D bounding box",
-                    "corners": [
-                        [20, 88, 0.5],
-                        [83, 88, 0.5],
-                        [83, 175, 0.5],
-                        [20, 175, 0.5],
-                    ],
-                    "version": {"major": 1, "minor": 0},
-                },
-                "predictions-csv-file": [
-                    Path(__file__).parent / "testdata" / "test.csv"
-                ],
-            },
-            {
-                "generic-medical-image": [
-                    Path(__file__).parent / "testdata" / "image10x10x101.mha"
-                ],
-                "annotation": {
-                    "name": "forearm",
-                    "type": "2D bounding box",
-                    "corners": [
-                        [20, 88, 0.5],
-                        [83, 88, 0.5],
-                        [83, 175, 0.5],
-                        [20, 175, 0.5],
-                    ],
-                    "version": {"major": 1, "minor": 0},
-                },
-            },
-            {
-                "annotation": {
-                    "name": "forearm",
-                    "type": "2D bounding box",
-                    "corners": [
-                        [20, 88, 0.5],
-                        [83, 88, 0.5],
-                        [83, 175, 0.5],
-                        [20, 175, 0.5],
-                    ],
-                    "version": {"major": 1, "minor": 0},
-                },
-                "predictions-csv-file": [
-                    Path(__file__).parent / "testdata" / "test.csv"
-                ],
-            },
-            {
-                "annotation": {
-                    "name": "forearm",
-                    "type": "2D bounding box",
-                    "corners": [
-                        [20, 88, 0.5],
-                        [83, 88, 0.5],
-                        [83, 175, 0.5],
-                        [20, 175, 0.5],
-                    ],
-                    "version": {"major": 1, "minor": 0},
-                },
-            },
-        ],
-    ),
+    CIV_SET_PARAMS,
 )
-def test_add_cases_to_reader_study(display_sets, local_grand_challenge):
+def test_add_cases_to_reader_study(  # noqa: C901
+    display_sets, local_grand_challenge
+):
     c = Client(
         base_url=local_grand_challenge, verify=False, token=READERSTUDY_TOKEN
     )
@@ -642,9 +683,8 @@ def test_add_cases_to_reader_study(display_sets, local_grand_challenge):
 
     assert len(added_display_sets) == len(display_sets)
 
-    reader_study = next(
-        c.reader_studies.iterate_all(params={"slug": "reader-study"})
-    )
+    reader_study = c.reader_studies.detail(slug="reader-study")
+
     all_display_sets = list(
         c.reader_studies.display_sets.iterate_all(
             params={"reader_study": reader_study.pk}
@@ -657,22 +697,25 @@ def test_add_cases_to_reader_study(display_sets, local_grand_challenge):
 
     @recurse_call
     def check_image(interface_value, expected_name):
-        image = get_file(c, interface_value.image)
-        assert image["name"] == expected_name
+        image = get_image(c, interface_value.image)
+        assert image.name == expected_name
 
     def check_annotation(interface_value, expected):
         assert interface_value.value == expected
 
     @recurse_call
     def check_file(interface_value, expected_name):
-        response = get_file(c, interface_value.file)
+        response = c(url=interface_value.file, follow_redirects=True)
         assert response.url.path.endswith(expected_name)
 
     for display_set_pk, display_set in zip(added_display_sets, display_sets):
-        ds = c.reader_studies.display_sets.detail(pk=display_set_pk)
-        # may take a while for the images to be added
-        while len(ds.values) != len(display_set):
-            ds = c.reader_studies.display_sets.detail(pk=display_set_pk)
+
+        ds = get_complete_civ_set(
+            get_func=partial(
+                c.reader_studies.display_sets.detail, pk=display_set_pk
+            ),
+            complete_num_civ=len(display_set),
+        )
 
         for interface, value in display_set.items():
             civ = [
@@ -683,11 +726,135 @@ def test_add_cases_to_reader_study(display_sets, local_grand_challenge):
                 file_name = value[0].name
                 check_image(civ, file_name)
             elif civ.interface.kind == "2D bounding box":
+                if isinstance(value, (str, Path)):
+                    with open(value, "rb") as fd:
+                        value = json.load(fd)
                 check_annotation(civ, value)
                 pass
             elif civ.interface.super_kind == "File":
-                file_name = value[0].name
+                if isinstance(value, list):
+                    value = value[0]
+                file_name = value.name
                 check_file(civ, file_name)
+
+
+@pytest.mark.parametrize(
+    "archive_items",
+    CIV_SET_PARAMS,
+)
+def test_add_cases_to_archive(  # noqa: C901
+    archive_items, local_grand_challenge
+):
+    c = Client(
+        base_url=local_grand_challenge, verify=False, token=ARCHIVE_TOKEN
+    )
+
+    added_archive_items = c.add_cases_to_archive(
+        archive="archive", archive_items=archive_items
+    )
+
+    assert len(added_archive_items) == len(archive_items)
+
+    archive = c.archives.detail(slug="archive")
+    all_archive_items = list(
+        c.archive_items.iterate_all(params={"archive": archive.pk})
+    )
+
+    assert all(
+        [x in [y.pk for y in all_archive_items] for x in added_archive_items]
+    )
+
+    @recurse_call
+    def check_image(interface_value, expected_name):
+        image = get_image(c, image_url=interface_value.image)
+        assert image.name == expected_name
+
+    def check_annotation(interface_value, expected):
+        assert interface_value.value == expected
+
+    @recurse_call
+    def check_file(interface_value, expected_name):
+        response = c(url=interface_value.file, follow_redirects=True)
+        assert response.url.path.endswith(expected_name)
+
+    for archive_item_pk, archive_item in zip(
+        added_archive_items, archive_items
+    ):
+        ai = get_complete_civ_set(
+            get_func=partial(c.archive_items.detail, pk=archive_item_pk),
+            complete_num_civ=len(archive_item),
+        )
+
+        for interface, value in archive_item.items():
+            civ = [
+                civ for civ in ai.values if civ.interface.slug == interface
+            ][0]
+
+            if civ.interface.super_kind == "Image":
+                if isinstance(value, list):
+                    value = value[0]
+                file_name = value.name
+                check_image(civ, file_name)
+            elif civ.interface.kind == "2D bounding box":
+                if isinstance(value, (str, Path)):
+                    with open(value, "rb") as fd:
+                        value = json.load(fd)
+                check_annotation(civ, value)
+                pass
+            elif civ.interface.super_kind == "File":
+                if isinstance(value, list):
+                    value = value[0]
+                file_name = value.name
+                check_file(civ, file_name)
+
+
+def test_add_cases_to_reader_study_reuse_objects(local_grand_challenge):
+    c = Client(
+        base_url=local_grand_challenge, verify=False, token=READERSTUDY_TOKEN
+    )
+
+    @recurse_call
+    def wait_for_import(pk):
+        ds = c.reader_studies.display_sets.detail(pk=pk)
+        if len(ds.values) != 1:
+            raise ValueError("No image imported yet")
+
+    # Create an image / civ
+    added_display_sets = c.add_cases_to_reader_study(
+        reader_study="reader-study",
+        display_sets=[
+            {
+                "generic-medical-image": [TESTDATA / "image10x10x101.mha"],
+            }
+        ],
+    )
+
+    assert len(added_display_sets) == 1
+    display_set_pk = added_display_sets[0]
+
+    wait_for_import(display_set_pk)
+
+    ds = c.reader_studies.display_sets.detail(pk=display_set_pk)
+
+    # Re-use both as a direct image and a CIV
+    civ = ds.values[0]
+    image = c.images.detail(api_url=civ.image)
+
+    added_display_sets = c.add_cases_to_reader_study(
+        reader_study="reader-study",
+        display_sets=[
+            {
+                "generic-medical-image": image,
+            },
+            {
+                "generic-medical-image": civ,
+            },
+        ],
+    )
+    assert len(added_display_sets) == 2
+    for ds_pk in added_display_sets:
+        ds = c.reader_studies.display_sets.detail(pk=ds_pk)
+        assert len(ds.values) == 1
 
 
 def test_add_cases_to_reader_study_invalid_interface(local_grand_challenge):
@@ -696,11 +863,7 @@ def test_add_cases_to_reader_study_invalid_interface(local_grand_challenge):
     )
 
     display_sets = [
-        {
-            "very-specific-medical-image": [
-                Path(__file__).parent / "testdata" / "image10x10x101.mha"
-            ]
-        },
+        {"very-specific-medical-image": [TESTDATA / "image10x10x101.mha"]},
     ]
 
     with pytest.raises(ValueError) as e:
@@ -712,68 +875,4 @@ def test_add_cases_to_reader_study_invalid_interface(local_grand_challenge):
         "very-specific-medical-image is not an existing interface. "
         "Please provide one from this list: "
         "https://grand-challenge.org/components/interfaces/reader-studies/"
-    )
-
-
-def test_add_cases_to_reader_study_invalid_path(local_grand_challenge):
-    c = Client(
-        base_url=local_grand_challenge, verify=False, token=READERSTUDY_TOKEN
-    )
-
-    file_path = Path(__file__).parent / "testdata" / "image10x10x1011.mha"
-    display_sets = [
-        {"generic-medical-image": [file_path]},
-    ]
-
-    with pytest.raises(ValueError) as e:
-        c.add_cases_to_reader_study(
-            reader_study="reader-study", display_sets=display_sets
-        )
-
-    assert str(e.value) == (
-        "Invalid file paths: " f"{{'generic-medical-image': ['{file_path}']}}"
-    )
-
-
-def test_add_cases_to_reader_study_invalid_value(local_grand_challenge):
-    c = Client(
-        base_url=local_grand_challenge, verify=False, token=READERSTUDY_TOKEN
-    )
-
-    display_sets = [
-        {"generic-medical-image": "not a list"},
-    ]
-
-    with pytest.raises(ValueError) as e:
-        c.add_cases_to_reader_study(
-            reader_study="reader-study", display_sets=display_sets
-        )
-
-    assert str(e.value) == (
-        "Values for generic-medical-image (image) should be a list of file paths."
-    )
-
-
-def test_add_cases_to_reader_study_multiple_files(local_grand_challenge):
-    c = Client(
-        base_url=local_grand_challenge, verify=False, token=READERSTUDY_TOKEN
-    )
-
-    files = [
-        Path(__file__).parent / "testdata" / f
-        for f in ["test.csv", "test.csv"]
-    ]
-
-    display_sets = [
-        {"predictions-csv-file": files},
-    ]
-
-    with pytest.raises(ValueError) as e:
-        c.add_cases_to_reader_study(
-            reader_study="reader-study", display_sets=display_sets
-        )
-
-    assert str(e.value) == (
-        "You can only upload one single file to interface "
-        "predictions-csv-file (file)."
     )

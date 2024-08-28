@@ -34,9 +34,11 @@ class BaseRetryTransport:
         retry_strategy,
         response,
         request,
-    ) -> tuple[BaseRetryStrategy, Optional[Seconds]]:
+    ) -> tuple[Optional[BaseRetryStrategy], Optional[Seconds]]:
         if retry_strategy is None:
-            retry_strategy = self.retry_strategy()  # type: ignore
+            if self.retry_strategy is None:
+                return None, None
+            retry_strategy = self.retry_strategy()
 
         retry_delay = retry_strategy.get_delay(response)
         if retry_delay is not None:
@@ -69,7 +71,7 @@ class RetryTransport(BaseRetryTransport, httpx.HTTPTransport):
         while True:
             response = super().handle_request(request, *args, **kwargs)
 
-            if response.is_success or not self.retry_strategy:
+            if response.is_success:
                 break
 
             retry_strategy, retry_delay = self._get_retry_delay(
@@ -100,7 +102,7 @@ class AsyncRetryTransport(BaseRetryTransport, httpx.AsyncHTTPTransport):
                 request, *args, **kwargs
             )
 
-            if response.is_success or not self.retry_strategy:
+            if response.is_success:
                 break
 
             retry_strategy, retry_delay = self._get_retry_delay(
