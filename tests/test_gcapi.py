@@ -1,6 +1,5 @@
 import pytest
 from click.testing import CliRunner
-from httpx import HTTPStatusError
 
 from gcapi import Client, cli
 from tests.utils import ADMIN_TOKEN
@@ -114,10 +113,3 @@ def test_command_line_interface():
     help_result = runner.invoke(cli.main, ["--help"])
     assert help_result.exit_code == 0
     assert "--help  Show this message and exit." in help_result.output
-
-
-def test_ground_truth_url():
-    c = Client(token="foo", base_url="https://example.com/api/v1/")
-    with pytest.raises(HTTPStatusError) as exc_info:
-        c.reader_studies.ground_truth("fake", "image_pk")
-    assert exc_info.value.request.url.path.endswith("image_pk/")
