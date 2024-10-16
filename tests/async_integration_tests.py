@@ -326,12 +326,12 @@ async def test_download_cases(local_grand_challenge, files, tmpdir):
     "algorithm,interface,files",
     (
         (
-            "test-algorithm-evaluation-image-1",
+            "test-algorithm-evaluation-image-0",
             "generic-medical-image",
             ["image10x10x101.mha"],
         ),
         # TODO this algorithm was removed from the test fixtures
-        # ("test-algorithm-evaluation-file-1", "json-file", ["test.json"]),
+        # ("test-algorithm-evaluation-file-0", "json-file", ["test.json"]),
     ),
 )
 @pytest.mark.anyio
@@ -395,7 +395,7 @@ async def test_get_algorithm_by_slug(local_grand_challenge):
         token=DEMO_PARTICIPANT_TOKEN,
     ) as c:
         by_slug = await c.algorithms.detail(
-            slug="test-algorithm-evaluation-image-1"
+            slug="test-algorithm-evaluation-image-0"
         )
         by_pk = await c.algorithms.detail(pk=by_slug.pk)
 
