@@ -1,4 +1,3 @@
-import base64
 import gzip
 import logging
 import os
@@ -11,7 +10,6 @@ from allauth.account.models import EmailAddress
 from django.conf import settings
 from django.contrib.auth import get_user_model
 from django.contrib.auth.models import Group, Permission
-from django.core.exceptions import ObjectDoesNotExist
 from django.core.files.base import ContentFile
 from django.db import IntegrityError
 from grandchallenge.algorithms.models import Algorithm, AlgorithmImage
@@ -24,12 +22,7 @@ from grandchallenge.components.models import (
     ComponentInterfaceValue,
 )
 from grandchallenge.core.fixtures import create_uploaded_image
-from grandchallenge.evaluation.models import (
-    Evaluation,
-    Method,
-    Phase,
-    Submission,
-)
+from grandchallenge.evaluation.models import Method, Phase
 from grandchallenge.evaluation.utils import SubmissionKindChoices
 from grandchallenge.invoices.models import Invoice
 from grandchallenge.reader_studies.models import (
@@ -73,7 +66,6 @@ def run():
         raise RuntimeError("Fixtures already initialized") from e
 
     _set_user_permissions(users)
-    _create_demo_challenge(users=users)
     _create_reader_studies(users)
     _create_archive(users)
     _create_user_tokens(users)
@@ -151,72 +143,6 @@ def _set_user_permissions(users):
     add_archive_perm = Permission.objects.get(codename="add_archive")
     users["archive"].user_permissions.add(add_archive_perm)
     users["demo"].user_permissions.add(add_archive_perm)
-
-
-def _create_demo_challenge(users):
-    demo = Challenge.objects.create(
-        short_name="demo",
-        description="Demo Challenge",
-        creator=users["demo"],
-        hidden=False,
-        display_forum_link=True,
-    )
-    demo.add_participant(users["demop"])
-
-    phase = Phase.objects.create(challenge=demo, title="Phase 1")
-
-    phase.score_title = "Accuracy ± std"
-    phase.score_jsonpath = "acc.mean"
-    phase.score_error_jsonpath = "acc.std"
-    phase.extra_results_columns = [
-        {
-            "title": "Dice ± std",
-            "path": "dice.mean",
-            "error_path": "dice.std",
-            "order": "desc",
-        }
-    ]
-
-    phase.submission_kind = SubmissionKindChoices.ALGORITHM
-    phase.save()
-
-    method = Method(phase=phase, creator=users["demo"])
-
-    with _gc_demo_algorithm() as container:
-        method.image.save("algorithm_io.tar", container)
-
-    submission = Submission(phase=phase, creator=users["demop"])
-    content = ContentFile(base64.b64decode(b""))
-    submission.predictions_file.save("test.csv", content)
-    submission.save()
-
-    e = Evaluation.objects.create(
-        submission=submission,
-        method=method,
-        status=Evaluation.SUCCESS,
-        time_limit=300,
-    )
-
-    def create_result(evaluation, result: dict):
-        interface = ComponentInterface.objects.get(slug="metrics-json-file")
-
-        try:
-            output_civ = evaluation.outputs.get(interface=interface)
-            output_civ.value = result
-            output_civ.save()
-        except ObjectDoesNotExist:
-            output_civ = ComponentInterfaceValue.objects.create(
-                interface=interface, value=result
-            )
-            evaluation.outputs.add(output_civ)
-
-    create_result(
-        e,
-        {
-            "acc": {"mean": 0, "std": 0.1},
-            "dice": {"mean": 0.71, "std": 0.05},
-        },
-    )
 
 
 def _create_reader_studies(users):
