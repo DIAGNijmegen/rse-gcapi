@@ -575,8 +575,11 @@ async def test_add_and_update_value_to_archive_item(local_grand_challenge):
 
         item_updated = await get_archive_detail()
 
-        json_civ = item_updated.values[-1]
-        assert json_civ.interface.slug == "results-json-file"
+        json_civ = [
+            civ
+            for civ in item_updated.values
+            if civ.interface.slug == "results-json-file"
+        ][0]
         assert json_civ.value == {"foo": 0.5}
         updated_civ_count = len(item_updated.values)
 
