@@ -5,7 +5,7 @@
   - Removed the retina endpoints
   - Migrated to use Pydantic models for request and response validation
   - Removed support for Python 3.8
-  - Added support for Python 3.12
+  - Added support for Python 3.12 and 3.13
 
 ## 0.12.0 (2023-02-20)
 
