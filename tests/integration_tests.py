@@ -316,10 +316,10 @@ def test_create_job_with_upload(
     # algorithm might not be ready yet
     job = run_job()
 
-    assert job["status"] == "Queued"
+    assert job["status"] == "Validating inputs"
     assert len(job["inputs"]) == 1
     job = c.algorithm_jobs.detail(job["pk"])
-    assert job.status in {"Queued", "Started"}
+    assert job.status in {"Validating inputs", "Queued", "Started"}
 
 
 def test_get_algorithm_by_slug(local_grand_challenge):
