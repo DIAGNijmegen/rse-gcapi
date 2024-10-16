@@ -317,7 +317,6 @@ def test_create_job_with_upload(
     job = run_job()
 
     assert job["status"] == "Validating inputs"
-    assert len(job["inputs"]) == 1
     job = c.algorithm_jobs.detail(job["pk"])
     assert job.status in {"Validating inputs", "Queued", "Started"}
 

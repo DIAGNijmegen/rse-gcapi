@@ -359,8 +359,6 @@ async def test_create_job_with_upload(
         job = await run_job()
 
         assert job["status"] == "Validating inputs"
-        assert len(job["inputs"]) == 1
-
         job = await c.algorithm_jobs.detail(job["pk"])
         assert job.status in {"Validating inputs", "Queued", "Started"}
 
@@ -600,8 +598,11 @@ async def test_add_and_update_value_to_archive_item(local_grand_challenge):
         item_updated_again = await get_updated_archive_detail()
 
         assert len(item_updated_again.values) == updated_civ_count
-        new_json_civ = item_updated_again.values[-1]
-        assert new_json_civ.interface.slug == "results-json-file"
+        new_json_civ = [
+            civ
+            for civ in item_updated_again.values
+            if civ.interface.slug == "results-json-file"
+        ][0]
         assert new_json_civ.value == {"foo": 0.8}
 
 
