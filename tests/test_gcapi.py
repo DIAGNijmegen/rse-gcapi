@@ -117,7 +117,7 @@ def test_command_line_interface():
 
 
 def test_ground_truth_url():
-    c = Client(token="foo", base_url="https://example.com/api/v1/")
+    c = Client(token="foo")
     with pytest.raises(HTTPStatusError) as exc_info:
         c.reader_studies.ground_truth("fake", "image_pk")
     assert exc_info.value.request.url.path.endswith("image_pk/")
