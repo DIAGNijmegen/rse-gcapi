@@ -43,7 +43,7 @@ def check_version(base_url):
             )
     except UnsupportedVersionError as e:
         raise e
-    except httpx.RequestError:
+    except Exception:
         # If there's any error in checking the version, we'll silently pass
         # This ensures the import process isn't disrupted
         pass
