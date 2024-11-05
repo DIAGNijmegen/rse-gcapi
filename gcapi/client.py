@@ -15,6 +15,7 @@ from httpx import URL, HTTPStatusError, Timeout
 
 import gcapi.models
 from gcapi.apibase import APIBase, ClientInterface, ModifiableMixin
+from gcapi.check_version import check_version
 from gcapi.exceptions import ObjectNotFound
 from gcapi.retries import BaseRetryStrategy, SelectiveBackoffStrategy
 from gcapi.sync_async_hybrid_support import CapturedCall, mark_generator
@@ -392,6 +393,8 @@ class ClientBase(ApiDefinitions, ClientInterface):
         timeout: float = 60.0,
         retry_strategy: Optional[Callable[[], BaseRetryStrategy]] = None,
     ):
+        check_version(base_url=base_url)
+
         retry_strategy = retry_strategy or SelectiveBackoffStrategy(
             backoff_factor=0.1,
             maximum_number_of_retries=8,  # ~25.5 seconds total backoff
@@ -405,6 +408,7 @@ class ClientBase(ApiDefinitions, ClientInterface):
                 retry_strategy=retry_strategy,
             ),
         )
+
         self.headers.update({"Accept": "application/json"})
         self._auth_header = _generate_auth_header(token=token)
 
