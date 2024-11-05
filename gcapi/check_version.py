@@ -25,7 +25,3 @@ def check_version():
         # If there's any error in checking the version, we'll silently pass
         # This ensures the import process isn't disrupted
         pass
-
-
-# Call the function when the package is imported
-check_version()

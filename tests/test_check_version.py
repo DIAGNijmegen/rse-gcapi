@@ -4,7 +4,7 @@ from unittest.mock import MagicMock, patch
 import httpx
 import pytest
 
-from gcapi import check_version
+from gcapi.check_version import check_version
 
 
 @pytest.fixture
