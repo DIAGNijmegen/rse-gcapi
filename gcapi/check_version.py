@@ -11,39 +11,31 @@ class UnsupportedVersionError(Exception):
 
 def check_version(base_url):
     package_name = "gcapi"
-    try:
-        current_version = get_version(package_name)
-        with httpx.Client() as client:
-            response = client.get(f"https://pypi.org/pypi/{package_name}/json")
-            latest_version = response.json()["info"]["version"]
 
-            response = client.get(f"{base_url}/gcapi/")
-            lowest_supported_version = response.json()[
-                "lowest_supported_version"
-            ]
+    current_version = get_version(package_name)
+    with httpx.Client() as client:
+        response = client.get(f"{base_url}/gcapi/")
 
-        current_version_v = version.parse(current_version)
-        latest_version_v = version.parse(latest_version)
-        lowest_supported_version_v = version.parse(lowest_supported_version)
+        json = response.json()
+        latest_version = json["latest_version"]
+        lowest_supported_version = json["lowest_supported_version"]
 
-        if current_version_v < lowest_supported_version_v:
-            raise UnsupportedVersionError(
-                f"You are using {package_name} version {current_version}. "
-                f"However, the platform only supports {lowest_supported_version} "
-                "or newer. Upgrade via `pip install --upgrade {package_name}`",
-            )
+    current_version_v = version.parse(current_version)
+    latest_version_v = version.parse(latest_version)
+    lowest_supported_version_v = version.parse(lowest_supported_version)
 
-        if current_version_v < latest_version_v:
-            warnings.warn(
-                f"You are using {package_name} version {current_version}. "
-                f"However, version {latest_version} is available. You should consider"
-                f" upgrading via `pip install --upgrade {package_name}`",
-                UserWarning,
-                stacklevel=0,
-            )
-    except UnsupportedVersionError as e:
-        raise e
-    except Exception:
-        # If there's any error in checking the version, we'll silently pass
-        # This ensures the import process isn't disrupted
-        pass
+    if current_version_v < lowest_supported_version_v:
+        raise UnsupportedVersionError(
+            f"You are using {package_name} version {current_version}. "
+            f"However, the platform only supports {lowest_supported_version} "
+            "or newer. Upgrade via `pip install --upgrade {package_name}`",
+        )
+
+    if current_version_v < latest_version_v:
+        warnings.warn(
+            f"You are using {package_name} version {current_version}. "
+            f"However, version {latest_version} is available. You should consider"
+            f" upgrading via `pip install --upgrade {package_name}`",
+            UserWarning,
+            stacklevel=0,
+        )

@@ -2,9 +2,9 @@ import warnings
 from contextlib import nullcontext
 from unittest.mock import MagicMock, patch
 
-import httpx
 import pytest
 
+from gcapi import AsyncClient, Client
 from gcapi.check_version import UnsupportedVersionError, check_version
 
 
@@ -49,7 +49,7 @@ def mock_httpx_client():
         ),
     ],
 )
-def test_check_version(
+def test_check_version_comparisons(
     mock_get_version,
     mock_httpx_client,
     current,
@@ -59,19 +59,13 @@ def test_check_version(
     expected_context,
 ):
     mock_get_version.return_value = current
-
-    def side_effect(url):
-        mock_response = MagicMock()
-        if "pypi" in url:
-            return_value = {"info": {"version": latest}}
-        elif "example" in url:
-            return_value = {"lowest_supported_version": lowest}
-
-        mock_response.json.return_value = return_value
-        return mock_response
-
-    mock_httpx_client.return_value.__enter__.return_value.get.side_effect = (
-        side_effect
+    mock_response = MagicMock()
+    mock_response.json.return_value = {
+        "latest_version": latest,
+        "lowest_supported_version": lowest,
+    }
+    mock_httpx_client.return_value.__enter__.return_value.get.return_value = (
+        mock_response
     )
 
     with warnings.catch_warnings(record=True) as w:
@@ -89,12 +83,8 @@ def test_check_version(
         ), f"No warning should be issued for version {current} >= {latest}"
 
 
-def test_check_version_network_error(mock_httpx_client):
-    mock_httpx_client.return_value.__enter__.return_value.get.side_effect = (
-        httpx.RequestError("Network error")
-    )
-
-    with warnings.catch_warnings(record=True) as w:
-        check_version(base_url="https://example.test/")
-
-    assert len(w) == 0, "No warning should be issued for network errors"
+@pytest.mark.parametrize("client", [Client, AsyncClient])
+def test_check_version_calling(client, mock_check_version):
+    mock_check_version.assert_not_called()  # Sanity
+    client(token="Foo")
+    mock_check_version.assert_called_once()
