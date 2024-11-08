@@ -1,3 +1,4 @@
+from functools import partial
 from io import BytesIO
 from pathlib import Path
 
@@ -24,8 +25,8 @@ def get_upload_session(client, upload_pk):
 
 
 @recurse_call
-def get_file(client, image_url):
-    return client(url=image_url, follow_redirects=True)
+def get_image(client, image_url):
+    return client.images.detail(api_url=image_url)
 
 
 @recurse_call
@@ -36,6 +37,26 @@ def get_archive_items(client, archive_pk, min_size):
     if len(items) <= min_size:
         raise ValueError
     return items
+
+
+@recurse_call
+def get_complete_civ_set(get_func, complete_num_civ):
+    civ_set = get_func()
+    num_civ = len(civ_set.values)
+    if num_civ != complete_num_civ:
+        raise ValueError(
+            f"Found {num_civ}, expected {complete_num_civ} values"
+        )
+    for civ in civ_set.values:
+        if all(
+            [
+                civ.file is None,
+                civ.image is None,
+                civ.value is None,
+            ]
+        ):
+            raise ValueError(f"Null values: {civ}")
+    return civ_set
 
 
 @pytest.mark.parametrize(
@@ -123,17 +144,17 @@ def test_upload_cases_to_archive(local_grand_challenge, files, interface):
         files=[Path(__file__).parent / "testdata" / f for f in files],
     )
 
-    us = get_upload_session(c, us["pk"])
+    us = get_upload_session(c, us.pk)
 
     # Check that only one image was created
     assert len(us.image_set) == 1
 
-    image = get_file(c, us.image_set[0])
+    image = get_image(c, image_url=us.image_set[0])
 
     # And that it was added to the archive
     archive = next(c.archives.iterate_all(params={"slug": "archive"}))
     archive_images = c.images.iterate_all(params={"archive": archive.pk})
-    assert image["pk"] in [im.pk for im in archive_images]
+    assert image.pk in [im.pk for im in archive_images]
     archive_items = c.archive_items.iterate_all(params={"archive": archive.pk})
     # with the correct interface
     image_url_to_interface_slug_dict = {
@@ -143,15 +164,15 @@ def test_upload_cases_to_archive(local_grand_challenge, files, interface):
         if value.image
     }
     if interface:
-        assert image_url_to_interface_slug_dict[image["api_url"]] == interface
+        assert image_url_to_interface_slug_dict[image.api_url] == interface
     else:
         assert (
-            image_url_to_interface_slug_dict[image["api_url"]]
+            image_url_to_interface_slug_dict[image.api_url]
             == "generic-medical-image"
         )
 
     # And that we can download it
-    response = c(url=image["files"][0]["file"], follow_redirects=True)
+    response = c(url=image.files[0].file, follow_redirects=True)
     assert response.status_code == 200
 
 
@@ -200,19 +221,19 @@ def test_upload_cases_to_archive_item_with_existing_interface(
         files=[Path(__file__).parent / "testdata" / "image10x10x101.mha"],
     )
 
-    us = get_upload_session(c, us["pk"])
+    us = get_upload_session(c, us.pk)
 
     # Check that only one image was created
     assert len(us.image_set) == 1
 
-    image = get_file(c, us.image_set[0])
+    image = get_image(c, us.image_set[0])
 
     # And that it was added to the archive item
     item = c.archive_items.detail(pk=item.pk)
-    assert image["api_url"] in [civ.image for civ in item.values if civ.image]
+    assert image.api_url in [civ.image for civ in item.values if civ.image]
     # with the correct interface
     im_to_interface = {civ.image: civ.interface.slug for civ in item.values}
-    assert im_to_interface[image["api_url"]] == "generic-medical-image"
+    assert im_to_interface[image.api_url] == "generic-medical-image"
 
 
 def test_upload_cases_to_archive_item_with_new_interface(
@@ -231,18 +252,18 @@ def test_upload_cases_to_archive_item_with_new_interface(
         files=[Path(__file__).parent / "testdata" / "image10x10x101.mha"],
     )
 
-    us = get_upload_session(c, us["pk"])
+    us = get_upload_session(c, us.pk)
     # Check that only one image was created
     assert len(us.image_set) == 1
 
-    image = get_file(c, us.image_set[0])
+    image = get_image(c, us.image_set[0])
 
     # And that it was added to the archive item
     item = c.archive_items.detail(pk=item.pk)
-    assert image["api_url"] in [civ.image for civ in item.values if civ.image]
+    assert image.api_url in [civ.image for civ in item.values if civ.image]
     # with the correct interface
     im_to_interface = {civ.image: civ.interface.slug for civ in item.values}
-    assert im_to_interface[image["api_url"]] == "generic-overlay"
+    assert im_to_interface[image.api_url] == "generic-overlay"
 
 
 @pytest.mark.parametrize("files", (["image10x10x101.mha"],))
@@ -256,7 +277,7 @@ def test_download_cases(local_grand_challenge, files, tmpdir):
         files=[Path(__file__).parent / "testdata" / f for f in files],
     )
 
-    us = get_upload_session(c, us["pk"])
+    us = get_upload_session(c, us.pk)
 
     # Check that we can download the uploaded image
     tmpdir = Path(tmpdir)
@@ -316,8 +337,8 @@ def test_create_job_with_upload(
     # algorithm might not be ready yet
     job = run_job()
 
-    assert job["status"] == "Validating inputs"
-    job = c.algorithm_jobs.detail(job["pk"])
+    assert job.status == "Validating inputs"
+    job = c.algorithm_jobs.detail(job.pk)
     assert job.status in {"Validating inputs", "Queued", "Started"}
 
 
@@ -330,8 +351,9 @@ def test_get_algorithm_by_slug(local_grand_challenge):
 
     by_slug = c.algorithms.detail(slug="test-algorithm-evaluation-image-0")
     by_pk = c.algorithms.detail(pk=by_slug.pk)
+    by_api_url = c.algorithms.detail(by_api_url=by_slug.api_url)
 
-    assert by_pk == by_slug
+    assert by_pk == by_slug == by_api_url
 
 
 def test_get_reader_study_by_slug(local_grand_challenge):
@@ -341,8 +363,9 @@ def test_get_reader_study_by_slug(local_grand_challenge):
 
     by_slug = c.reader_studies.detail(slug="reader-study")
     by_pk = c.reader_studies.detail(pk=by_slug.pk)
+    by_api_url = c.reader_studies.detail(by_api_url=by_slug.api_url)
 
-    assert by_pk == by_slug
+    assert by_pk == by_slug == by_api_url
 
 
 @pytest.mark.parametrize("key", ["slug", "pk"])
@@ -662,22 +685,25 @@ def test_add_cases_to_reader_study(display_sets, local_grand_challenge):
 
     @recurse_call
     def check_image(interface_value, expected_name):
-        image = get_file(c, interface_value.image)
-        assert image["name"] == expected_name
+        image = get_image(c, interface_value.image)
+        assert image.name == expected_name
 
     def check_annotation(interface_value, expected):
         assert interface_value.value == expected
 
     @recurse_call
     def check_file(interface_value, expected_name):
-        response = get_file(c, interface_value.file)
+        response = c(url=interface_value.file, follow_redirects=True)
         assert response.url.path.endswith(expected_name)
 
     for display_set_pk, display_set in zip(added_display_sets, display_sets):
-        ds = c.reader_studies.display_sets.detail(pk=display_set_pk)
-        # may take a while for the images to be added
-        while len(ds.values) != len(display_set):
-            ds = c.reader_studies.display_sets.detail(pk=display_set_pk)
+
+        ds = get_complete_civ_set(
+            get_func=partial(
+                c.reader_studies.display_sets.detail, pk=display_set_pk
+            ),
+            complete_num_civ=len(display_set),
+        )
 
         for interface, value in display_set.items():
             civ = [
