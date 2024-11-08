@@ -57,11 +57,11 @@ class ImagesAPI(APIBase[gcapi.models.HyperlinkedImage]):
             if pk is not None:
                 image = yield from self.detail(pk=pk)
             elif url is not None:
-                image = yield self.yield_request(method="GET", url=url)
+                image = yield from self.detail(api_url=url)
             else:
                 image = yield from self.detail(**params)
 
-            files = image["files"]
+            files = image.files
 
         # Make sure file destination exists
         p = Path(filename).absolute()
@@ -72,16 +72,16 @@ class ImagesAPI(APIBase[gcapi.models.HyperlinkedImage]):
         # Download the files
         downloaded_files = []
         for file in files:
-            if image_type and file["image_type"] != image_type:
+            if image_type and file.image_type != image_type:
                 continue
 
             data = (
                 yield self.yield_request(
-                    method="GET", url=file["file"], follow_redirects=True
+                    method="GET", url=file.file, follow_redirects=True
                 )
             ).content
 
-            suffix = file["file"].split(".")[-1]
+            suffix = file.file.split(".")[-1]
             local_file = directory / f"{basename}.{suffix}"
             with local_file.open("wb") as fp:
                 fp.write(data)
@@ -96,11 +96,13 @@ class UploadSessionsAPI(
 ):
     base_path = "cases/upload-sessions/"
     model = gcapi.models.RawImageUploadSession
+    response_model = gcapi.models.RawImageUploadSession
 
 
 class WorkstationSessionsAPI(APIBase[gcapi.models.Session]):
     base_path = "workstations/sessions/"
     model = gcapi.models.Session
+    response_model = gcapi.models.RawImageUploadSession
 
 
 class ReaderStudyQuestionsAPI(APIBase[gcapi.models.Question]):
@@ -113,11 +115,13 @@ class ReaderStudyMineAnswersAPI(
 ):
     base_path = "reader-studies/answers/mine/"
     model = gcapi.models.ReaderStudy
+    response_model = gcapi.models.Answer
 
 
 class ReaderStudyAnswersAPI(ModifiableMixin, APIBase[gcapi.models.Answer]):
     base_path = "reader-studies/answers/"
     model = gcapi.models.Answer
+    response_model = gcapi.models.Answer
 
     sub_apis = {"mine": ReaderStudyMineAnswersAPI}
 
@@ -142,6 +146,7 @@ class ReaderStudyDisplaySetsAPI(
 ):
     base_path = "reader-studies/display-sets/"
     model = gcapi.models.DisplaySet
+    response_model = gcapi.models.DisplaySetPost
 
 
 class ReaderStudiesAPI(APIBase[gcapi.models.ReaderStudy]):
@@ -177,6 +182,7 @@ class AlgorithmsAPI(APIBase[gcapi.models.Algorithm]):
 class AlgorithmJobsAPI(ModifiableMixin, APIBase[gcapi.models.HyperlinkedJob]):
     base_path = "algorithms/jobs/"
     model = gcapi.models.HyperlinkedJob
+    response_model = gcapi.models.JobPost
 
     @mark_generator
     def by_input_image(self, pk):
@@ -191,6 +197,7 @@ class ArchivesAPI(APIBase[gcapi.models.Archive]):
 class ArchiveItemsAPI(ModifiableMixin, APIBase[gcapi.models.ArchiveItem]):
     base_path = "archives/items/"
     model = gcapi.models.ArchiveItem
+    response_model = gcapi.models.ArchiveItemPost
 
 
 class ComponentInterfacesAPI(APIBase[gcapi.models.ComponentInterface]):
@@ -207,13 +214,12 @@ class UploadsAPI(APIBase[gcapi.models.UserUpload]):
     max_retries = 10
 
     def create(self, *, filename):
-        return (
-            yield self.yield_request(
-                method="POST",
-                path=self.base_path,
-                json={"filename": str(filename)},
-            )
+        result = yield self.yield_request(
+            method="POST",
+            path=self.base_path,
+            json={"filename": str(filename)},
         )
+        return self.model(**result)
 
     def generate_presigned_urls(self, *, pk, s3_upload_id, part_numbers):
         url = urljoin(
@@ -248,8 +254,8 @@ class UploadsAPI(APIBase[gcapi.models.UserUpload]):
     def upload_fileobj(self, *, fileobj, filename):
         user_upload = yield from self.create(filename=filename)
 
-        pk = user_upload["pk"]
-        s3_upload_id = user_upload["s3_upload_id"]
+        pk = user_upload.pk
+        s3_upload_id = user_upload.s3_upload_id
 
         try:
             parts = yield from self._put_fileobj(
@@ -261,11 +267,10 @@ class UploadsAPI(APIBase[gcapi.models.UserUpload]):
             )
             raise
 
-        return (  # noqa: B901
-            yield from self.complete_multipart_upload(
-                pk=pk, s3_upload_id=s3_upload_id, parts=parts
-            )
+        result = yield from self.complete_multipart_upload(
+            pk=pk, s3_upload_id=s3_upload_id, parts=parts
         )
+        return self.model(**result)  # noqa: B901
 
     def _put_fileobj(self, *, fileobj, pk, s3_upload_id):
         part_number = 1  # s3 uses 1-indexed chunks
@@ -502,7 +507,7 @@ class ClientBase(ApiDefinitions, ClientInterface):
 
         return (
             yield from self.__org_api_meta.raw_image_upload_sessions.create(
-                uploads=[u["api_url"] for u in uploads], **kwargs
+                uploads=[u.api_url for u in uploads], **kwargs
             )
         )
 
@@ -677,7 +682,7 @@ class ClientBase(ApiDefinitions, ClientInterface):
                     raw_image_upload_session = (
                         yield from self._upload_image_files(files=value)
                     )
-                    i["upload_session"] = raw_image_upload_session["api_url"]
+                    i["upload_session"] = raw_image_upload_session.api_url
                 elif isinstance(value, str):
                     i["image"] = value
             elif ci["super_kind"].lower() == "file":  # type: ignore
@@ -686,7 +691,7 @@ class ClientBase(ApiDefinitions, ClientInterface):
                         f"Only a single file can be provided for {ci['title']}."  # type: ignore
                     )
                 upload = yield from self._upload_file(value)
-                i["user_upload"] = upload["api_url"]
+                i["user_upload"] = upload.api_url
             else:
                 i["value"] = value
             job["inputs"].append(i)  # type: ignore
@@ -703,13 +708,13 @@ class ClientBase(ApiDefinitions, ClientInterface):
         First, retrieve the archive items from your archive:
         archive = next(client.archives.iterate_all(params={"slug": "..."}))
         items = list(
-            client.archive_items.iterate_all(params={"archive": archive["pk"]})
+            client.archive_items.iterate_all(params={"archive": archive.pk})
         )
         To then add, for example, a PDF report and a lung volume
         value to the first archive item , provide the interface slugs together
         with the respective value or file path as follows:
         client.update_archive_item(
-            archive_item_pk=items[0]['id'],
+            archive_item_pk=items[0].id,
             values={
                 "report": [...],
                 "lung-volume": 1.9,
@@ -754,7 +759,7 @@ class ClientBase(ApiDefinitions, ClientInterface):
                     raw_image_upload_session = (
                         yield from self._upload_image_files(files=value)
                     )
-                    i["upload_session"] = raw_image_upload_session["api_url"]
+                    i["upload_session"] = raw_image_upload_session.api_url
                 elif isinstance(value, str):
                     i["image"] = value
             elif ci.super_kind.lower() == "file":
@@ -764,7 +769,7 @@ class ClientBase(ApiDefinitions, ClientInterface):
                         f"to a {ci.slug} interface."
                     )
                 upload = yield from self._upload_file(value)
-                i["user_upload"] = upload["api_url"]
+                i["user_upload"] = upload.api_url
             else:
                 i["value"] = value
             civs["values"].append(i)
@@ -870,19 +875,19 @@ class ClientBase(ApiDefinitions, ClientInterface):
                 super_kind = interface.super_kind.casefold()
                 if super_kind == "image":
                     yield from self._upload_image_files(
-                        display_set=ds["pk"], interface=slug, files=value
+                        display_set=ds.pk, interface=slug, files=value
                     )
                     data = {}
                 elif super_kind == "file":
                     upload = yield from self._upload_file(value)
-                    data["user_upload"] = upload["api_url"]
+                    data["user_upload"] = upload.api_url
                 else:
                     data["value"] = value
                 if data:
                     values.append(data)
             yield from self.__org_api_meta.reader_studies.display_sets.partial_update(
-                pk=ds["pk"], values=values
+                pk=ds.pk, values=values
             )
 
-            res.append(ds["pk"])
+            res.append(ds.pk)
         return res  # noqa: B901

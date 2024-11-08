@@ -143,14 +143,20 @@ class APIBase(Generic[T], Common[T]):
             yield from current_list
             offset += req_count
 
-    def detail(self, pk=None, **params) -> Generator[T, dict[Any, Any], T]:
+    def detail(
+        self, pk=None, api_url=None, **params
+    ) -> Generator[T, dict[Any, Any], T]:
         if all((pk, params)):
             raise ValueError("Only one of pk or params must be specified")
 
-        if pk is not None:
+        if pk is not None or api_url is not None:
+            if pk is not None:
+                request_kwargs = dict(path=urljoin(self.base_path, pk + "/"))
+            else:
+                request_kwargs = dict(url=api_url)
             try:
                 result = yield self.yield_request(
-                    method="GET", path=urljoin(self.base_path, pk + "/")
+                    method="GET", **request_kwargs
                 )
                 return self.model(**result)
             except HTTPStatusError as e:
@@ -170,6 +176,8 @@ class APIBase(Generic[T], Common[T]):
 
 
 class ModifiableMixin(Common):
+    response_model: type
+
     def _process_request_arguments(self, data):
         if data is None:
             data = {}
@@ -188,13 +196,16 @@ class ModifiableMixin(Common):
         return (yield from self._execute_request(method, data, pk))
 
     def create(self, **kwargs):
-        return (yield from self.perform_request("POST", data=kwargs))
+        result = yield from self.perform_request("POST", data=kwargs)
+        return self.response_model(**result)
 
     def update(self, pk, **kwargs):
-        return (yield from self.perform_request("PUT", pk=pk, data=kwargs))
+        result = yield from self.perform_request("PUT", pk=pk, data=kwargs)
+        return self.rsponse_model(**result)
 
     def partial_update(self, pk, **kwargs):
-        return (yield from self.perform_request("PATCH", pk=pk, data=kwargs))
+        result = yield from self.perform_request("PATCH", pk=pk, data=kwargs)
+        return result
 
     def delete(self, pk):
         return (yield from self.perform_request("DELETE", pk=pk))
