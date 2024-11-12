@@ -22,7 +22,8 @@ def recurse_call(func):
             except (
                 HTTPStatusError,
                 ValueError,
-                ObjectNotFound,  # Lagging permissions
+                # Permissions are sometimes delayed, shows as ObjectNotFound
+                ObjectNotFound,
             ) as e:
                 last_error = e
                 sleep(0.5)
@@ -43,7 +44,8 @@ def async_recurse_call(func):
             except (
                 HTTPStatusError,
                 ValueError,
-                ObjectNotFound,  # Lagging permissions
+                # Permissions are sometimes delayed, shows as ObjectNotFound
+                ObjectNotFound,
             ) as e:
                 last_error = e
                 sleep(0.5)
