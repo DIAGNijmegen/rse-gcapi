@@ -1,3 +1,4 @@
+from functools import partial
 from io import BytesIO
 from pathlib import Path
 
@@ -24,8 +25,8 @@ async def get_upload_session(client, upload_pk):
 
 
 @async_recurse_call
-async def get_file(client, url):
-    return await client(url=url, follow_redirects=True)
+async def get_image(client, url):
+    return await client.images.detail(api_url=url)
 
 
 @async_recurse_call
@@ -35,6 +36,26 @@ async def get_archive_items(client, archive_pk, min_size):
     if len(il) <= min_size:
         raise ValueError
     return il
+
+
+@async_recurse_call
+async def get_complete_civ_set(get_func, complete_num_civ):
+    civ_set = await get_func()
+    num_civ = len(civ_set.values)
+    if num_civ != complete_num_civ:
+        raise ValueError(
+            f"Found {num_civ}, expected {complete_num_civ} values"
+        )
+    for civ in civ_set.values:
+        if all(
+            [
+                civ.file is None,
+                civ.image is None,
+                civ.value is None,
+            ]
+        ):
+            raise ValueError(f"Null values: {civ}")
+    return civ_set
 
 
 @pytest.mark.anyio
@@ -131,18 +152,18 @@ async def test_upload_cases_to_archive(
             files=[Path(__file__).parent / "testdata" / f for f in files],
         )
 
-        us = await get_upload_session(c, us["pk"])
+        us = await get_upload_session(c, us.pk)
 
         # Check that only one image was created
         assert len(us.image_set) == 1
-        image = await get_file(c, us.image_set[0])
+        image = await get_image(c, us.image_set[0])
 
         # And that it was added to the archive
         archive = await c.archives.iterate_all(
             params={"slug": "archive"}
         ).__anext__()
         archive_images = c.images.iterate_all(params={"archive": archive.pk})
-        assert image["pk"] in [im.pk async for im in archive_images]
+        assert image.pk in [im.pk async for im in archive_images]
         archive_items = c.archive_items.iterate_all(
             params={"archive": archive.pk}
         )
@@ -156,17 +177,15 @@ async def test_upload_cases_to_archive(
         }
 
         if interface:
-            assert image_url_to_interface_slug[image["api_url"]] == interface
+            assert image_url_to_interface_slug[image.api_url] == interface
         else:
             assert (
-                image_url_to_interface_slug[image["api_url"]]
+                image_url_to_interface_slug[image.api_url]
                 == "generic-medical-image"
             )
 
         # And that we can download it
-        response = await c(
-            url=image["files"][0]["file"], follow_redirects=True
-        )
+        response = await c(url=image.files[0].file, follow_redirects=True)
         assert response.status_code == 200
 
 
@@ -229,20 +248,20 @@ async def test_upload_cases_to_archive_item_with_existing_interface(
             files=[Path(__file__).parent / "testdata" / "image10x10x101.mha"],
         )
 
-        us = await get_upload_session(c, us["pk"])
+        us = await get_upload_session(c, us.pk)
 
         # Check that only one image was created
         assert len(us.image_set) == 1
-        image = await get_file(c, us.image_set[0])
+        image = await get_image(c, us.image_set[0])
 
         # And that it was added to the archive item
         item = await c.archive_items.detail(pk=items_list[-1].pk)
-        assert image["api_url"] in [civ.image for civ in item.values]
+        assert image.api_url in [civ.image for civ in item.values]
         # with the correct interface
         im_to_interface = {
             civ.image: civ.interface.slug for civ in item.values
         }
-        assert im_to_interface[image["api_url"]] == "generic-medical-image"
+        assert im_to_interface[image.api_url] == "generic-medical-image"
 
 
 @pytest.mark.anyio
@@ -274,20 +293,20 @@ async def test_upload_cases_to_archive_item_with_new_interface(
             files=[Path(__file__).parent / "testdata" / "image10x10x101.mha"],
         )
 
-        us = await get_upload_session(c, us["pk"])
+        us = await get_upload_session(c, us.pk)
 
         # Check that only one image was created
         assert len(us.image_set) == 1
-        image = await get_file(c, us.image_set[0])
+        image = await get_image(c, us.image_set[0])
 
         # And that it was added to the archive item
         item = await c.archive_items.detail(pk=items_list[-1].pk)
-        assert image["api_url"] in [civ.image for civ in item.values]
+        assert image.api_url in [civ.image for civ in item.values]
         # with the correct interface
         im_to_interface = {
             civ.image: civ.interface.slug for civ in item.values
         }
-        assert im_to_interface[image["api_url"]] == "generic-overlay"
+        assert im_to_interface[image.api_url] == "generic-overlay"
 
 
 @pytest.mark.parametrize("files", (["image10x10x101.mha"],))
@@ -301,7 +320,7 @@ async def test_download_cases(local_grand_challenge, files, tmpdir):
             files=[Path(__file__).parent / "testdata" / f for f in files],
         )
 
-        us = await get_upload_session(c, us["pk"])
+        us = await get_upload_session(c, us.pk)
 
         # Check that we can download the uploaded image
         tmpdir = Path(tmpdir)
@@ -358,8 +377,8 @@ async def test_create_job_with_upload(
         # algorithm might not be ready yet
         job = await run_job()
 
-        assert job["status"] == "Validating inputs"
-        job = await c.algorithm_jobs.detail(job["pk"])
+        assert job.status == "Validating inputs"
+        job = await c.algorithm_jobs.detail(job.pk)
         assert job.status in {"Validating inputs", "Queued", "Started"}
 
 
@@ -748,27 +767,28 @@ async def test_add_cases_to_reader_study(display_sets, local_grand_challenge):
 
         @async_recurse_call
         async def check_image(interface_value, expected_name):
-            image = await get_file(c, interface_value.image)
-            assert image["name"] == expected_name
+            image = await get_image(c, interface_value.image)
+            assert image.name == expected_name
 
         def check_annotation(interface_value, expected):
             assert interface_value.value == expected
 
         @async_recurse_call
         async def check_file(interface_value, expected_name):
-            response = await get_file(c, interface_value.file)
+            response = await c(url=interface_value.file, follow_redirects=True)
             assert response.url.path.endswith(expected_name)
 
         # Check for each display set that the values are added
         for display_set_pk, display_set in zip(
             added_display_sets, display_sets
         ):
-            ds = await c.reader_studies.display_sets.detail(pk=display_set_pk)
-            # may take a while for the images to be added
-            while len(ds.values) != len(display_set):
-                ds = await c.reader_studies.display_sets.detail(
-                    pk=display_set_pk
-                )
+
+            ds = await get_complete_civ_set(
+                partial(
+                    c.reader_studies.display_sets.detail, pk=display_set_pk
+                ),
+                complete_num_civ=len(display_set),
+            )
 
             for interface, value in display_set.items():
                 civ = [
