@@ -146,9 +146,10 @@ class APIBase(Generic[T], Common[T]):
     def detail(
         self, pk=None, api_url=None, **params
     ) -> Generator[T, dict[Any, Any], T]:
-        if all((pk, params)):
-            raise ValueError("Only one of pk or params must be specified")
-
+        if sum(bool(arg) for arg in [pk, api_url, params]) != 1:
+            raise ValueError(
+                "Exactly one of pk, api_url, or params must be specified"
+            )
         if pk is not None or api_url is not None:
             if pk is not None:
                 request_kwargs = dict(path=urljoin(self.base_path, pk + "/"))

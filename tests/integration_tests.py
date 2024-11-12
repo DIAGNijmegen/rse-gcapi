@@ -368,7 +368,7 @@ def test_get_reader_study_by_slug(local_grand_challenge):
     assert by_pk == by_slug == by_api_url
 
 
-@pytest.mark.parametrize("key", ["slug", "pk"])
+@pytest.mark.parametrize("key", ["slug", "pk", "api_url"])
 def test_detail_no_objects(local_grand_challenge, key):
     c = Client(
         base_url=local_grand_challenge, verify=False, token=READERSTUDY_TOKEN
@@ -376,6 +376,24 @@ def test_detail_no_objects(local_grand_challenge, key):
 
     with pytest.raises(ObjectNotFound):
         c.reader_studies.detail(**{key: "foo"})
+
+
+@pytest.mark.parametrize(
+    "keys",
+    (
+        ("api_url", "pk", "slug"),
+        ("api_url", "pk"),
+        ("api_url", "slug"),
+        ("pk", "slug"),
+    ),
+)
+def test_detail_multiple_args(local_grand_challenge, keys):
+    c = Client(
+        base_url=local_grand_challenge, verify=False, token=READERSTUDY_TOKEN
+    )
+
+    with pytest.raises(ValueError):
+        c.reader_studies.detail(**{k: "foo" for k in keys})
 
 
 def test_detail_multiple_objects(local_grand_challenge):
