@@ -8,6 +8,7 @@ from gcapi.models import (
     ArchiveItem,
     ArchiveItemPost,
     ComponentInterface,
+    ComponentInterfaceValuePostRequest,
     DisplaySet,
     DisplaySetPost,
     HyperlinkedComponentInterfaceValue,
@@ -79,13 +80,9 @@ class BaseCreateStrategy:
 
     def __call__(self):
         """
-        If applicable, upload any contents and returns a dict
+        If applicable, upload any contents and returns an item
         that can be used in POSTs that would use the created objects.
         """
-
-        # TODO: convert this to use the proper PostRequest models;
-        # requires non-trivial in-depth changes to client
-
         if not self.prepared:
             yield from self.prepare()
 
@@ -135,7 +132,14 @@ class CIVCreateStrategy(BaseCreateStrategy):
     def __call__(self):
         yield from super().__call__()
 
-        return {"interface": self.interface.slug}  # noqa: B901
+        return ComponentInterfaceValuePostRequest(  # noqa: B901
+            interface=self.interface.slug,
+            value=None,
+            file=None,
+            image=None,
+            upload_session=None,
+            user_upload=None,
+        )
 
 
 class FileCIVCreateStrategy(CIVCreateStrategy):
@@ -165,15 +169,15 @@ class FileCIVCreateStrategy(CIVCreateStrategy):
             self.content_name = self.interface.relative_path
 
     def __call__(self):
-        item = yield from super().__call__()
+        post_request = yield from super().__call__()
 
         with open(self.content, "rb") as f:
             user_upload = yield from self.client_api.uploads.upload_fileobj(
                 fileobj=f, filename=self.content_name
             )
-        item["user_upload"] = user_upload.api_url
+        post_request.user_upload = user_upload.api_url
 
-        return item
+        return post_request
 
 
 class ImageCIVCreateStrategy(CIVCreateStrategy):
@@ -194,12 +198,12 @@ class ImageCIVCreateStrategy(CIVCreateStrategy):
             self.content = clean_file_source(self.source)
 
     def __call__(self):
-        item = yield from super().__call__()
+        post_request = yield from super().__call__()
 
         if isinstance(self.content, HyperlinkedImage):
             # Reuse the existing image
-            item["image"] = self.content.api_url
-            return item
+            post_request.image = self.content.api_url
+            return
 
         # Upload the image
         if self.parent is None:
@@ -238,8 +242,8 @@ class ImageCIVCreateStrategy(CIVCreateStrategy):
         )
 
         if self.parent is None:
-            item["upload_session"] = raw_image_upload_session.api_url
-            return item
+            post_request.upload_session = raw_image_upload_session.api_url
+            return post_request
         else:
             return Empty
 
