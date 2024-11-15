@@ -59,47 +59,47 @@ def test_token_rewriting(monkeypatch, token, environ):
 
 def test_http_base_url():
     with pytest.raises(RuntimeError):
-        Client(token="foo", base_url="http://example.com")
+        Client(token="foo", base_url="http://example.test")
 
 
 def test_custom_base_url():
     c = Client(token="foo")
     assert str(c.base_url).startswith("https://grand-challenge.org")
 
-    c = Client(token="foo", base_url="https://example.com")
-    assert str(c.base_url).startswith("https://example.com")
+    c = Client(token="foo", base_url="https://example.test")
+    assert str(c.base_url).startswith("https://example.test")
 
 
 @pytest.mark.parametrize(
     "url",
     (
-        "https://example.com/api/v1/",
-        "https://example.com/",
-        "https://example.com",
-        "https://example.com/another/",
-        "https://example.com/../../foo/",
+        "https://example.test/api/v1/",
+        "https://example.test/",
+        "https://example.test",
+        "https://example.test/another/",
+        "https://example.test/../../foo/",
     ),
 )
 def test_same_domain_calls_are_ok(url):
-    c = Client(token="foo", base_url="https://example.com/api/v1/")
+    c = Client(token="foo", base_url="https://example.test/api/v1/")
     assert c.validate_url(url=url) is None
 
 
 @pytest.mark.parametrize(
     "url",
     (
-        "https://notexample.com/api/v1/",
-        "http://example.com/api/v1/",
+        "https://notexample.test/api/v1/",
+        "http://example.test/api/v1/",
         "https://exаmple.com/api/v1/",  # а = \u0430
-        "https://sub.example.com/api/v1/",
+        "https://sub.example.test/api/v1/",
         # This is working now because "URL" normalizes this. Expected!
-        # "https://example.com:443/api/v1/",
-        "example.com/api/v1/",
-        "//example.com/api/v1/",
+        # "https://example.test:443/api/v1/",
+        "example.test/api/v1/",
+        "//example.test/api/v1/",
     ),
 )
 def test_invalid_url_fails(url):
-    c = Client(token="foo", base_url="https://example.com/api/v1/")
+    c = Client(token="foo", base_url="https://example.test/api/v1/")
     with pytest.raises(RuntimeError):
         c.validate_url(url=url)
 
