@@ -54,17 +54,17 @@ class BaseCreateStrategy:
     """
     Base class that describes strategies when creating items on Grand Challenge.
 
-    Some objects can directly be created via an api call. However some need
-    a chain of dependent objects to exists. The raison d'être of the strategies
-    is to re-use code. Mainly to unify different client helper functions such
-    as upload_to_reader_study() or update_display_set().
+    Some items can directly be created via an api call. However, some need
+    a chain of dependent items to exists. The raison d'être of the strategies
+    is to re-use code that checks and handles these relations.
 
     Each strategy has a `prepare()` function to support batch preparing
-    before things actually land on Grand Challenge. Prepare should **not**
+    before things actually land on Grand Challenge. Preparing should **not**
     create anything on Grand Challenge.
 
     Calling the strategy will, if applicable, upload contents and hence cause
-    objects to be created on Grand Challenge.
+    objects to be created on Grand Challenge. Calling the strategy will return
+    a dict that describes how others items can hook up to the created items.
     """
 
     def __init__(self, *, client_api):
@@ -84,7 +84,7 @@ class BaseCreateStrategy:
         """
 
         # TODO: convert this to use the proper PostRequest models;
-        # requires in-depth changes to client
+        # requires non-trivial in-depth changes to client
 
         if not self.prepared:
             yield from self.prepare()
