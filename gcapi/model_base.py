@@ -1,5 +1,7 @@
 import warnings
 
+from pydantic import RootModel
+
 
 class BaseModel:
     def __getitem__(self, key):
@@ -25,3 +27,7 @@ class BaseModel:
             category=DeprecationWarning,
             stacklevel=3,
         )
+
+    def to_json(self):
+        """Convert the instance to a JSON-compatible dictionary"""
+        return RootModel[type(self)](self).model_dump()

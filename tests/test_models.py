@@ -1,6 +1,10 @@
 import pytest
 
-from gcapi.models import Algorithm
+from gcapi.models import (
+    Algorithm,
+    ComponentInterfaceValuePostRequest,
+    DisplaySetPostRequest,
+)
 
 DEFAULT_ALGORITHM_ARGS = {
     "pk": "1234",
@@ -111,3 +115,36 @@ def test_deprecation_warning_for_delitem():
     assert 'Using ["pk"] for deleting attributes is deprecated' in str(
         checker.list[0].message
     )
+
+
+def test_to_json():
+    ds_post_request = DisplaySetPostRequest(
+        reader_study="a-reader-study",
+        order=None,
+        values=[
+            ComponentInterfaceValuePostRequest(
+                interface="a-slug",
+                value=42,
+                file=None,
+                image=None,
+                upload_session=None,
+                user_upload=None,
+            ),
+        ],
+    )
+
+    assert ds_post_request.to_json() == {
+        "reader_study": "a-reader-study",
+        "order": None,
+        "title": "",
+        "values": [
+            {
+                "interface": "a-slug",
+                "value": 42,
+                "file": None,
+                "image": None,
+                "upload_session": None,
+                "user_upload": None,
+            }
+        ],
+    }
