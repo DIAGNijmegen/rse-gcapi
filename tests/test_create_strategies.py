@@ -69,7 +69,7 @@ TESTDATA = Path(__file__).parent / "testdata"
         ),
     ),
 )
-def test_clean_file_source(source, maximum_number, context):
+def test_prep_file_source(source, maximum_number, context):
     with context:
         clean_file_source(source, maximum_number=maximum_number)
 
@@ -149,7 +149,7 @@ def test_civ_strategy_specialization(
     ),
 )
 @sync_generator_test
-def test_file_civ_clean(source, context, interface_kind):
+def test_file_civ_prep(source, context, interface_kind):
     strategy = FileCIVCreateStrategy(
         source=source,
         interface=ComponentInterfaceFactory(
@@ -185,7 +185,7 @@ def test_file_civ_clean(source, context, interface_kind):
     ),
 )
 @sync_generator_test
-def test_image_civ_clean(source, context):
+def test_image_civ_prep(source, context):
     strategy = ImageCIVCreateStrategy(
         source=source,
         interface=ComponentInterfaceFactory(super_kind="Image"),
@@ -237,7 +237,7 @@ def test_image_civ_clean(source, context):
     ),
 )
 @sync_generator_test
-def test_value_civ_clean(source, context):
+def test_value_civ_prep(source, context):
     strategy = ValueCIVCreateStrategy(
         source=source,
         interface=ComponentInterfaceFactory(super_kind="Value"),
