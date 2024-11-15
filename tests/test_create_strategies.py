@@ -4,13 +4,13 @@ from unittest.mock import MagicMock
 
 import pytest
 
-from gcapi.models_proto import (
-    FileProtoCIV,
-    ImageProtoCIV,
-    ProtoCIV,
-    ProtoJob,
+from gcapi.create_strategies import (
+    CIVCreateStrategy,
+    FileCIVCreateStrategy,
+    ImageCIVCreateStrategy,
+    JobInputsCreateStrategy,
     TooManyFiles,
-    ValueProtoCIV,
+    ValueCIVCreateStrategy,
     clean_file_source,
 )
 from tests.factories import (
@@ -78,47 +78,49 @@ def test_clean_file_source(source, maximum_number, context):
     "init_cls,interface,expected_cls,context",
     (
         (
-            ProtoCIV,
+            CIVCreateStrategy,
             ComponentInterfaceFactory(super_kind="Image"),
-            ImageProtoCIV,
+            ImageCIVCreateStrategy,
             nullcontext(),
         ),
         (
-            ProtoCIV,
+            CIVCreateStrategy,
             ComponentInterfaceFactory(super_kind="File"),
-            FileProtoCIV,
+            FileCIVCreateStrategy,
             nullcontext(),
         ),
         (
-            ProtoCIV,
+            CIVCreateStrategy,
             ComponentInterfaceFactory(super_kind="Value"),
-            ValueProtoCIV,
+            ValueCIVCreateStrategy,
             nullcontext(),
         ),
         (
-            ProtoCIV,
+            CIVCreateStrategy,
             ComponentInterfaceFactory(super_kind="I do not exist"),
             None,
             pytest.raises(NotImplementedError),
         ),
         (
-            ImageProtoCIV,
+            ImageCIVCreateStrategy,
             ComponentInterfaceFactory(super_kind="File"),
             None,
             pytest.raises(RuntimeError),
         ),
     ),
 )
-def test_proto_civ_typing(init_cls, interface, expected_cls, context):
+def test_civ_strategy_specialization(
+    init_cls, interface, expected_cls, context
+):
     with context:
-        proto_civ = init_cls(
+        strategy = init_cls(
             source=[],
             interface=interface,
             client_api=MagicMock(),
         )
 
     if expected_cls:
-        assert type(proto_civ) is expected_cls
+        assert type(strategy) is expected_cls
 
 
 @pytest.mark.parametrize(
@@ -148,7 +150,7 @@ def test_proto_civ_typing(init_cls, interface, expected_cls, context):
 )
 @sync_generator_test
 def test_file_civ_clean(source, context, interface_kind):
-    proto_civ = FileProtoCIV(
+    strategy = FileCIVCreateStrategy(
         source=source,
         interface=ComponentInterfaceFactory(
             super_kind="File", kind=interface_kind
@@ -156,7 +158,7 @@ def test_file_civ_clean(source, context, interface_kind):
         client_api=MagicMock(),
     )
     with context:
-        yield from proto_civ.clean()
+        yield from strategy.prepare()
 
 
 @pytest.mark.parametrize(
@@ -184,13 +186,13 @@ def test_file_civ_clean(source, context, interface_kind):
 )
 @sync_generator_test
 def test_image_civ_clean(source, context):
-    proto_civ = ImageProtoCIV(
+    strategy = ImageCIVCreateStrategy(
         source=source,
         interface=ComponentInterfaceFactory(super_kind="Image"),
         client_api=MagicMock(),
     )
     with context:
-        yield from proto_civ.clean()
+        yield from strategy.prepare()
 
 
 @pytest.mark.parametrize(
@@ -236,13 +238,13 @@ def test_image_civ_clean(source, context):
 )
 @sync_generator_test
 def test_value_civ_clean(source, context):
-    proto_civ = ValueProtoCIV(
+    strategy = ValueCIVCreateStrategy(
         source=source,
         interface=ComponentInterfaceFactory(super_kind="Value"),
         client_api=MagicMock(),
     )
     with context:
-        yield from proto_civ.clean()
+        yield from strategy.prepare()
 
 
 @pytest.mark.parametrize(
@@ -287,11 +289,11 @@ def test_value_civ_clean(source, context):
     ),
 )
 @sync_generator_test
-def test_proto_job_clean(algorithm, inputs, context):
-    job = ProtoJob(
+def test_job_inputs_create_prep(algorithm, inputs, context):
+    strategy = JobInputsCreateStrategy(
         algorithm=algorithm,
         inputs=inputs,
         client_api=MagicMock(),
     )
     with context:
-        yield from job.clean()
+        yield from strategy.prepare()

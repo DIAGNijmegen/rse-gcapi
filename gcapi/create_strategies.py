@@ -50,53 +50,54 @@ def clean_file_source(
     return cleaned
 
 
-class BaseProtoModel:
+class BaseCreateStrategy:
     """
-    Base class for proto models for component-interface values (CIVs).
+    Base class that describes strategies when creating items on Grand Challenge.
 
-    The raison d'être is to re-use code for different client helper
-    functions such as upload_to_reader_study() or update_display_set().
+    Some objects can directly be created via an api call. However some need
+    a chain of dependent objects to exists. The raison d'être of the strategies
+    is to re-use code. Mainly to unify different client helper functions such
+    as upload_to_reader_study() or update_display_set().
 
-    Proto models have two distinct functions:
-    - `clean()`
-    - `gen_post_request()`
+    Each strategy has a `prepare()` function to support batch preparing
+    before things actually land on Grand Challenge. Prepare should **not**
+    create anything on Grand Challenge.
 
-    The `gen_post_request()` ensures that `clean()` has been called.
-
-    This supports batch cleaning before things actually land on Grand Challenge.
+    Calling the strategy will, if applicable, upload contents and hence cause
+    objects to be created on Grand Challenge.
     """
 
     def __init__(self, *, client_api):
         self.client_api = client_api
-        self.cleaned = False
+        self.prepared = False
 
-    def clean(self):
-        """Ensure that things are ready to be uploaded."""
-        self.cleaned = True
+    def prepare(self):
+        """Ensure that the strategy can be executed"""
+        self.prepared = True
         return
         yield
 
-    def gen_post_request(self):
+    def __call__(self):
         """
-        If applicable, upload any contents and return a dict
-        that can be used in POSTs.
+        If applicable, upload any contents and returns a dict
+        that can be used in POSTs that would use the created objects.
         """
 
         # TODO: convert this to use the proper PostRequest models;
         # requires in-depth changes to client
 
-        if not self.cleaned:
-            yield from self.clean()
+        if not self.prepared:
+            yield from self.prepare()
 
 
-class ProtoCIV(BaseProtoModel):
+class CIVCreateStrategy(BaseCreateStrategy):
 
     def __new__(cls, *, interface: ComponentInterface, **__):
         # Determine the class specialization based on the interface's super_kind.
         handler_class = {
-            "image": ImageProtoCIV,
-            "file": FileProtoCIV,
-            "value": ValueProtoCIV,
+            "image": ImageCIVCreateStrategy,
+            "file": FileCIVCreateStrategy,
+            "value": ValueCIVCreateStrategy,
         }.get(interface.super_kind.casefold())
 
         if handler_class is None:
@@ -104,7 +105,7 @@ class ProtoCIV(BaseProtoModel):
                 f"Unsupported interface super_kind: {interface.super_kind}"
             )
 
-        if cls is not ProtoCIV:
+        if cls is not CIVCreateStrategy:
             # Specialized class: double check if it supports the interface.
             if cls is not handler_class:
                 raise RuntimeError(
@@ -131,16 +132,16 @@ class ProtoCIV(BaseProtoModel):
         self.interface = interface
         self.parent = parent
 
-    def gen_post_request(self):
-        yield from super().gen_post_request()
+    def __call__(self):
+        yield from super().__call__()
 
         return {"interface": self.interface.slug}  # noqa: B901
 
 
-class FileProtoCIV(ProtoCIV):
+class FileCIVCreateStrategy(CIVCreateStrategy):
 
-    def clean(self):
-        yield from super().clean()
+    def prepare(self):
+        yield from super().prepare()
 
         try:
             cleaned_sources = clean_file_source(self.source, maximum_number=1)
@@ -163,8 +164,8 @@ class FileProtoCIV(ProtoCIV):
             self.content = io.StringIO(json_str)
             self.content_name = self.interface.relative_path
 
-    def gen_post_request(self):
-        item = yield from super().gen_post_request()
+    def __call__(self):
+        item = yield from super().__call__()
 
         with open(self.content, "rb") as f:
             user_upload = yield from self.client_api.uploads.upload_fileobj(
@@ -175,10 +176,10 @@ class FileProtoCIV(ProtoCIV):
         return item
 
 
-class ImageProtoCIV(ProtoCIV):
+class ImageCIVCreateStrategy(CIVCreateStrategy):
 
-    def clean(self):
-        yield from super().clean()
+    def prepare(self):
+        yield from super().prepare()
 
         if isinstance(self.source, HyperlinkedImage):
             self.content = self.source
@@ -192,8 +193,8 @@ class ImageProtoCIV(ProtoCIV):
         else:
             self.content = clean_file_source(self.source)
 
-    def gen_post_request(self):
-        item = yield from super().gen_post_request()
+    def __call__(self):
+        item = yield from super().__call__()
 
         if isinstance(self.content, HyperlinkedImage):
             # Reuse the existing image
@@ -243,10 +244,10 @@ class ImageProtoCIV(ProtoCIV):
             return Empty
 
 
-class ValueProtoCIV(ProtoCIV):
+class ValueCIVCreateStrategy(CIVCreateStrategy):
 
-    def clean(self):
-        yield from super().clean()
+    def prepare(self):
+        yield from super().prepare()
 
         try:
             cleaned_sources = clean_file_source(self.source, maximum_number=1)
@@ -260,13 +261,13 @@ class ValueProtoCIV(ProtoCIV):
             with open(clean_source) as fp:
                 self.content = json.load(fp)
 
-    def gen_post_request(self):
-        item = yield from super().gen_post_request()
+    def __call__(self):
+        item = yield from super().__call__()
         item["value"] = self.content
         return item
 
 
-class ProtoJob(BaseProtoModel):
+class JobInputsCreateStrategy(BaseCreateStrategy):
     def __init__(
         self,
         *,
@@ -279,10 +280,10 @@ class ProtoJob(BaseProtoModel):
         self.algorithm = algorithm
         self.inputs = inputs
 
-        self.proto_civs: list[ProtoCIV] = []
+        self.input_strategies: list[CIVCreateStrategy] = []
 
-    def clean(self):
-        yield from super().clean()
+    def prepare(self):
+        yield from super().prepare()
 
         if isinstance(self.algorithm, str):
             self.algorithm = yield from self.client_api.algorithms.detail(
@@ -302,27 +303,22 @@ class ProtoJob(BaseProtoModel):
                 )
 
         for ci_slug, source in self.inputs.items():
-            civ = ProtoCIV(
+            civ_strategy = CIVCreateStrategy(
                 source=source,
                 interface=interface_lookup[ci_slug],
                 client_api=self.client_api,
             )
-            yield from civ.clean()
+            yield from civ_strategy.prepare()
 
-            self.proto_civs.append(civ)
+            self.input_strategies.append(civ_strategy)
 
-    def gen_post_request(self):
-        yield from super().gen_post_request()
+    def __call__(self):
+        yield from super().__call__()
 
-        inputs = []
-        for civ in self.proto_civs:
-            saved_civ = yield from civ.gen_post_request()
-            if saved_civ is not Empty:
-                inputs.append(saved_civ)
+        input_post_requests = []
+        for strat in self.input_strategies:
+            post_request = yield from strat()
+            if post_request is not Empty:
+                input_post_requests.append(post_request)
 
-        return (  # noqa: B901
-            yield from self.client_api.algorithm_jobs.create(
-                algorithm=self.algorithm.api_url,
-                inputs=inputs,
-            )
-        )
+        return input_post_requests  # noqa: B901
