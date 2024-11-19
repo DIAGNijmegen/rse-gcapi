@@ -13,12 +13,14 @@ def check_version(base_url):
     package_name = "gcapi"
 
     current_version = get_version(package_name)
-    with httpx.Client() as client:
-        response = client.get(f"{base_url}/gcapi/")
 
-        json = response.json()
-        latest_version = json["latest_version"]
-        lowest_supported_version = json["lowest_supported_version"]
+    with httpx.Client() as client:
+        response = client.get(f"{base_url}/gcapi/").json()
+
+        api_data = response.json()
+
+        latest_version = api_data["latest_version"]
+        lowest_supported_version = api_data["lowest_supported_version"]
 
     current_version_v = version.parse(current_version)
     latest_version_v = version.parse(latest_version)
