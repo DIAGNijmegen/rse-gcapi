@@ -100,7 +100,7 @@ def _create_users(usernames):
     for username in usernames:
         user = get_user_model().objects.create(
             username=username,
-            email=f"{username}@example.com",
+            email=f"{username}@example.test",
             is_active=True,
             first_name=username,
             last_name=username,

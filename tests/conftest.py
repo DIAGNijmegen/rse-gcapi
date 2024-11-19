@@ -6,6 +6,7 @@ from pathlib import Path
 from subprocess import STDOUT, check_output
 from tempfile import TemporaryDirectory
 from time import sleep
+from unittest.mock import patch
 
 import httpx
 import pytest
@@ -184,3 +185,9 @@ def rewrite_docker_compose(content: bytes) -> bytes:
     spec["services"]["celery_worker"]["command"] = command
 
     return yaml.safe_dump(spec).encode("utf-8")
+
+
+@pytest.fixture(autouse=True)
+def mock_check_version():
+    with patch("gcapi.client.check_version") as mock:
+        yield mock

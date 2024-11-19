@@ -5,7 +5,7 @@ from gcapi.retries import BaseRetryStrategy
 from gcapi.transports import RetryTransport
 from tests.utils import mock_transport_responses
 
-MOCK_REQUEST = httpx.Request("GET", "https://example.com")
+MOCK_REQUEST = httpx.Request("GET", "https://example.test")
 MOCK_RESPONSES = [
     httpx.Response(httpx.codes.NOT_FOUND),
     httpx.Response(httpx.codes.NOT_FOUND),
