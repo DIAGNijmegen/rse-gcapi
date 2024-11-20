@@ -34,8 +34,7 @@ from grandchallenge.reader_studies.models import (
 )
 from grandchallenge.verifications.models import Verification
 from grandchallenge.workstations.models import Workstation
-from knox import crypto
-from knox.models import AuthToken
+from knox.models import AuthToken, hash_token
 from knox.settings import CONSTANTS
 
 from .constants import USER_TOKENS
@@ -227,11 +226,9 @@ def _create_archive(users):
 def _create_user_tokens(users):
     out = f"{'*' * 80}\n"
     for user, token in USER_TOKENS.items():
-        key = crypto.hash_token(token)
-
         AuthToken(
             token_key=token[: CONSTANTS.TOKEN_KEY_LENGTH],
-            key=key,
+            key=hash_token(token),
             user=users[user],
             expiry=None,
         ).save()
