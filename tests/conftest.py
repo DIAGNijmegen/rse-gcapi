@@ -7,12 +7,16 @@ from subprocess import STDOUT, check_output
 from tempfile import TemporaryDirectory
 from time import sleep
 from unittest.mock import patch
+from dotenv import load_dotenv
 
 import httpx
 import pytest
 import yaml
 
 from tests.integration_tests import ADMIN_TOKEN
+
+# Load environment variables from .env file
+load_dotenv()
 
 
 @pytest.fixture
