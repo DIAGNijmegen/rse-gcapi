@@ -22,7 +22,10 @@ def anyio_backend():
 
 @pytest.fixture(scope="session")
 def local_grand_challenge() -> Generator[str, None, None]:
-    local_api_url = "https://gc.localhost/api/v1/"
+    local_api_url = os.environ.get(
+        "LOCAL_API_URL",
+        "https://gc.localhost/api/v1/",
+    )
 
     try:
         r = httpx.get(
@@ -30,6 +33,7 @@ def local_grand_challenge() -> Generator[str, None, None]:
             verify=False,
             headers={"Authorization": f"Bearer {ADMIN_TOKEN}"},
         )
+
         r.raise_for_status()
         local_gc_running = True
     except httpx.HTTPError:
