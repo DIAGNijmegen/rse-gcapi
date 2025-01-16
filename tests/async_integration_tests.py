@@ -487,7 +487,7 @@ async def test_add_and_update_file_to_archive_item(local_grand_challenge):
         # retrieve existing archive item pk
         items = await get_archive_items(c, archive.pk, len(old_items_list))
 
-        old_items_pks = set(item.pk for item in old_items_list)
+        old_items_pks = {item.pk for item in old_items_list}
 
         # get the new item
         target_archive_item = None

@@ -7,11 +7,11 @@ from subprocess import STDOUT, check_output
 from tempfile import TemporaryDirectory
 from time import sleep
 from unittest.mock import patch
-from dotenv import load_dotenv
 
 import httpx
 import pytest
 import yaml
+from dotenv import load_dotenv
 
 from tests.integration_tests import ADMIN_TOKEN
 
