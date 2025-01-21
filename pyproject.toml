@@ -24,7 +24,6 @@ pydantic = "*"
 pytest = "*"
 pytest-randomly = "*"
 pytest-cov = "*"
-python-dotenv = "*"
 pyyaml = "*"
 datamodel-code-generator = "*"
 

@@ -11,12 +11,8 @@ from unittest.mock import patch
 import httpx
 import pytest
 import yaml
-from dotenv import load_dotenv
 
 from tests.integration_tests import ADMIN_TOKEN
-
-# Load environment variables from .env file
-load_dotenv()
 
 
 @pytest.fixture
