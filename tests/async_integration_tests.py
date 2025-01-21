@@ -485,15 +485,25 @@ async def test_add_and_update_file_to_archive_item(local_grand_challenge):
         )
 
         # retrieve existing archive item pk
-        items_list = await get_archive_items(
-            c, archive.pk, len(old_items_list)
-        )
+        items = await get_archive_items(c, archive.pk, len(old_items_list))
 
-        old_civ_count = len(items_list[-1].values)
+        old_items_pks = {item.pk for item in old_items_list}
+
+        # get the new item
+        target_archive_item = None
+        for item in items:
+            if item.pk not in old_items_pks:
+                target_archive_item = item
+                break
+
+        # Sanity
+        assert "predictions-csv-file" not in [
+            item.interface.slug for item in target_archive_item.values
+        ]
 
         with pytest.raises(ValueError) as e:
             _ = await c.update_archive_item(
-                archive_item_pk=items_list[-1].pk,
+                archive_item_pk=target_archive_item.pk,
                 values={
                     "predictions-csv-file": [
                         Path(__file__).parent / "testdata" / f
@@ -507,7 +517,7 @@ async def test_add_and_update_file_to_archive_item(local_grand_challenge):
         )
 
         _ = await c.update_archive_item(
-            archive_item_pk=items_list[-1].pk,
+            archive_item_pk=target_archive_item.pk,
             values={
                 "predictions-csv-file": [
                     Path(__file__).parent / "testdata" / "test.csv"
@@ -516,43 +526,61 @@ async def test_add_and_update_file_to_archive_item(local_grand_challenge):
         )
 
         @async_recurse_call
-        async def get_archive_detail():
-            item = await c.archive_items.detail(items_list[-1].pk)
-            if len(item.values) != old_civ_count + 1:
-                # csv interface value has not been added to item yet
+        async def get_updated_archive_item():
+            archive_item = await c.archive_items.detail(target_archive_item.pk)
+            if len(archive_item.values) != len(target_archive_item.values) + 1:
+                # item has not been added
                 raise ValueError
-            return item
+            return archive_item
 
-        item_updated = await get_archive_detail()
+        updated_item = await get_updated_archive_item()
 
-        csv_civ = item_updated.values[-1]
-        assert csv_civ.interface.slug == "predictions-csv-file"
-        assert "test.csv" in csv_civ.file
+        updated_civs_by_slug = {
+            item.interface.slug: item for item in updated_item.values
+        }
 
-        updated_civ_count = len(item_updated.values)
-        # a new pdf upload will overwrite the old pdf interface value
+        assert (
+            "predictions-csv-file" in updated_civs_by_slug
+        ), "New civ did not get created"
+        assert "test.csv" in updated_civs_by_slug["predictions-csv-file"].file
+
+        # a new csv upload will overwrite the old csv interface value
         _ = await c.update_archive_item(
-            archive_item_pk=items_list[-1].pk,
+            archive_item_pk=target_archive_item.pk,
             values={
                 "predictions-csv-file": [
-                    Path(__file__).parent / "testdata" / "test.csv"
+                    Path(__file__).parent / "testdata" / "test2.csv"
                 ]
             },
         )
+
+        updated_again_civs_by_slug = {}
 
         @async_recurse_call
         async def get_updated_again_archive_item():
-            item = await c.archive_items.detail(items_list[-1].pk)
-            if csv_civ in item.values:
-                # csv interface value has been added to item
+            nonlocal updated_again_civs_by_slug
+            archive_item = await c.archive_items.detail(target_archive_item.pk)
+            updated_again_civs_by_slug = {
+                item.interface.slug: item for item in archive_item.values
+            }
+            if (
+                "test2.csv"
+                not in updated_again_civs_by_slug["predictions-csv-file"].file
+            ):
                 raise ValueError
-            return item
+            return archive_item
 
-        item_updated_again = await get_updated_again_archive_item()
+        await get_updated_again_archive_item()
 
-        assert len(item_updated_again.values) == updated_civ_count
-        new_csv_civ = item_updated_again.values[-1]
-        assert new_csv_civ.interface.slug == "predictions-csv-file"
+        assert {
+            *updated_again_civs_by_slug.keys(),
+        } == {
+            *updated_civs_by_slug.keys(),
+        }
+        assert (
+            "test2.csv"
+            in updated_again_civs_by_slug["predictions-csv-file"].file
+        )
 
 
 @pytest.mark.anyio
