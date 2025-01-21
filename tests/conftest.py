@@ -27,7 +27,7 @@ def anyio_backend():
 @pytest.fixture(scope="session")
 def local_grand_challenge() -> Generator[str, None, None]:
     local_api_url = os.environ.get(
-        "LOCAL_API_URL",
+        "GCAPI_TESTS_LOCAL_API_URL",
         "https://gc.localhost/api/v1/",
     )
 
