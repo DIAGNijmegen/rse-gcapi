@@ -11,8 +11,7 @@ DEFAULT_ALGORITHM_ARGS = {
     "logo": "",
     "slug": "",
     "average_duration": 0.0,
-    "inputs": [],
-    "outputs": [],
+    "interfaces": [],
 }
 
 
