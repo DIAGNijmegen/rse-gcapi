@@ -623,7 +623,9 @@ class ClientBase(ApiDefinitions, ClientInterface):
 
         return raw_image_upload_session
 
-    def run_external_job(self, *, algorithm: str, inputs: dict[str, Any]):
+    def run_external_job(  # noqa: C901
+        self, *, algorithm: str, inputs: dict[str, Any]
+    ):
         """
         Starts an algorithm job with the provided inputs.
         You will need to provide the slug of the algorithm. You can find this in the
@@ -663,7 +665,13 @@ class ClientBase(ApiDefinitions, ClientInterface):
         The created job
         """
         alg = yield from self.__org_api_meta.algorithms.detail(slug=algorithm)
-        # TODO this uses the first interface, should one be selected?
+
+        if len(alg.interfaces) > 1:
+            raise NotImplementedError(
+                "Support for algorithms with multiple interfaces are "
+                "not currently supported by this method."
+            )
+
         input_interfaces = {ci.slug: ci for ci in alg.interfaces[0]["inputs"]}
 
         for ci in input_interfaces:
