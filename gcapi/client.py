@@ -663,7 +663,8 @@ class ClientBase(ApiDefinitions, ClientInterface):
         The created job
         """
         alg = yield from self.__org_api_meta.algorithms.detail(slug=algorithm)
-        input_interfaces = {ci.slug: ci for ci in alg.inputs}
+        # TODO this uses the first interface, should one be selected?
+        input_interfaces = {ci.slug: ci for ci in alg.interfaces[0]["inputs"]}
 
         for ci in input_interfaces:
             if (

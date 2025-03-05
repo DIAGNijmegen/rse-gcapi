@@ -15,6 +15,7 @@ def main() -> int:
     json_schema = httpx.get(
         "https://grand-challenge.org/api/schema/",
         headers={"accept": "application/json"},
+        timeout=10,
     )
 
     with TemporaryDirectory(
