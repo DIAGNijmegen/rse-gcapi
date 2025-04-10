@@ -2,7 +2,7 @@
 name = "gcapi"
 version = "0.12.0"
 description = "Python client for the grand-challenge.org REST API"
-authors = ["James Meakin <gcapi@jmsmkn.com>"]
+authors = ["James Meakin"]
 license = "Apache-2.0"
 readme = "README.md"
 repository = "https://github.com/DIAGNijmegen/rse-gcapi"
