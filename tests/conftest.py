@@ -29,9 +29,18 @@ def local_httpbin():
             text=True,
         ).strip()
 
-        sleep(10)
+        url = "http://localhost:8008/"
+        for _ in range(5):
+            try:
+                response = httpx.get(url, timeout=5)
+                response.raise_for_status()
+                break
+            except (httpx.RequestError, httpx.HTTPStatusError):
+                sleep(1)
+        else:
+            raise RuntimeError(f"Failed to connect to {url}")
 
-        yield "http://localhost:8008/"
+        yield url
 
     finally:
         if container_id:
