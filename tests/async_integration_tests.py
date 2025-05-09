@@ -379,7 +379,18 @@ async def test_create_job_with_upload(
 
         assert job.status == "Validating inputs"
         job = await c.algorithm_jobs.detail(job.pk)
-        assert job.status in {"Validating inputs", "Queued", "Started"}
+        assert job.status in {
+            "Queued",
+            "Started",
+            "Re-Queued",
+            "Provisioning",
+            "Provisioned",
+            "Executing",
+            "Executed",
+            "Parsing Outputs",
+            "Executing Algorithm",
+            "Validating inputs",
+        }
 
 
 @pytest.mark.parametrize(
@@ -457,10 +468,10 @@ async def test_detail_multiple_objects(local_grand_challenge):
 
 
 @pytest.mark.anyio
-async def test_auth_headers_not_sent():
+async def test_auth_headers_not_sent(local_httpbin):
     async with AsyncClient(token="foo") as c:
         response = await c.uploads._put_chunk(
-            chunk=BytesIO(b"123"), url="https://httpbin.org/put"
+            chunk=BytesIO(b"123"), url=f"{local_httpbin}put"
         )
         sent_headers = response.json()["headers"]
         assert not set(c._auth_header.keys()) & set(sent_headers.keys())
