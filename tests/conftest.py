@@ -21,6 +21,32 @@ def anyio_backend():
 
 
 @pytest.fixture(scope="session")
+def local_httpbin():
+    container_id = None
+    try:
+        container_id = check_output(
+            ["docker", "run", "-d", "-p", "8008:80", "kennethreitz/httpbin"],
+            text=True,
+        ).strip()
+
+        sleep(10)
+
+        yield "http://localhost:8008/"
+
+    finally:
+        if container_id:
+            # Stop and remove the container
+            check_output(
+                ["docker", "stop", container_id],
+                stderr=STDOUT,
+            )
+            check_output(
+                ["docker", "rm", container_id],
+                stderr=STDOUT,
+            )
+
+
+@pytest.fixture(scope="session")
 def local_grand_challenge() -> Generator[str, None, None]:
     local_api_url = os.environ.get(
         "GCAPI_TESTS_LOCAL_API_URL",

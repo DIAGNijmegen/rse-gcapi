@@ -457,10 +457,10 @@ async def test_detail_multiple_objects(local_grand_challenge):
 
 
 @pytest.mark.anyio
-async def test_auth_headers_not_sent():
+async def test_auth_headers_not_sent(local_httpbin):
     async with AsyncClient(token="foo") as c:
         response = await c.uploads._put_chunk(
-            chunk=BytesIO(b"123"), url="https://httpbin.org/put"
+            chunk=BytesIO(b"123"), url=f"{local_httpbin}put"
         )
         sent_headers = response.json()["headers"]
         assert not set(c._auth_header.keys()) & set(sent_headers.keys())
