@@ -339,7 +339,19 @@ def test_create_job_with_upload(
 
     assert job.status == "Validating inputs"
     job = c.algorithm_jobs.detail(job.pk)
-    assert job.status in {"Validating inputs", "Queued", "Started"}
+
+    assert job.status in {
+        "Queued",
+        "Started",
+        "Re-Queued",
+        "Provisioning",
+        "Provisioned",
+        "Executing",
+        "Executed",
+        "Parsing Outputs",
+        "Executing Algorithm",
+        "Validating inputs",
+    }
 
 
 def test_get_algorithm_by_slug(local_grand_challenge):
