@@ -203,7 +203,7 @@ class ImageSocketValueCreateStrategy(SocketValueCreateStrategy):
         if isinstance(self.content, HyperlinkedImage):
             # Reuse the existing image
             post_request.image = self.content.api_url
-            return
+            return post_request
 
         # Upload the image
         if self.parent is None:
