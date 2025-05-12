@@ -11,7 +11,7 @@ FileSource = Union[
 ]
 
 
-CIVSetDescription = dict[
+SocketValueSetDescription = dict[
     Union[str, gcapi.models.ComponentInterface],
     Union[
         FileSource,
@@ -20,7 +20,7 @@ CIVSetDescription = dict[
     ],
 ]
 
-CIVSet = Union[
+SocketValueSet = Union[
     gcapi.models.DisplaySet,
     gcapi.models.DisplaySetPost,
     gcapi.models.ArchiveItem,

@@ -14,7 +14,7 @@ from gcapi.models import (
     HyperlinkedComponentInterfaceValue,
     HyperlinkedImage,
 )
-from gcapi.typing import CIVSet, CIVSetDescription, FileSource
+from gcapi.typing import FileSource, SocketValueSet, SocketValueSetDescription
 
 
 class TooManyFiles(ValueError):
@@ -87,27 +87,27 @@ class BaseCreateStrategy:
             yield from self.prepare()
 
 
-class CIVCreateStrategy(BaseCreateStrategy):
+class SocketValueCreateStrategy(BaseCreateStrategy):
 
-    def __new__(cls, *, interface: ComponentInterface, **__):
+    def __new__(cls, *, socket: ComponentInterface, **__):
         # Determine the class specialization based on the interface's super_kind.
         handler_class = {
-            "image": ImageCIVCreateStrategy,
-            "file": FileCIVCreateStrategy,
-            "value": ValueCIVCreateStrategy,
-        }.get(interface.super_kind.casefold())
+            "image": ImageSocketValueCreateStrategy,
+            "file": FileSocketCreateStrategy,
+            "value": ValueSocketValueCreateStrategy,
+        }.get(socket.super_kind.casefold())
 
         if handler_class is None:
             raise NotImplementedError(
-                f"Unsupported interface super_kind: {interface.super_kind}"
+                f"Unsupported interface super_kind: {socket.super_kind}"
             )
 
-        if cls is not CIVCreateStrategy:
+        if cls is not SocketValueCreateStrategy:
             # Specialized class: double check if it supports the interface.
             if cls is not handler_class:
                 raise RuntimeError(
                     f"{cls} does not support interface "
-                    f"super_kind: {interface.super_kind}"
+                    f"super_kind: {socket.super_kind}"
                 )
             return super().__new__(cls)
 
@@ -119,21 +119,21 @@ class CIVCreateStrategy(BaseCreateStrategy):
         source: Union[
             FileSource, HyperlinkedComponentInterfaceValue, HyperlinkedImage
         ],
-        interface: ComponentInterface,
-        parent: Optional[CIVSet] = None,
+        socket: ComponentInterface,
+        parent: Optional[SocketValueSet] = None,
         **kwargs,
     ):
         super().__init__(**kwargs)
 
         self.source = source
-        self.interface = interface
+        self.socket = socket
         self.parent = parent
 
     def __call__(self):
         yield from super().__call__()
 
         return ComponentInterfaceValuePostRequest(  # noqa: B901
-            interface=self.interface.slug,
+            interface=self.socket.slug,
             value=None,
             file=None,
             image=None,
@@ -142,7 +142,7 @@ class CIVCreateStrategy(BaseCreateStrategy):
         )
 
 
-class FileCIVCreateStrategy(CIVCreateStrategy):
+class FileSocketCreateStrategy(SocketValueCreateStrategy):
 
     def prepare(self):
         yield from super().prepare()
@@ -153,12 +153,12 @@ class FileCIVCreateStrategy(CIVCreateStrategy):
             self.content_name = self.content.name
         except FileNotFoundError as file_val_error:
             # Possibly a directly provided value
-            if self.interface.kind.casefold() == "string":
+            if self.socket.kind.casefold() == "string":
                 # Incorrect paths being uploaded as content to a String
-                # interface can easily bypass detection.
+                # socket can easily bypass detection.
                 # We'll be overprotective and not allow via-value uploads.
                 raise FileNotFoundError(
-                    f"Interface kind {self.interface.kind} requires to be uploaded "
+                    f"Socket kind {self.socket.kind} requires to be uploaded "
                     "as a file, replace the value with an existing file path"
                 ) from file_val_error
             try:
@@ -166,7 +166,7 @@ class FileCIVCreateStrategy(CIVCreateStrategy):
             except TypeError:
                 raise file_val_error
             self.content = io.StringIO(json_str)
-            self.content_name = self.interface.relative_path
+            self.content_name = self.socket.relative_path
 
     def __call__(self):
         post_request = yield from super().__call__()
@@ -180,7 +180,7 @@ class FileCIVCreateStrategy(CIVCreateStrategy):
         return post_request
 
 
-class ImageCIVCreateStrategy(CIVCreateStrategy):
+class ImageSocketValueCreateStrategy(SocketValueCreateStrategy):
 
     def prepare(self):
         yield from super().prepare()
@@ -212,12 +212,12 @@ class ImageCIVCreateStrategy(CIVCreateStrategy):
         elif isinstance(self.parent, (DisplaySet, DisplaySetPost)):
             upload_session_data = {
                 "display_set": self.parent.pk,
-                "interface": self.interface.slug,
+                "interface": self.socket.slug,
             }
         elif isinstance(self.parent, (ArchiveItem, ArchiveItemPost)):
             upload_session_data = {
                 "archive_item": self.parent.pk,
-                "interface": self.interface.slug,
+                "interface": self.socket.slug,
             }
         else:
             raise NotImplementedError(
@@ -248,7 +248,7 @@ class ImageCIVCreateStrategy(CIVCreateStrategy):
             return Empty
 
 
-class ValueCIVCreateStrategy(CIVCreateStrategy):
+class ValueSocketValueCreateStrategy(SocketValueCreateStrategy):
 
     def prepare(self):
         yield from super().prepare()
@@ -276,7 +276,7 @@ class JobInputsCreateStrategy(BaseCreateStrategy):
         self,
         *,
         algorithm: Union[str, Algorithm],
-        inputs: CIVSetDescription,
+        inputs: SocketValueSetDescription,
         **kwargs,
     ):
         super().__init__(**kwargs)
@@ -284,7 +284,7 @@ class JobInputsCreateStrategy(BaseCreateStrategy):
         self.algorithm = algorithm
         self.inputs = inputs
 
-        self.input_strategies: list[CIVCreateStrategy] = []
+        self.input_strategies: list[SocketValueCreateStrategy] = []
 
     def prepare(self):
         yield from super().prepare()
@@ -294,27 +294,48 @@ class JobInputsCreateStrategy(BaseCreateStrategy):
                 slug=self.algorithm
             )
 
-        interface_lookup = {ci.slug: ci for ci in self.algorithm.inputs}
+        # Find a matching interface
+        matching_interface = None
 
-        for ci in self.algorithm.inputs:
-            if ci.slug not in self.inputs and ci.default_value is None:
-                raise ValueError(f"{ci} is not provided")
+        input_keys = set(self.inputs.keys())
 
-        for ci_slug in self.inputs.keys():
-            if ci_slug not in interface_lookup:
-                raise ValueError(
-                    f"{ci_slug} is not an input interface for this algorithm"
-                )
+        best_matching_sockets_count = 0
+        best_matching_interface = None
+        for interface in self.algorithm.interfaces:
+            interface_keys = {socket.slug for socket in interface.inputs}
+            matching_count = len(input_keys & interface_keys)
+            if matching_count == len(interface_keys):
+                # All input keys are present in the interface
+                matching_interface = interface
+                break
+            else:
+                if matching_count > best_matching_sockets_count:
+                    best_matching_sockets_count = matching_count
+                    best_matching_interface = {
+                        socket.slug for socket in interface.inputs
+                    }
 
-        for ci_slug, source in self.inputs.items():
-            civ_strategy = CIVCreateStrategy(
+        if matching_interface is None:
+            msg = f"No matching interface for sockets {input_keys} could be found."
+            if best_matching_interface is not None:
+                msg += f" The closest match is {best_matching_interface}."
+            raise ValueError(msg)
+
+        socket_lookup = {
+            socket.slug: socket
+            for interface in self.algorithm.interfaces
+            for socket in interface.inputs
+        }
+
+        for socket_slug, source in self.inputs.items():
+            socket_value_strategy = SocketValueCreateStrategy(
                 source=source,
-                interface=interface_lookup[ci_slug],
+                socket=socket_lookup[socket_slug],
                 client_api=self.client_api,
             )
-            yield from civ_strategy.prepare()
+            yield from socket_value_strategy.prepare()
 
-            self.input_strategies.append(civ_strategy)
+            self.input_strategies.append(socket_value_strategy)
 
     def __call__(self):
         yield from super().__call__()

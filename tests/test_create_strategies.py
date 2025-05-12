@@ -5,19 +5,20 @@ from unittest.mock import MagicMock
 import pytest
 
 from gcapi.create_strategies import (
-    CIVCreateStrategy,
-    FileCIVCreateStrategy,
-    ImageCIVCreateStrategy,
+    FileSocketCreateStrategy,
+    ImageSocketValueCreateStrategy,
     JobInputsCreateStrategy,
+    SocketValueCreateStrategy,
     TooManyFiles,
-    ValueCIVCreateStrategy,
+    ValueSocketValueCreateStrategy,
     clean_file_source,
 )
+from gcapi.models import AlgorithmInterface
 from tests.factories import (
     AlgorithmFactory,
-    ComponentInterfaceFactory,
     HyperlinkedComponentInterfaceValueFactory,
     HyperlinkedImageFactory,
+    SocketFactory,
 )
 from tests.utils import sync_generator_test
 
@@ -75,47 +76,47 @@ def test_prep_file_source(source, maximum_number, context):
 
 
 @pytest.mark.parametrize(
-    "init_cls,interface,expected_cls,context",
+    "init_cls,socket,expected_cls,context",
     (
         (
-            CIVCreateStrategy,
-            ComponentInterfaceFactory(super_kind="Image"),
-            ImageCIVCreateStrategy,
+            SocketValueCreateStrategy,
+            SocketFactory(super_kind="Image"),
+            ImageSocketValueCreateStrategy,
             nullcontext(),
         ),
         (
-            CIVCreateStrategy,
-            ComponentInterfaceFactory(super_kind="File"),
-            FileCIVCreateStrategy,
+            SocketValueCreateStrategy,
+            SocketFactory(super_kind="File"),
+            FileSocketCreateStrategy,
             nullcontext(),
         ),
         (
-            CIVCreateStrategy,
-            ComponentInterfaceFactory(super_kind="Value"),
-            ValueCIVCreateStrategy,
+            SocketValueCreateStrategy,
+            SocketFactory(super_kind="Value"),
+            ValueSocketValueCreateStrategy,
             nullcontext(),
         ),
         (
-            CIVCreateStrategy,
-            ComponentInterfaceFactory(super_kind="I do not exist"),
+            SocketValueCreateStrategy,
+            SocketFactory(super_kind="I do not exist"),
             None,
             pytest.raises(NotImplementedError),
         ),
         (
-            ImageCIVCreateStrategy,
-            ComponentInterfaceFactory(super_kind="File"),
+            ImageSocketValueCreateStrategy,
+            SocketFactory(super_kind="File"),
             None,
             pytest.raises(RuntimeError),
         ),
     ),
 )
-def test_civ_strategy_specialization(
-    init_cls, interface, expected_cls, context
+def test_socket_strategy_specialization(
+    init_cls, socket, expected_cls, context
 ):
     with context:
         strategy = init_cls(
             source=[],
-            interface=interface,
+            socket=socket,
             client_api=MagicMock(),
         )
 
@@ -149,12 +150,10 @@ def test_civ_strategy_specialization(
     ),
 )
 @sync_generator_test
-def test_file_civ_prep(source, context, interface_kind):
-    strategy = FileCIVCreateStrategy(
+def test_file_socket_value_prep(source, context, interface_kind):
+    strategy = FileSocketCreateStrategy(
         source=source,
-        interface=ComponentInterfaceFactory(
-            super_kind="File", kind=interface_kind
-        ),
+        socket=SocketFactory(super_kind="File", kind=interface_kind),
         client_api=MagicMock(),
     )
     with context:
@@ -185,10 +184,10 @@ def test_file_civ_prep(source, context, interface_kind):
     ),
 )
 @sync_generator_test
-def test_image_civ_prep(source, context):
-    strategy = ImageCIVCreateStrategy(
+def test_image_socket_value_prep(source, context):
+    strategy = ImageSocketValueCreateStrategy(
         source=source,
-        interface=ComponentInterfaceFactory(super_kind="Image"),
+        socket=SocketFactory(super_kind="Image"),
         client_api=MagicMock(),
     )
     with context:
@@ -237,10 +236,10 @@ def test_image_civ_prep(source, context):
     ),
 )
 @sync_generator_test
-def test_value_civ_prep(source, context):
-    strategy = ValueCIVCreateStrategy(
+def test_value_socket_value_prep(source, context):
+    strategy = ValueSocketValueCreateStrategy(
         source=source,
-        interface=ComponentInterfaceFactory(super_kind="Value"),
+        socket=SocketFactory(super_kind="Value"),
         client_api=MagicMock(),
     )
     with context:
@@ -250,35 +249,37 @@ def test_value_civ_prep(source, context):
 @pytest.mark.parametrize(
     "algorithm,inputs,context",
     (
-        (  # algo ci < input ci
-            AlgorithmFactory(inputs=[]),
+        (  # algo socket < input socket
+            AlgorithmFactory(interfaces=[]),
             {
                 "foo": TESTDATA / "image10x10x101.mha",
             },
             pytest.raises(ValueError),
         ),
-        (  # algo ci > input ci
+        (  # algo socket > input socket
             AlgorithmFactory(
-                inputs=[
-                    ComponentInterfaceFactory(),
+                interfaces=[
+                    AlgorithmInterface(
+                        inputs=[
+                            SocketFactory(),
+                        ],
+                        outputs=[],
+                    )
                 ]
             ),
             {},
             pytest.raises(ValueError),
         ),
-        (  # algo ci > input ci, but default
+        (
+            # algo ci = input ci
             AlgorithmFactory(
-                inputs=[
-                    ComponentInterfaceFactory(default_value="bar"),
-                ]
-            ),
-            {},
-            nullcontext(),
-        ),
-        (  # algo ci = input ci
-            AlgorithmFactory(
-                inputs=[
-                    ComponentInterfaceFactory(slug="a-slug"),
+                interfaces=[
+                    AlgorithmInterface(
+                        inputs=[
+                            SocketFactory(slug="a-slug"),
+                        ],
+                        outputs=[],
+                    )
                 ]
             ),
             {

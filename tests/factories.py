@@ -20,7 +20,7 @@ def _get_int_pk():
     return current
 
 
-def ComponentInterfaceFactory(**kwargs) -> ComponentInterface:  # noqa: N802
+def SocketFactory(**kwargs) -> ComponentInterface:  # noqa: N802
     pk = kwargs.get("pk") or _get_int_pk()
     ci = ComponentInterface(
         pk=pk,
@@ -48,7 +48,7 @@ def HyperlinkedComponentInterfaceValueFactory(  # noqa: N802
 
     hciv = HyperlinkedComponentInterfaceValue(
         pk=pk,
-        interface=ComponentInterfaceFactory(),
+        interface=SocketFactory(),
         value=None,
         file=None,
         image=None,
@@ -116,8 +116,7 @@ def AlgorithmFactory(**kwargs) -> Algorithm:  # noqa: N802
         logo="foo",
         slug=slug,
         average_duration=None,
-        inputs=[],
-        outputs=[],
+        interfaces=[],
     )
 
     for key, value in kwargs.items():
