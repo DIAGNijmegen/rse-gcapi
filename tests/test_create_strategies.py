@@ -5,7 +5,7 @@ from unittest.mock import MagicMock
 import pytest
 
 from gcapi.create_strategies import (
-    FileSocketCreateStrategy,
+    FileSocketValueCreateStrategy,
     ImageSocketValueCreateStrategy,
     JobInputsCreateStrategy,
     SocketValueCreateStrategy,
@@ -87,7 +87,7 @@ def test_prep_file_source(source, maximum_number, context):
         (
             SocketValueCreateStrategy,
             SocketFactory(super_kind="File"),
-            FileSocketCreateStrategy,
+            FileSocketValueCreateStrategy,
             nullcontext(),
         ),
         (
@@ -117,7 +117,7 @@ def test_socket_strategy_specialization(
         strategy = init_cls(
             source=[],
             socket=socket,
-            client_api=MagicMock(),
+            client=MagicMock(),
         )
 
     if expected_cls:
@@ -147,14 +147,30 @@ def test_socket_strategy_specialization(
             pytest.raises(FileNotFoundError),
             "String",
         ),
+        (  # Re-use a SocketValue
+            HyperlinkedComponentInterfaceValueFactory(
+                interface=SocketFactory(super_kind="File"),
+                file="https://grand-challenge.org/media/components/componentinterfacevalue/5d/57/1793367/file.json",
+            ),
+            nullcontext(),
+            "Anything",
+        ),
+        (  # Re-use a SocketValue
+            HyperlinkedComponentInterfaceValueFactory(
+                interface=SocketFactory(super_kind="Value"),
+                value="foo",
+            ),
+            nullcontext(),
+            "Anything",
+        ),
     ),
 )
 @sync_generator_test
 def test_file_socket_value_prep(source, context, interface_kind):
-    strategy = FileSocketCreateStrategy(
+    strategy = FileSocketValueCreateStrategy(
         source=source,
         socket=SocketFactory(super_kind="File", kind=interface_kind),
-        client_api=MagicMock(),
+        client=MagicMock(),
     )
     with context:
         yield from strategy.prepare()
@@ -171,11 +187,11 @@ def test_file_socket_value_prep(source, context, interface_kind):
             ],
             nullcontext(),
         ),
-        (  # Re-use an image
+        (  # Re-use an existing image
             HyperlinkedImageFactory(),
             nullcontext(),
         ),
-        (  # Re-use a CIV
+        (  # Re-use a SocketValue
             HyperlinkedComponentInterfaceValueFactory(
                 image=HyperlinkedImageFactory().api_url
             ),
@@ -188,7 +204,7 @@ def test_image_socket_value_prep(source, context):
     strategy = ImageSocketValueCreateStrategy(
         source=source,
         socket=SocketFactory(super_kind="Image"),
-        client_api=MagicMock(),
+        client=MagicMock(),
     )
     with context:
         yield from strategy.prepare()
@@ -233,6 +249,20 @@ def test_image_socket_value_prep(source, context):
             object(),  # Can't dump this with JSON
             pytest.raises(TypeError),
         ),
+        (  # Re-use a SocketValue
+            HyperlinkedComponentInterfaceValueFactory(
+                interface=SocketFactory(super_kind="File"),
+                file="https://grand-challenge.org/media/components/componentinterfacevalue/5d/57/1793367/file.json",
+            ),
+            nullcontext(),
+        ),
+        (  # Re-use a SocketValue
+            HyperlinkedComponentInterfaceValueFactory(
+                interface=SocketFactory(super_kind="Value"),
+                value="foo",
+            ),
+            nullcontext(),
+        ),
     ),
 )
 @sync_generator_test
@@ -240,7 +270,7 @@ def test_value_socket_value_prep(source, context):
     strategy = ValueSocketValueCreateStrategy(
         source=source,
         socket=SocketFactory(super_kind="Value"),
-        client_api=MagicMock(),
+        client=MagicMock(),
     )
     with context:
         yield from strategy.prepare()
@@ -294,7 +324,7 @@ def test_job_inputs_create_prep(algorithm, inputs, context):
     strategy = JobInputsCreateStrategy(
         algorithm=algorithm,
         inputs=inputs,
-        client_api=MagicMock(),
+        client=MagicMock(),
     )
     with context:
         yield from strategy.prepare()
