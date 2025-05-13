@@ -12,6 +12,7 @@ from django.contrib.auth import get_user_model
 from django.contrib.auth.models import Group, Permission
 from django.core.files.base import ContentFile
 from django.db import IntegrityError
+from django.utils.timezone import now
 from grandchallenge.algorithms.models import (
     Algorithm,
     AlgorithmImage,
@@ -320,6 +321,11 @@ def _create_challenge(
         compute_costs_euros=10,
         storage_costs_euros=0,
         payment_status=Invoice.PaymentStatusChoices.PAID,
+        billing_address="Geert Grooteplein Zuid 10, 6525 GA Nijmegen",
+        contact_email="invoices@example.org",
+        contact_name="Jane Doe",
+        paid_on=now(),
+        vat_number="NL12345678",
     )
 
     p = Phase.objects.create(
