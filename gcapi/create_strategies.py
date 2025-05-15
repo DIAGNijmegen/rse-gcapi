@@ -1,6 +1,5 @@
 import io
 import json
-import tempfile
 from pathlib import Path
 from typing import Optional, Union
 
@@ -53,26 +52,6 @@ def clean_file_source(
         )
 
     return cleaned
-
-
-def _download_file(client, url):
-    temp_file = tempfile.NamedTemporaryFile()
-
-    response = yield from ClientBase.__call__(
-        client,
-        url=url,
-        follow_redirects=True,
-    )
-
-    with open(temp_file.name, "w") as f:
-        if isinstance(response, httpx.Response):
-            f.write(response.content.decode("utf-8"))
-        else:
-            f.write(
-                json.dumps(response)
-            )  # Already converted to a json-like object
-
-    return temp_file
 
 
 class BaseCreateStrategy:
@@ -158,6 +137,18 @@ class SocketValueCreateStrategy(BaseCreateStrategy):
         self.socket = socket
         self.parent = parent
 
+    def prepare(self):
+        yield from super().prepare()
+
+        if (
+            isinstance(self.source, HyperlinkedComponentInterfaceValue)
+            and self.source.interface.pk != self.socket.pk
+        ):
+            raise ValueError(
+                f"Source {self.source.interface.title!r} does not "
+                f"match socket {self.socket.title!r}"
+            )
+
     def __call__(self):
         yield from super().__call__()
 
@@ -177,7 +168,7 @@ class FileSocketValueCreateStrategy(SocketValueCreateStrategy):
         yield from super().prepare()
 
         if isinstance(self.source, HyperlinkedComponentInterfaceValue):
-            self._prepare_from_existing_socket_value(socket_value=self.source)
+            self.content_name = Path(self.source.file).name
         else:
             try:
                 self._prepare_from_local_file(file=self.source)
@@ -190,18 +181,6 @@ class FileSocketValueCreateStrategy(SocketValueCreateStrategy):
         cleaned_sources = clean_file_source(file, maximum_number=1)
         self.content = cleaned_sources[0]
         self.content_name = self.content.name
-
-    def _prepare_from_existing_socket_value(self, socket_value):
-        socket = socket_value.interface
-        if socket.super_kind.casefold() == "file":
-            self.content_name = Path(socket_value.file).name
-        elif socket.super_kind.casefold() == "value":
-            self.content = io.StringIO(json.dumps(socket_value.value))
-            self.content_name = self.socket.relative_path
-        else:
-            raise NotImplementedError(
-                f"Socket super_kind {socket.super_kind} not supported as source"
-            )
 
     def _prepare_from_provided_value(self, value, file_val_error):
         if self.socket.kind.casefold() == "string":
@@ -220,35 +199,40 @@ class FileSocketValueCreateStrategy(SocketValueCreateStrategy):
         self.content = io.StringIO(json_str)
         self.content_name = self.socket.relative_path
 
+    def _create_from_socket(self, post_request):
+        # Cannot link a file directly to file, so we download it first
+        response_or_json = yield from ClientBase.__call__(
+            self.client,
+            url=self.source.file,
+            follow_redirects=True,
+        )
+        if isinstance(response_or_json, httpx.Response):
+            fileobj = io.StringIO(response_or_json.content.decode("utf-8"))
+        else:
+            # Else, the response is actually the JSON
+            fileobj = io.StringIO(json.dumps(response_or_json))
+
+        user_upload = yield from self.hybrid_client_api.uploads.upload_fileobj(
+            fileobj=fileobj, filename=self.content_name
+        )
+
+        post_request.user_upload = user_upload.api_url
+        return post_request
+
     def __call__(self):
         post_request = yield from super().__call__()
 
-        temp_file = None
-        try:
-            if (
-                isinstance(self.source, HyperlinkedComponentInterfaceValue)
-                and self.source.interface.super_kind.casefold() == "file"
-            ):
-                temp_file = yield from _download_file(
-                    client=self.client,
-                    url=self.source.file,
-                )
-                context = open(temp_file.name, "rb")
-            else:
-                context = open(self.content, "rb")
-
-            with context as f:
+        if isinstance(self.source, HyperlinkedComponentInterfaceValue):
+            return (yield from self._create_from_socket(post_request))
+        else:
+            with open(self.content, "rb") as f:
                 user_upload = (
                     yield from self.hybrid_client_api.uploads.upload_fileobj(
                         fileobj=f, filename=self.content_name
                     )
                 )
-
             post_request.user_upload = user_upload.api_url
-        finally:
-            if temp_file:
-                temp_file.close()
-        return post_request
+            return post_request
 
 
 class ImageSocketValueCreateStrategy(SocketValueCreateStrategy):
@@ -325,52 +309,23 @@ class ValueSocketValueCreateStrategy(SocketValueCreateStrategy):
         yield from super().prepare()
 
         if isinstance(self.source, HyperlinkedComponentInterfaceValue):
-            self._prepare_from_existing_socket_value(socket_value=self.source)
+            self.content = self.source.value
         else:
             try:
                 self._prepare_from_local_file(file=self.source)
             except FileNotFoundError:
-                self._prepare_from_provided_value(value=self.source)
+                json.dumps(self.source)  # Check if it is JSON serializable
+                self.content = self.source
 
     def _prepare_from_local_file(self, file):
         cleaned_sources = clean_file_source(file, maximum_number=1)
         self.content = cleaned_sources[0]
 
-        # Test load
         with open(self.content) as fp:
-            json.load(fp)
-
-    def _prepare_from_existing_socket_value(self, socket_value):
-        socket = socket_value.interface
-        if socket.super_kind.casefold() == "file":
-            pass  # Nothing to do here, but we accept it
-        elif socket.super_kind.casefold() == "value":
-            self.content = io.StringIO(json.dumps(socket_value.value))
-        else:
-            raise NotImplementedError(
-                f"Socket super_kind {socket.super_kind} not supported as source"
-            )
-
-    def _prepare_from_provided_value(self, value):
-        json.dumps(value)  # Check if it is JSON serializable
-        self.content = value
+            self.content = json.load(fp)
 
     def __call__(self):
         post_request = yield from super().__call__()
-
-        if (
-            isinstance(self.source, HyperlinkedComponentInterfaceValue)
-            and self.source.interface.super_kind.casefold() == "file"
-        ):
-            temp_file = yield from _download_file(
-                client=self.client, url=self.source.file
-            )
-            try:
-                with open(temp_file.name, "rb") as f:
-                    self.content = json.load(f)
-            finally:
-                temp_file.close()
-
         post_request.value = self.content
         return post_request
 

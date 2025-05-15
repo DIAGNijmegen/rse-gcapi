@@ -124,6 +124,63 @@ def test_socket_strategy_specialization(
         assert type(strategy) is expected_cls
 
 
+file_socket = SocketFactory(super_kind="File")
+image_socket = SocketFactory(super_kind="Image")
+value_socket = SocketFactory(super_kind="Value")
+
+
+@pytest.mark.parametrize(
+    "socket,source,context",
+    (
+        (
+            file_socket,
+            HyperlinkedComponentInterfaceValueFactory(),
+            pytest.raises(ValueError),
+        ),
+        (
+            image_socket,
+            HyperlinkedComponentInterfaceValueFactory(),
+            pytest.raises(ValueError),
+        ),
+        (
+            value_socket,
+            HyperlinkedComponentInterfaceValueFactory(),
+            pytest.raises(ValueError),
+        ),
+        (
+            file_socket,
+            HyperlinkedComponentInterfaceValueFactory(
+                interface=file_socket, file="foo.json"
+            ),
+            nullcontext(),
+        ),
+        (
+            image_socket,
+            HyperlinkedComponentInterfaceValueFactory(
+                interface=image_socket, image="someurl"
+            ),
+            nullcontext(),
+        ),
+        (
+            value_socket,
+            HyperlinkedComponentInterfaceValueFactory(
+                interface=value_socket, value="foo"
+            ),
+            nullcontext(),
+        ),
+    ),
+)
+@sync_generator_test
+def test_socket_strategy_reuse_of_sockets_prep(socket, source, context):
+    strategy = SocketValueCreateStrategy(
+        source=source,
+        socket=socket,
+        client=MagicMock(),
+    )
+    with context:
+        yield from strategy.prepare()
+
+
 @pytest.mark.parametrize(
     "source,context,interface_kind",
     (
@@ -147,22 +204,6 @@ def test_socket_strategy_specialization(
             pytest.raises(FileNotFoundError),
             "String",
         ),
-        (  # Re-use a SocketValue
-            HyperlinkedComponentInterfaceValueFactory(
-                interface=SocketFactory(super_kind="File"),
-                file="https://grand-challenge.org/media/components/componentinterfacevalue/5d/57/1793367/file.json",
-            ),
-            nullcontext(),
-            "Anything",
-        ),
-        (  # Re-use a SocketValue
-            HyperlinkedComponentInterfaceValueFactory(
-                interface=SocketFactory(super_kind="Value"),
-                value="foo",
-            ),
-            nullcontext(),
-            "Anything",
-        ),
     ),
 )
 @sync_generator_test
@@ -174,6 +215,22 @@ def test_file_socket_value_prep(source, context, interface_kind):
     )
     with context:
         yield from strategy.prepare()
+
+
+@sync_generator_test
+def test_file_socket_value_prep_socket_reuse():
+    socket = SocketFactory(super_kind="File")
+
+    strategy = FileSocketValueCreateStrategy(
+        source=HyperlinkedComponentInterfaceValueFactory(
+            interface=socket,
+            file="https://grand-challenge.org/media/components/componentinterfacevalue/5d/57/1793367/file.json",
+        ),
+        socket=socket,
+        client=MagicMock(),
+    )
+
+    yield from strategy.prepare()
 
 
 @pytest.mark.parametrize(
@@ -191,12 +248,6 @@ def test_file_socket_value_prep(source, context, interface_kind):
             HyperlinkedImageFactory(),
             nullcontext(),
         ),
-        (  # Re-use a SocketValue
-            HyperlinkedComponentInterfaceValueFactory(
-                image=HyperlinkedImageFactory().api_url
-            ),
-            nullcontext(),
-        ),
     ),
 )
 @sync_generator_test
@@ -208,6 +259,22 @@ def test_image_socket_value_prep(source, context):
     )
     with context:
         yield from strategy.prepare()
+
+
+@sync_generator_test
+def test_image_socket_value_prep_socket_reuse():
+    socket = SocketFactory(super_kind="Image")
+
+    strategy = ImageSocketValueCreateStrategy(
+        source=HyperlinkedComponentInterfaceValueFactory(
+            interface=socket,
+            image=HyperlinkedImageFactory().api_url,
+        ),
+        socket=socket,
+        client=MagicMock(),
+    )
+
+    yield from strategy.prepare()
 
 
 @pytest.mark.parametrize(
@@ -249,20 +316,6 @@ def test_image_socket_value_prep(source, context):
             object(),  # Can't dump this with JSON
             pytest.raises(TypeError),
         ),
-        (  # Re-use a SocketValue
-            HyperlinkedComponentInterfaceValueFactory(
-                interface=SocketFactory(super_kind="File"),
-                file="https://grand-challenge.org/media/components/componentinterfacevalue/5d/57/1793367/file.json",
-            ),
-            nullcontext(),
-        ),
-        (  # Re-use a SocketValue
-            HyperlinkedComponentInterfaceValueFactory(
-                interface=SocketFactory(super_kind="Value"),
-                value="foo",
-            ),
-            nullcontext(),
-        ),
     ),
 )
 @sync_generator_test
@@ -274,6 +327,22 @@ def test_value_socket_value_prep(source, context):
     )
     with context:
         yield from strategy.prepare()
+
+
+@sync_generator_test
+def test_value_socket_value_prep_socket_reuse():
+    socket = SocketFactory(super_kind="Value")
+
+    strategy = ValueSocketValueCreateStrategy(
+        source=HyperlinkedComponentInterfaceValueFactory(
+            interface=socket,
+            value="foo",
+        ),
+        socket=socket,
+        client=MagicMock(),
+    )
+
+    yield from strategy.prepare()
 
 
 @pytest.mark.parametrize(
