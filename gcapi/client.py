@@ -782,6 +782,37 @@ class ClientBase(ApiDefinitions, ClientInterface):
             res.append(ds.pk)
         return res  # noqa: B901
 
+    def _validate_display_set_values(self, values, interfaces):
+        invalid_file_paths = {}
+        for slug, value in values:
+            if interfaces.get(slug):
+                interface = interfaces[slug]
+            else:
+                interface = yield from self._fetch_interface(slug)
+                interfaces[slug] = interface
+            super_kind = interface.super_kind.casefold()
+            if super_kind != "value":
+                if not isinstance(value, list):
+                    raise ValueError(
+                        f"Values for {slug} ({super_kind}) "
+                        "should be a list of file paths."
+                    )
+                if super_kind != "image" and len(value) > 1:
+                    raise ValueError(
+                        f"You can only upload one single file "
+                        f"to interface {slug} ({super_kind})."
+                    )
+                for file_path in value:
+                    if not Path(file_path).exists():
+                        invalid_file_paths[slug] = invalid_file_paths.get(
+                            slug, []
+                        )
+                        invalid_file_paths[slug].append(str(file_path))
+        if invalid_file_paths:
+            raise ValueError(f"Invalid file paths: {invalid_file_paths}")
+
+        return interfaces
+
     def update_archive_item(
         self, *, archive_item_pk: str, values: SocketValueSetDescription
     ):
