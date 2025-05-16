@@ -5,6 +5,8 @@ from urllib.parse import urljoin
 
 from httpx import URL, HTTPStatusError
 from httpx._types import URLTypes
+from pydantic import RootModel
+from pydantic.dataclasses import is_pydantic_dataclass
 
 from gcapi.exceptions import MultipleObjectsReturned, ObjectNotFound
 from gcapi.sync_async_hybrid_support import (
@@ -177,12 +179,24 @@ class APIBase(Generic[T], Common[T]):
 
 
 class ModifiableMixin(Common):
+
     response_model: type
 
     def _process_request_arguments(self, data):
         if data is None:
-            data = {}
-        return data
+            return {}
+        else:
+            return self.recurse_model_dump(data)
+
+    def recurse_model_dump(self, data):
+        if isinstance(data, list):
+            return [self.recurse_model_dump(v) for v in data]
+        elif isinstance(data, dict):
+            return {k: self.recurse_model_dump(v) for k, v in data.items()}
+        elif is_pydantic_dataclass(type(data)):
+            return RootModel[type(data)](data).model_dump()
+        else:
+            return data
 
     def _execute_request(self, method, data, pk):
         url = (
@@ -202,7 +216,7 @@ class ModifiableMixin(Common):
 
     def update(self, pk, **kwargs):
         result = yield from self.perform_request("PUT", pk=pk, data=kwargs)
-        return self.rsponse_model(**result)
+        return self.response_model(**result)
 
     def partial_update(self, pk, **kwargs):
         result = yield from self.perform_request("PATCH", pk=pk, data=kwargs)
