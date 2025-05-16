@@ -5,7 +5,6 @@ from typing import Optional, Union
 
 import httpx
 
-from gcapi.client import ClientBase
 from gcapi.models import (
     Algorithm,
     ArchiveItem,
@@ -200,6 +199,8 @@ class FileSocketValueCreateStrategy(SocketValueCreateStrategy):
         self.content_name = self.socket.relative_path
 
     def _create_from_socket(self, post_request):
+        from gcapi.client import ClientBase
+
         # Cannot link a file directly to file, so we download it first
         response_or_json = yield from ClientBase.__call__(
             self.client,

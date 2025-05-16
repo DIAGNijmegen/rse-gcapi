@@ -128,6 +128,11 @@ class Client(httpx.Client, WrapApiInterfaces, ClientBase):
     def run_external_job(self, *args, **kwargs):
         return self._wrap_function(super().run_external_job)(*args, **kwargs)
 
+    def add_cases_to_archive(self, *args, **kwargs):
+        return self._wrap_function(super().add_cases_to_archive)(
+            *args, **kwargs
+        )
+
     def update_archive_item(self, *args, **kwargs):
         return self._wrap_function(super().update_archive_item)(
             *args, **kwargs
@@ -181,6 +186,11 @@ class AsyncClient(httpx.AsyncClient, WrapApiInterfaces, ClientBase):
 
     async def run_external_job(self, *args, **kwargs):
         return await self._wrap_function(super().run_external_job)(
+            *args, **kwargs
+        )
+
+    async def add_cases_to_archive(self, *args, **kwargs):
+        return await self._wrap_function(super().add_cases_to_archive)(
             *args, **kwargs
         )
 

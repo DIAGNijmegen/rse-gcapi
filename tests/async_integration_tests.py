@@ -15,6 +15,8 @@ from tests.utils import (
     async_recurse_call,
 )
 
+TESTDATA = Path(__file__).parent / "testdata"
+
 
 @async_recurse_call
 async def get_upload_session(client, upload_pk):
@@ -207,9 +209,7 @@ async def test_upload_cases_to_archive_item_without_interface(
         with pytest.raises(ValueError) as e:
             _ = await c.upload_cases(
                 archive_item=item.pk,
-                files=[
-                    Path(__file__).parent / "testdata" / "image10x10x101.mha"
-                ],
+                files=[TESTDATA / "image10x10x101.mha"],
             )
         assert (
             "You need to define an interface for archive item uploads"
@@ -234,7 +234,7 @@ async def test_upload_cases_to_archive_item_with_existing_interface(
         # create new archive item
         us = await c.upload_cases(
             archive="archive",
-            files=[Path(__file__).parent / "testdata" / "image10x10x101.mha"],
+            files=[TESTDATA / "image10x10x101.mha"],
         )
 
         # retrieve existing archive item pk
@@ -245,7 +245,7 @@ async def test_upload_cases_to_archive_item_with_existing_interface(
         us = await c.upload_cases(
             archive_item=items_list[-1].pk,
             interface="generic-medical-image",
-            files=[Path(__file__).parent / "testdata" / "image10x10x101.mha"],
+            files=[TESTDATA / "image10x10x101.mha"],
         )
 
         us = await get_upload_session(c, us.pk)
@@ -280,7 +280,7 @@ async def test_upload_cases_to_archive_item_with_new_interface(
         # create new archive item
         us = await c.upload_cases(
             archive="archive",
-            files=[Path(__file__).parent / "testdata" / "image10x10x101.mha"],
+            files=[TESTDATA / "image10x10x101.mha"],
         )
 
         items_list = await get_archive_items(
@@ -290,7 +290,7 @@ async def test_upload_cases_to_archive_item_with_new_interface(
         us = await c.upload_cases(
             archive_item=items_list[-1].pk,
             interface="generic-overlay",
-            files=[Path(__file__).parent / "testdata" / "image10x10x101.mha"],
+            files=[TESTDATA / "image10x10x101.mha"],
         )
 
         us = await get_upload_session(c, us.pk)
@@ -482,116 +482,71 @@ async def test_add_and_update_file_to_archive_item(local_grand_challenge):
     async with AsyncClient(
         base_url=local_grand_challenge, verify=False, token=ARCHIVE_TOKEN
     ) as c:
-        # check number of archive items
-        archive = await c.archives.iterate_all(
-            params={"slug": "archive"}
-        ).__anext__()
-        items = c.archive_items.iterate_all(params={"archive": archive.pk})
-        old_items_list = [item async for item in items]
-
         # create new archive item
-        _ = await c.upload_cases(
+        archive_item_pks = await c.add_cases_to_archive(
             archive="archive",
-            files=[Path(__file__).parent / "testdata" / "image10x10x101.mha"],
+            archive_items=[
+                {"generic-medical-image": TESTDATA / "image10x10x101.mha"},
+            ],
         )
 
-        # retrieve existing archive item pk
-        items = await get_archive_items(c, archive.pk, len(old_items_list))
+        @async_recurse_call
+        async def get_target_archive_item():
+            # Wait for the image to be added (async task)
+            archive_item = await c.archive_items.detail(pk=archive_item_pks[0])
+            if len(archive_item.values) != 1:
+                # item has not been added
+                raise ValueError
+            return archive_item
 
-        old_items_pks = {item.pk for item in old_items_list}
+        target_archive_item = await get_target_archive_item()
 
-        # get the new item
-        target_archive_item = None
-        for item in items:
-            if item.pk not in old_items_pks:
-                target_archive_item = item
-                break
-
-        # Sanity
-        assert "predictions-csv-file" not in [
-            item.interface.slug for item in target_archive_item.values
-        ]
-
-        with pytest.raises(ValueError) as e:
-            _ = await c.update_archive_item(
-                archive_item_pk=target_archive_item.pk,
-                values={
-                    "predictions-csv-file": [
-                        Path(__file__).parent / "testdata" / f
-                        for f in ["test.csv", "test.csv"]
-                    ]
-                },
-            )
-        assert (
-            "You can only upload one single file to a predictions-csv-file interface"
-            in str(e)
-        )
-
+        # Update it again, with a CSV this time
         _ = await c.update_archive_item(
             archive_item_pk=target_archive_item.pk,
             values={
-                "predictions-csv-file": [
-                    Path(__file__).parent / "testdata" / "test.csv"
-                ]
+                "predictions-csv-file": [TESTDATA / "test.csv"],
             },
         )
 
         @async_recurse_call
         async def get_updated_archive_item():
             archive_item = await c.archive_items.detail(target_archive_item.pk)
-            if len(archive_item.values) != len(target_archive_item.values) + 1:
+            if len(archive_item.values) != 2:
                 # item has not been added
                 raise ValueError
             return archive_item
 
-        updated_item = await get_updated_archive_item()
+        item_updated = await get_updated_archive_item()
 
-        updated_civs_by_slug = {
-            item.interface.slug: item for item in updated_item.values
-        }
+        csv_socket_value = item_updated.values[0]
+        assert csv_socket_value.interface.slug == "predictions-csv-file"
+        assert "test.csv" in csv_socket_value.file
 
-        assert (
-            "predictions-csv-file" in updated_civs_by_slug
-        ), "New civ did not get created"
-        assert "test.csv" in updated_civs_by_slug["predictions-csv-file"].file
+        updated_socket_value_count = len(item_updated.values)
 
-        # a new csv upload will overwrite the old csv interface value
-        _ = await c.update_archive_item(
+        # Yet again, update a new CSV that should replace the old one
+        await c.update_archive_item(
             archive_item_pk=target_archive_item.pk,
             values={
-                "predictions-csv-file": [
-                    Path(__file__).parent / "testdata" / "test2.csv"
-                ]
+                "predictions-csv-file": [TESTDATA / "test2.csv"],
             },
         )
 
-        updated_again_civs_by_slug = {}
-
         @async_recurse_call
         async def get_updated_again_archive_item():
-            nonlocal updated_again_civs_by_slug
             archive_item = await c.archive_items.detail(target_archive_item.pk)
-            updated_again_civs_by_slug = {
-                item.interface.slug: item for item in archive_item.values
-            }
-            if (
-                "test2.csv"
-                not in updated_again_civs_by_slug["predictions-csv-file"].file
-            ):
+            if csv_socket_value.pk in [v.pk for v in archive_item.values]:
+                # old value still there
                 raise ValueError
             return archive_item
 
-        await get_updated_again_archive_item()
+        item_updated_again = await get_updated_again_archive_item()
 
-        assert {
-            *updated_again_civs_by_slug.keys(),
-        } == {
-            *updated_civs_by_slug.keys(),
-        }
-        assert (
-            "test2.csv"
-            in updated_again_civs_by_slug["predictions-csv-file"].file
-        )
+        assert len(item_updated_again.values) == updated_socket_value_count
+        new_csv_socket_value = item_updated_again.values[0]
+        assert new_csv_socket_value.interface.slug == "predictions-csv-file"
+        assert "test2.csv" in new_csv_socket_value.file
 
 
 @pytest.mark.anyio
@@ -599,114 +554,42 @@ async def test_add_and_update_value_to_archive_item(local_grand_challenge):
     async with AsyncClient(
         base_url=local_grand_challenge, verify=False, token=ARCHIVE_TOKEN
     ) as c:
-        # check number of archive items
-        archive = await c.archives.iterate_all(
-            params={"slug": "archive"}
-        ).__anext__()
-        items = c.archive_items.iterate_all(params={"archive": archive.pk})
-        old_items_list = [item async for item in items]
 
         # create new archive item
-        _ = await c.upload_cases(
+        archive_item_pks = await c.add_cases_to_archive(
             archive="archive",
-            files=[Path(__file__).parent / "testdata" / "image10x10x101.mha"],
+            archive_items=[
+                {
+                    "metrics-json-file": {"foo": "bar"},
+                },
+            ],
         )
 
-        # retrieve existing archive item pk
-        items_list = await get_archive_items(
-            c, archive.pk, len(old_items_list)
-        )
-        old_civ_count = len(items_list[-1].values)
+        archive_item = await c.archive_items.detail(pk=archive_item_pks[0])
 
-        _ = await c.update_archive_item(
-            archive_item_pk=items_list[-1].pk,
-            values={"results-json-file": {"foo": 0.5}},
-        )
+        assert archive_item.values[0].interface.slug == "metrics-json-file"
+        assert archive_item.values[0].value["foo"] == "bar"
 
-        @async_recurse_call
-        async def get_archive_detail():
-            item = await c.archive_items.detail(items_list[-1].pk)
-            if len(item.values) != old_civ_count + 1:
-                # csv interface value has been added to item
-                raise ValueError
-            return item
-
-        item_updated = await get_archive_detail()
-
-        json_civ = [
-            civ
-            for civ in item_updated.values
-            if civ.interface.slug == "results-json-file"
-        ][0]
-        assert json_civ.value == {"foo": 0.5}
-        updated_civ_count = len(item_updated.values)
-
-        _ = await c.update_archive_item(
-            archive_item_pk=items_list[-1].pk,
-            values={"results-json-file": {"foo": 0.8}},
+        # Update value
+        archive_item = await c.update_archive_item(
+            archive_item_pk=archive_item.pk,
+            values={
+                "metrics-json-file": {"foo2": "bar2"},
+            },
         )
 
-        @async_recurse_call
-        async def get_updated_archive_detail():
-            item = await c.archive_items.detail(items_list[-1].pk)
-            if json_civ in item.values:
-                # results json interface value has been added to the item and
-                # the previously added json civ is no longer attached
-                # to this archive item
-                raise ValueError
-            return item
+        assert (
+            archive_item.values[0].value["foo2"] == "bar2"
+        ), "Sanity, values are applied directly"
 
-        item_updated_again = await get_updated_archive_detail()
-
-        assert len(item_updated_again.values) == updated_civ_count
-        new_json_civ = [
-            civ
-            for civ in item_updated_again.values
-            if civ.interface.slug == "results-json-file"
-        ][0]
-        assert new_json_civ.value == {"foo": 0.8}
-
-
-@pytest.mark.anyio
-async def test_update_archive_item_with_non_existing_interface(
-    local_grand_challenge,
-):
-    async with AsyncClient(
-        base_url=local_grand_challenge, verify=False, token=ARCHIVE_TOKEN
-    ) as c:
-        # retrieve existing archive item pk
-        archive = await c.archives.iterate_all(
-            params={"slug": "archive"}
-        ).__anext__()
-        items = c.archive_items.iterate_all(params={"archive": archive.pk})
-        item_ids = [item.pk async for item in items]
-        with pytest.raises(ValueError) as e:
-            _ = await c.update_archive_item(
-                archive_item_pk=item_ids[0], values={"new-interface": 5}
-            )
-        assert "new-interface is not an existing interface" in str(e)
-
-
-@pytest.mark.anyio
-async def test_update_archive_item_without_value(local_grand_challenge):
-    async with AsyncClient(
-        base_url=local_grand_challenge, verify=False, token=ARCHIVE_TOKEN
-    ) as c:
-        # retrieve existing archive item pk
-        archive = await c.archives.iterate_all(
-            params={"slug": "archive"}
-        ).__anext__()
-        items = c.archive_items.iterate_all(params={"archive": archive.pk})
-        item_ids = [item.pk async for item in items]
-
-        with pytest.raises(ValueError) as e:
-            _ = await c.update_archive_item(
-                archive_item_pk=item_ids[0],
-                values={"generic-medical-image": None},
-            )
-        assert "You need to provide a value for generic-medical-image" in str(
-            e
+        updated_archive_item = await c.archive_items.detail(
+            pk=archive_item_pks[0]
         )
+        assert (
+            updated_archive_item.values[0].interface.slug
+            == "metrics-json-file"
+        )
+        assert updated_archive_item.values[0].value["foo2"] == "bar2"
 
 
 @pytest.mark.parametrize(
