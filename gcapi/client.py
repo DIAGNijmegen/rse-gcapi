@@ -7,7 +7,7 @@ from io import BytesIO
 from pathlib import Path
 from random import randint
 from time import sleep
-from typing import TYPE_CHECKING, Any, Callable, Optional, Union
+from typing import TYPE_CHECKING, Any, Callable, Optional, Union, cast
 from urllib.parse import urljoin
 
 import httpx
@@ -16,9 +16,11 @@ from httpx import URL, HTTPStatusError, Timeout
 import gcapi.models
 from gcapi.apibase import APIBase, ClientInterface, ModifiableMixin
 from gcapi.check_version import check_version
+from gcapi.create_strategies import Empty, SocketValueCreateStrategy
 from gcapi.exceptions import ObjectNotFound
 from gcapi.retries import BaseRetryStrategy, SelectiveBackoffStrategy
 from gcapi.sync_async_hybrid_support import CapturedCall, mark_generator
+from gcapi.typing import SocketValueSet
 
 logger = logging.getLogger(__name__)
 
@@ -388,6 +390,8 @@ class ClientBase(ApiDefinitions, ClientInterface):
     _api_meta: ApiDefinitions
     __org_api_meta: ApiDefinitions
 
+    from gcapi.typing import SocketValueSet, SocketValueSetDescription
+
     def __init__(
         self,
         init_base_cls: Union[httpx.Client, httpx.AsyncClient],
@@ -711,133 +715,6 @@ class ClientBase(ApiDefinitions, ClientInterface):
 
         return (yield from self.__org_api_meta.algorithm_jobs.create(**job))
 
-    def update_archive_item(
-        self, *, archive_item_pk: str, values: dict[str, Any]
-    ):
-        """
-        This function updates an existing archive item with the provided values
-        and returns the updated archive item.
-        You can use this function, for example, to add metadata to an archive item.
-        First, retrieve the archive items from your archive:
-        archive = next(client.archives.iterate_all(params={"slug": "..."}))
-        items = list(
-            client.archive_items.iterate_all(params={"archive": archive.pk})
-        )
-        To then add, for example, a PDF report and a lung volume
-        value to the first archive item , provide the interface slugs together
-        with the respective value or file path as follows:
-        client.update_archive_item(
-            archive_item_pk=items[0].id,
-            values={
-                "report": [...],
-                "lung-volume": 1.9,
-            },
-        )
-        If you provide a value or file for an existing interface of the archive
-        item, the old value will be overwritten by the new one, hence allowing you
-        to update existing archive item values.
-
-        Parameters
-        ----------
-        archive_item_pk
-        values
-
-        Returns
-        -------
-        The updated archive item
-        """
-        item = yield from self.__org_api_meta.archive_items.detail(
-            pk=archive_item_pk
-        )
-        civs: dict[str, list] = {"values": []}
-
-        for civ_slug, value in values.items():
-            try:
-                ci = yield from self.__org_api_meta.interfaces.detail(
-                    slug=civ_slug
-                )
-            except ObjectNotFound as e:
-                raise ValueError(
-                    f"{civ_slug} is not an existing interface. "
-                    f"Please provide one from this list: "
-                    f"https://grand-challenge.org/algorithms/interfaces/"
-                ) from e
-            i = {"interface": ci.slug}
-
-            if not value:
-                raise ValueError(f"You need to provide a value for {ci.slug}")
-
-            if ci.super_kind.lower() == "image":
-                if isinstance(value, list):
-                    raw_image_upload_session = (
-                        yield from self._upload_image_files(files=value)
-                    )
-                    i["upload_session"] = raw_image_upload_session.api_url
-                elif isinstance(value, str):
-                    i["image"] = value
-            elif ci.super_kind.lower() == "file":
-                if len(value) != 1:
-                    raise ValueError(
-                        f"You can only upload one single file "
-                        f"to a {ci.slug} interface."
-                    )
-                upload = yield from self._upload_file(value)
-                i["user_upload"] = upload.api_url
-            else:
-                i["value"] = value
-            civs["values"].append(i)
-
-        return (
-            yield from self.__org_api_meta.archive_items.partial_update(
-                pk=item.pk, **civs
-            )
-        )
-
-    def _fetch_interface(self, slug):
-        try:
-            interface = yield from self.__org_api_meta.interfaces.detail(
-                slug=slug
-            )
-            return interface
-        except ObjectNotFound as e:
-            raise ValueError(
-                f"{slug} is not an existing interface. "
-                f"Please provide one from this list: "
-                f"https://grand-challenge.org/components/interfaces/reader-studies/"
-            ) from e
-        return interface
-
-    def _validate_display_set_values(self, values, interfaces):
-        invalid_file_paths = {}
-        for slug, value in values:
-            if interfaces.get(slug):
-                interface = interfaces[slug]
-            else:
-                interface = yield from self._fetch_interface(slug)
-                interfaces[slug] = interface
-            super_kind = interface.super_kind.casefold()
-            if super_kind != "value":
-                if not isinstance(value, list):
-                    raise ValueError(
-                        f"Values for {slug} ({super_kind}) "
-                        "should be a list of file paths."
-                    )
-                if super_kind != "image" and len(value) > 1:
-                    raise ValueError(
-                        f"You can only upload one single file "
-                        f"to interface {slug} ({super_kind})."
-                    )
-                for file_path in value:
-                    if not Path(file_path).exists():
-                        invalid_file_paths[slug] = invalid_file_paths.get(
-                            slug, []
-                        )
-                        invalid_file_paths[slug].append(str(file_path))
-        if invalid_file_paths:
-            raise ValueError(f"Invalid file paths: {invalid_file_paths}")
-
-        return interfaces
-
     def add_cases_to_reader_study(
         self, *, reader_study: str, display_sets: list[dict[str, Any]]
     ):
@@ -904,3 +781,218 @@ class ClientBase(ApiDefinitions, ClientInterface):
 
             res.append(ds.pk)
         return res  # noqa: B901
+
+    def update_archive_item(
+        self, *, archive_item_pk: str, values: SocketValueSetDescription
+    ):
+        """
+        This function updates an existing archive item with the provided values
+        and returns the updated archive item.
+
+        You can use this function, for example, to add metadata to an archive item.
+
+        First, retrieve the archive items from your archive:
+
+        archive = client.archives.detail(slug="...")
+        items = list(
+            client.archive_items.iterate_all(params={"archive": archive.pk})
+        )
+
+        To then add, for example, a PDF report and a lung volume
+        value to the first archive item , provide the interface slugs together
+        with the respective value or file path as follows:
+        client.update_archive_item(
+            archive_item_pk=items[0].id,
+            values={
+                "report": [...],
+                "lung-volume": 1.9,
+            },
+        )
+        If you provide a value or file for an existing interface of the archive
+        item, the old value will be overwritten by the new one, hence allowing you
+        to update existing archive item values.
+
+        Parameters
+        ----------
+        archive_item_pk
+        values
+
+        Returns
+        -------
+        The updated archive item
+        """
+        item = yield from self.__org_api_meta.archive_items.detail(
+            pk=archive_item_pk
+        )
+        return (
+            yield from self._update_socket_value_set(
+                target=item,
+                description=values,
+                api=self.__org_api_meta.archive_items,
+            )
+        )
+
+    def add_cases_to_archive(
+        self,
+        *,
+        archive: Union[str, gcapi.models.Archive],
+        archive_items: list[SocketValueSetDescription],
+    ):
+        """
+        This function takes an archive slug or model and a list of archive item
+        descriptions and creates the archive item to be used on the platform.
+
+        Parameters
+        ----------
+        archive
+            slug for the archive (e.g. "i-am-an-archive"). You can find this
+            readily in the URL you use to visit the archive page:
+
+                https://grand-challenge.org/archives/i-am-an-archive/
+
+        archive_items
+            The format for the description of archive items is as follows:
+
+            [
+                {
+                    "slug_0": ["filepath_0", ...],
+                    "slug_1": "filepath_0",
+                    "slug_2": pathlib.Path("filepath_0"),
+                    ...
+                    "slug_n": {"json": "value"}
+
+                },
+                ...
+            ]
+
+            Where the file paths are local paths to the files making up a
+            single image. For file type interfaces the file path can only
+            reference a single file. For json type interfaces any value that
+            is valid for the interface can directly be passed.
+
+        Returns
+        -------
+        The pks of the newly created archive items.
+        """
+
+        if isinstance(archive, str):
+            archive = yield from self.__org_api_meta.archives.detail(
+                slug=archive
+            )
+
+        created_archive_items = yield from self._create_socket_value_sets(
+            creation_kwargs={"archive": archive.api_url},
+            descriptions=archive_items,
+            api=self.__org_api_meta.archive_items,
+        )
+
+        return [ai.pk for ai in created_archive_items]
+
+    def _fetch_socket_detail(
+        self,
+        slug_or_socket,
+        cache=None,
+        ref_url="https://grand-challenge.org/components/interfaces/reader-studies/",
+    ):
+        if isinstance(slug_or_socket, gcapi.models.ComponentInterface):
+            return slug_or_socket
+        else:
+            slug = slug_or_socket
+
+        if cache and slug in cache:
+            return cache[slug]
+        try:
+            interface = yield from self.__org_api_meta.interfaces.detail(
+                slug=slug
+            )
+
+            if cache:
+                cache[slug] = interface
+
+            return interface
+        except ObjectNotFound as e:
+            raise ValueError(
+                f"{slug} is not an existing interface. "
+                f"Please provide one from this list: "
+                f"{ref_url}"
+            ) from e
+
+    def _create_socket_value_sets(
+        self,
+        *,
+        creation_kwargs: dict,
+        descriptions: list[SocketValueSetDescription],
+        api: ModifiableMixin,
+    ):
+        interface_cache: dict[str, gcapi.models.ComponentInterface] = {}
+
+        # Firstly, prepare ALL the strategies
+        strategy_collections: list[list[SocketValueCreateStrategy]] = []
+        for description in descriptions:
+            strategy_per_value = []
+
+            for socket_slug, source in description.items():
+                socket: gcapi.models.ComponentInterface = (
+                    yield from self._fetch_socket_detail(
+                        slug_or_socket=socket_slug,
+                        cache=interface_cache,
+                    )
+                )
+                strategy = SocketValueCreateStrategy(
+                    client=self,
+                    socket=cast(gcapi.models.ComponentInterface, socket),
+                    source=source,
+                )
+                strategy.prepare()
+                strategy_per_value.append(strategy)
+
+            strategy_collections.append(strategy_per_value)
+
+        # Secondly, create + update socket-value sets
+        socket_value_sets: list[SocketValueSet] = []
+        for collection in strategy_collections:
+            socket_value_set = yield from api.create(**creation_kwargs)
+            values = []
+            for strategy in collection:
+                strategy.parent = socket_value_set
+                post_value = yield from strategy()
+                if post_value is not Empty:
+                    values.append(post_value)
+            update_socket_value_set = yield from api.partial_update(
+                pk=socket_value_set.pk, values=values
+            )
+            socket_value_sets.append(update_socket_value_set)
+
+        return socket_value_sets
+
+    def _update_socket_value_set(
+        self,
+        *,
+        target: SocketValueSet,
+        description: SocketValueSetDescription,
+        api: ModifiableMixin,
+    ):
+        strategies = []
+
+        for socket_slug, source in description.items():
+            socket: gcapi.models.ComponentInterface = (
+                yield from self._fetch_socket_detail(socket_slug)
+            )
+            strategy = SocketValueCreateStrategy(
+                source=source,
+                socket=socket,
+                client=self,
+                parent=target,
+            )
+            yield from strategy.prepare()
+            strategies.append(strategy)
+
+        values = []
+        for strategy in strategies:
+            value = yield from strategy()
+            if value is not Empty:
+                values.append(value)
+
+        return (  # noqa: B901
+            yield from api.partial_update(pk=target.pk, values=values)
+        )
