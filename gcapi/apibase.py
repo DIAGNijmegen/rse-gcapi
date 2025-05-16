@@ -220,7 +220,7 @@ class ModifiableMixin(Common):
 
     def partial_update(self, pk, **kwargs):
         result = yield from self.perform_request("PATCH", pk=pk, data=kwargs)
-        return result
+        return self.response_model(**result)
 
     def delete(self, pk):
         return (yield from self.perform_request("DELETE", pk=pk))
