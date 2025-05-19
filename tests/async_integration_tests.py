@@ -519,8 +519,11 @@ async def test_add_and_update_file_to_archive_item(local_grand_challenge):
 
         item_updated = await get_updated_archive_item()
 
-        csv_socket_value = item_updated.values[0]
-        assert csv_socket_value.interface.slug == "predictions-csv-file"
+        csv_socket_value = next(
+            v
+            for v in item_updated.values
+            if v.interface.slug == "predictions-csv-file"
+        )
         assert "test.csv" in csv_socket_value.file
 
         updated_socket_value_count = len(item_updated.values)
@@ -544,8 +547,11 @@ async def test_add_and_update_file_to_archive_item(local_grand_challenge):
         item_updated_again = await get_updated_again_archive_item()
 
         assert len(item_updated_again.values) == updated_socket_value_count
-        new_csv_socket_value = item_updated_again.values[0]
-        assert new_csv_socket_value.interface.slug == "predictions-csv-file"
+        new_csv_socket_value = next(
+            v
+            for v in item_updated_again.values
+            if v.interface.slug == "predictions-csv-file"
+        )
         assert "test2.csv" in new_csv_socket_value.file
 
 
