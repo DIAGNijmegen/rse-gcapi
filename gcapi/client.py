@@ -958,7 +958,7 @@ class ClientBase(ApiDefinitions, ClientInterface):
         interface_cache: dict[str, gcapi.models.ComponentInterface] = {}
 
         # Firstly, prepare ALL the strategies
-        strategy_collections: list[list[SocketValueCreateStrategy]] = []
+        strategies_per_value_set: list[list[SocketValueCreateStrategy]] = []
         for description in descriptions:
             strategy_per_value = []
 
@@ -977,14 +977,14 @@ class ClientBase(ApiDefinitions, ClientInterface):
                 strategy.prepare()
                 strategy_per_value.append(strategy)
 
-            strategy_collections.append(strategy_per_value)
+            strategies_per_value_set.append(strategy_per_value)
 
         # Secondly, create + update socket-value sets
         socket_value_sets: list[SocketValueSet] = []
-        for collection in strategy_collections:
+        for strategies in strategies_per_value_set:
             socket_value_set = yield from api.create(**creation_kwargs)
             values = []
-            for strategy in collection:
+            for strategy in strategies:
                 strategy.parent = socket_value_set
                 post_value = yield from strategy()
                 if post_value is not Empty:
