@@ -1,3 +1,6 @@
+import datetime
+from unittest import mock
+
 import pytest
 from httpx import Response, codes
 
@@ -74,26 +77,48 @@ NO_RETRIES = [None]
             * 10,
             [120.0] * 8 + [None, None],
         ),
-        # codes.TOO_MANY_REQUESTS with Retry-After header as HTTP-date
+        # codes.TOO_MANY_REQUESTS with Retry-After header as HTTP-date (in the past)
         (
             [
                 Response(
                     codes.TOO_MANY_REQUESTS,
-                    headers={"Retry-After": "Wed, 21 Oct 2015 07:28:00 GMT"},
+                    headers={"Retry-After": "Wed, 21 Oct 1990 07:28:00 GMT"},
                 )
             ]
             * 2,
             [
-                pytest.approx(0, abs=2),  # Will be mocked below
-                pytest.approx(0, abs=2),
+                0,
+                0,
+            ],
+        ),
+        (
+            # codes.TOO_MANY_REQUESTS with Retry-After header as HTTP-date
+            [
+                Response(
+                    codes.TOO_MANY_REQUESTS,
+                    headers={"Retry-After": "Fri, 01 Jan 1999 12:00:10 GMT"},
+                )
+            ]
+            * 2,
+            [
+                10,
+                10,
             ],
         ),
     ],
 )
 def test_selective_backoff_strategy(responses, delays):
-    generator = SelectiveBackoffStrategy(
-        backoff_factor=0.1, maximum_number_of_retries=8
+    fixed_date = datetime.datetime(
+        1999, 1, 1, 12, 0, 0, tzinfo=datetime.timezone.utc
     )
-    strategy = generator()
-    for response, expected_delay in zip(responses, delays):
-        assert strategy.get_delay(response) == expected_delay
+    with mock.patch("gcapi.retries.datetime") as mock_datetime:
+        mock_datetime.datetime.now.return_value = fixed_date
+        mock_datetime.datetime.side_effect = (
+            lambda *args, **kwargs: datetime.datetime(*args, **kwargs)
+        )
+        generator = SelectiveBackoffStrategy(
+            backoff_factor=0.1, maximum_number_of_retries=8
+        )
+        strategy = generator()
+        for response, expected_delay in zip(responses, delays):
+            assert strategy.get_delay(response) == expected_delay
