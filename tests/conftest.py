@@ -12,6 +12,8 @@ import httpx
 import pytest
 import yaml
 
+from gcapi.retries import SelectiveBackoffStrategy
+from gcapi.transports import RetryTransport
 from tests.integration_tests import ADMIN_TOKEN
 
 
@@ -167,19 +169,28 @@ def local_grand_challenge() -> Generator[str, None, None]:
 
 
 def get_grand_challenge_file(repo_path: Path, output_directory: Path) -> None:
-    r = httpx.get(
-        (
-            "https://raw.githubusercontent.com/comic/grand-challenge.org/"
-            f"main/{repo_path}"
-        ),
-        follow_redirects=True,
-    )
-    r.raise_for_status()
+    with httpx.Client(
+        transport=httpx.HTTPTransport(retry_strategy=SelectiveBackoffStrategy)
+    ) as client:
+        response = client.get(
+            (
+                "https://raw.githubusercontent.com/comic/grand-challenge.org/"
+                f"main/{repo_path}"
+            ),
+            follow_redirects=True,
+            transport=RetryTransport(
+                retry_strategy=SelectiveBackoffStrategy(
+                    backoff_factor=0.1,
+                    maximum_number_of_retries=5,
+                )
+            ),
+        )
+    response.raise_for_status()
 
     if str(repo_path) == "docker-compose.yml":
-        content = rewrite_docker_compose(r.content)
+        content = rewrite_docker_compose(response.content)
     else:
-        content = r.content
+        content = response.content
 
     output_file = output_directory / repo_path
     makedirs(str(output_file.parent), exist_ok=True)

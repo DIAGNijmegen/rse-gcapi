@@ -47,6 +47,47 @@ NO_RETRIES = [None]
             ],
             [0.1, 0.2] * 3,
         ),
+        # codes.TOO_MANY_REQUESTS without Retry-After header
+        (
+            [Response(codes.TOO_MANY_REQUESTS)] * 10,
+            [0.1, 0.2, 0.4, 0.8, 1.6, 3.2, 6.4, 12.8, None, None],
+        ),
+        # codes.TOO_MANY_REQUESTS with Retry-After header with garbage
+        (
+            [
+                Response(
+                    codes.TOO_MANY_REQUESTS,
+                    headers={"Retry-After": "foo"},
+                )
+            ]
+            * 10,
+            [0.1, 0.2, 0.4, 0.8, 1.6, 3.2, 6.4, 12.8, None, None],
+        ),
+        # codes.TOO_MANY_REQUESTS with Retry-After header as integer seconds
+        (
+            [
+                Response(
+                    codes.TOO_MANY_REQUESTS,
+                    headers={"Retry-After": "120"},
+                )
+            ]
+            * 10,
+            [120.0] * 8 + [None, None],
+        ),
+        # codes.TOO_MANY_REQUESTS with Retry-After header as HTTP-date
+        (
+            [
+                Response(
+                    codes.TOO_MANY_REQUESTS,
+                    headers={"Retry-After": "Wed, 21 Oct 2015 07:28:00 GMT"},
+                )
+            ]
+            * 2,
+            [
+                pytest.approx(0, abs=2),  # Will be mocked below
+                pytest.approx(0, abs=2),
+            ],
+        ),
     ],
 )
 def test_selective_backoff_strategy(responses, delays):
