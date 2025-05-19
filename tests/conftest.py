@@ -170,7 +170,12 @@ def local_grand_challenge() -> Generator[str, None, None]:
 
 def get_grand_challenge_file(repo_path: Path, output_directory: Path) -> None:
     with httpx.Client(
-        transport=httpx.HTTPTransport(retry_strategy=SelectiveBackoffStrategy)
+        transport=RetryTransport(
+            retry_strategy=SelectiveBackoffStrategy(
+                backoff_factor=0.1,
+                maximum_number_of_retries=5,
+            )
+        ),
     ) as client:
         response = client.get(
             (
@@ -178,12 +183,6 @@ def get_grand_challenge_file(repo_path: Path, output_directory: Path) -> None:
                 f"main/{repo_path}"
             ),
             follow_redirects=True,
-            transport=RetryTransport(
-                retry_strategy=SelectiveBackoffStrategy(
-                    backoff_factor=0.1,
-                    maximum_number_of_retries=5,
-                )
-            ),
         )
     response.raise_for_status()
 
