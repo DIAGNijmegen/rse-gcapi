@@ -42,23 +42,21 @@ def get_archive_items(client, archive_pk, min_size):
 
 
 @recurse_call
-def get_complete_civ_set(get_func, complete_num_civ):
-    civ_set = get_func()
-    num_civ = len(civ_set.values)
-    if num_civ != complete_num_civ:
-        raise ValueError(
-            f"Found {num_civ}, expected {complete_num_civ} values"
-        )
-    for civ in civ_set.values:
+def get_complete_socket_value_set(get_func, complete_num_sv):
+    sv_set = get_func()
+    num_sv = len(sv_set.values)
+    if num_sv != complete_num_sv:
+        raise ValueError(f"Found {num_sv}, expected {complete_num_sv} values")
+    for sv in sv_set.values:
         if all(
             [
-                civ.file is None,
-                civ.image is None,
-                civ.value is None,
+                sv.file is None,
+                sv.image is None,
+                sv.value is None,
             ]
         ):
-            raise ValueError(f"Null values: {civ}")
-    return civ_set
+            raise ValueError(f"Null values: {sv}")
+    return sv_set
 
 
 @pytest.mark.parametrize(
@@ -656,44 +654,44 @@ def test_add_cases_to_reader_study(display_sets, local_grand_challenge):
     )
 
     @recurse_call
-    def check_image(interface_value, expected_name):
-        image = get_image(c, interface_value.image)
+    def check_image(socket_value, expected_name):
+        image = get_image(c, socket_value.image)
         assert image.name == expected_name
 
-    def check_annotation(interface_value, expected):
-        assert interface_value.value == expected
+    def check_annotation(socket_value, expected):
+        assert socket_value.value == expected
 
     @recurse_call
-    def check_file(interface_value, expected_name):
-        response = c(url=interface_value.file, follow_redirects=True)
+    def check_file(socket_value, expected_name):
+        response = c(url=socket_value.file, follow_redirects=True)
         assert response.url.path.endswith(expected_name)
 
     for display_set_pk, display_set in zip(added_display_sets, display_sets):
 
-        ds = get_complete_civ_set(
+        ds = get_complete_socket_value_set(
             get_func=partial(
                 c.reader_studies.display_sets.detail, pk=display_set_pk
             ),
-            complete_num_civ=len(display_set),
+            complete_num_sv=len(display_set),
         )
 
-        for interface, value in display_set.items():
-            civ = [
-                civ for civ in ds.values if civ.interface.slug == interface
+        for socket_slug, value in display_set.items():
+            socket_value = [
+                sv for sv in ds.values if sv.interface.slug == socket_slug
             ][0]
 
-            if civ.interface.super_kind == "Image":
+            if socket_value.interface.super_kind == "Image":
                 file_name = value[0].name
-                check_image(civ, file_name)
-            elif civ.interface.kind == "2D bounding box":
-                check_annotation(civ, value)
+                check_image(socket_value, file_name)
+            elif socket_value.interface.kind == "2D bounding box":
+                check_annotation(socket_value, value)
                 pass
-            elif civ.interface.super_kind == "File":
+            elif socket_value.interface.super_kind == "File":
                 file_name = value[0].name
-                check_file(civ, file_name)
+                check_file(socket_value, file_name)
 
 
-def test_add_cases_to_reader_study_invalid_interface(local_grand_challenge):
+def test_add_cases_to_reader_study_invalid_socket(local_grand_challenge):
     c = Client(
         base_url=local_grand_challenge, verify=False, token=READERSTUDY_TOKEN
     )
@@ -718,7 +716,7 @@ def test_add_cases_to_reader_study_invalid_interface(local_grand_challenge):
     )
 
 
-def test_add_cases_to_archive_invalid_interface(local_grand_challenge):
+def test_add_cases_to_archive_invalid_socket(local_grand_challenge):
     c = Client(
         base_url=local_grand_challenge, verify=False, token=ARCHIVE_TOKEN
     )

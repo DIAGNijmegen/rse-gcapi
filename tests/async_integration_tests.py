@@ -41,23 +41,21 @@ async def get_archive_items(client, archive_pk, min_size):
 
 
 @async_recurse_call
-async def get_complete_civ_set(get_func, complete_num_civ):
-    civ_set = await get_func()
-    num_civ = len(civ_set.values)
-    if num_civ != complete_num_civ:
-        raise ValueError(
-            f"Found {num_civ}, expected {complete_num_civ} values"
-        )
-    for civ in civ_set.values:
+async def get_complete_socket_value_set(get_func, complete_num_sv):
+    sv_set = await get_func()
+    num_sv = len(sv_set.values)
+    if num_sv != complete_num_sv:
+        raise ValueError(f"Found {num_sv}, expected {complete_num_sv} values")
+    for sv in sv_set.values:
         if all(
             [
-                civ.file is None,
-                civ.image is None,
-                civ.value is None,
+                sv.file is None,
+                sv.image is None,
+                sv.value is None,
             ]
         ):
-            raise ValueError(f"Null values: {civ}")
-    return civ_set
+            raise ValueError(f"Null values: {sv}")
+    return sv_set
 
 
 @pytest.mark.anyio
@@ -694,16 +692,16 @@ async def test_add_cases_to_reader_study(display_sets, local_grand_challenge):
         assert all([x in all_display_sets for x in added_display_sets])
 
         @async_recurse_call
-        async def check_image(interface_value, expected_name):
-            image = await get_image(c, interface_value.image)
+        async def check_image(socket_value, expected_name):
+            image = await get_image(c, socket_value.image)
             assert image.name == expected_name
 
-        def check_annotation(interface_value, expected):
-            assert interface_value.value == expected
+        def check_annotation(socket_value, expected):
+            assert socket_value.value == expected
 
         @async_recurse_call
-        async def check_file(interface_value, expected_name):
-            response = await c(url=interface_value.file, follow_redirects=True)
+        async def check_file(socket_value, expected_name):
+            response = await c(url=socket_value.file, follow_redirects=True)
             assert response.url.path.endswith(expected_name)
 
         # Check for each display set that the values are added
@@ -711,31 +709,31 @@ async def test_add_cases_to_reader_study(display_sets, local_grand_challenge):
             added_display_sets, display_sets
         ):
 
-            ds = await get_complete_civ_set(
+            ds = await get_complete_socket_value_set(
                 partial(
                     c.reader_studies.display_sets.detail, pk=display_set_pk
                 ),
                 complete_num_civ=len(display_set),
             )
 
-            for interface, value in display_set.items():
-                civ = [
-                    civ for civ in ds.values if civ.interface.slug == interface
+            for socket_slug, value in display_set.items():
+                sv = [
+                    sv for sv in ds.values if sv.interface.slug == socket_slug
                 ][0]
 
-                if civ.interface.super_kind == "Image":
+                if sv.interface.super_kind == "Image":
                     file_name = value[0].name
-                    await check_image(civ, file_name)
-                elif civ.interface.kind == "2D bounding box":
-                    check_annotation(civ, value)
+                    await check_image(sv, file_name)
+                elif sv.interface.kind == "2D bounding box":
+                    check_annotation(sv, value)
                     pass
-                elif civ.interface.super_kind == "File":
+                elif sv.interface.super_kind == "File":
                     file_name = value[0].name
-                    await check_file(civ, file_name)
+                    await check_file(sv, file_name)
 
 
 @pytest.mark.anyio
-async def test_add_cases_to_reader_study_invalid_interface(
+async def test_add_cases_to_reader_study_invalid_socket(
     local_grand_challenge,
 ):
     display_sets = [
@@ -762,7 +760,7 @@ async def test_add_cases_to_reader_study_invalid_interface(
 
 
 @pytest.mark.anyio
-async def test_add_cases_to_archive_invalid_interface(local_grand_challenge):
+async def test_add_cases_to_archive_invalid_socket(local_grand_challenge):
 
     archive_items = [
         {
