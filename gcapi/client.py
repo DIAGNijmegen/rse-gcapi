@@ -721,7 +721,7 @@ class ClientBase(ApiDefinitions, ClientInterface):
             if interfaces.get(slug):
                 interface = interfaces[slug]
             else:
-                interface = yield from self._fetch_interface(slug)
+                interface = yield from self._fetch_socket_detail(slug)
                 interfaces[slug] = interface
             super_kind = interface.super_kind.casefold()
             if super_kind != "value":
