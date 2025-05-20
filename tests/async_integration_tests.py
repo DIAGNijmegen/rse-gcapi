@@ -554,6 +554,86 @@ async def test_add_and_update_file_to_archive_item(local_grand_challenge):
 
 
 @pytest.mark.anyio
+async def test_add_and_update_file_to_display_set(local_grand_challenge):
+    async with AsyncClient(
+        base_url=local_grand_challenge, verify=False, token=READERSTUDY_TOKEN
+    ) as c:
+        # Create new display set
+        display_set_pks = await c.add_cases_to_reader_study(
+            reader_study="reader-study",
+            display_sets=[
+                {"generic-medical-image": TESTDATA / "image10x10x101.mha"},
+            ],
+        )
+
+        @async_recurse_call
+        async def get_target_display_set():
+            display_set = await c.reader_studies.display_sets.detail(
+                pk=display_set_pks[0]
+            )
+            if len(display_set.values) != 1:
+                raise ValueError
+            return display_set
+
+        target_display_set = await get_target_display_set()
+
+        # Update with a CSV file
+        await c.update_display_set(
+            display_set_pk=target_display_set.pk,
+            values={
+                "predictions-csv-file": [TESTDATA / "test.csv"],
+            },
+        )
+
+        @async_recurse_call
+        async def get_updated_display_set():
+            display_set = await c.reader_studies.display_sets.detail(
+                target_display_set.pk
+            )
+            if len(display_set.values) != 2:
+                raise ValueError
+            return display_set
+
+        item_updated = await get_updated_display_set()
+
+        csv_socket_value = next(
+            v
+            for v in item_updated.values
+            if v.interface.slug == "predictions-csv-file"
+        )
+        assert "test.csv" in csv_socket_value.file
+
+        updated_socket_value_count = len(item_updated.values)
+
+        # Replace the CSV with a new one
+        await c.update_display_set(
+            display_set_pk=target_display_set.pk,
+            values={
+                "predictions-csv-file": [TESTDATA / "test2.csv"],
+            },
+        )
+
+        @async_recurse_call
+        async def get_updated_again_display_set():
+            display_set = await c.reader_studies.display_sets.detail(
+                target_display_set.pk
+            )
+            if csv_socket_value.pk in [v.pk for v in display_set.values]:
+                raise ValueError
+            return display_set
+
+        item_updated_again = await get_updated_again_display_set()
+
+        assert len(item_updated_again.values) == updated_socket_value_count
+        new_csv_socket_value = next(
+            v
+            for v in item_updated_again.values
+            if v.interface.slug == "predictions-csv-file"
+        )
+        assert "test2.csv" in new_csv_socket_value.file
+
+
+@pytest.mark.anyio
 async def test_add_and_update_value_to_archive_item(local_grand_challenge):
     async with AsyncClient(
         base_url=local_grand_challenge, verify=False, token=ARCHIVE_TOKEN
@@ -594,6 +674,50 @@ async def test_add_and_update_value_to_archive_item(local_grand_challenge):
             == "metrics-json-file"
         )
         assert updated_archive_item.values[0].value["foo2"] == "bar2"
+
+
+@pytest.mark.anyio
+async def test_add_and_update_value_to_display_set(local_grand_challenge):
+    async with AsyncClient(
+        base_url=local_grand_challenge, verify=False, token=READERSTUDY_TOKEN
+    ) as c:
+
+        # Create new display set with a structured value
+        display_set_pks = await c.add_cases_to_reader_study(
+            reader_study="reader-study",
+            display_sets=[
+                {
+                    "metrics-json-file": {"foo": "bar"},
+                },
+            ],
+        )
+
+        display_set = await c.reader_studies.display_sets.detail(
+            pk=display_set_pks[0]
+        )
+
+        assert display_set.values[0].interface.slug == "metrics-json-file"
+        assert display_set.values[0].value["foo"] == "bar"
+
+        # Update the structured value
+        display_set = await c.update_display_set(
+            display_set_pk=display_set.pk,
+            values={
+                "metrics-json-file": {"foo2": "bar2"},
+            },
+        )
+
+        assert (
+            display_set.values[0].value["foo2"] == "bar2"
+        ), "Sanity, values are applied directly"
+
+        updated_display_set = await c.reader_studies.display_sets.detail(
+            pk=display_set_pks[0]
+        )
+        assert (
+            updated_display_set.values[0].interface.slug == "metrics-json-file"
+        )
+        assert updated_display_set.values[0].value["foo2"] == "bar2"
 
 
 @pytest.mark.parametrize(
@@ -713,7 +837,7 @@ async def test_add_cases_to_reader_study(display_sets, local_grand_challenge):
                 partial(
                     c.reader_studies.display_sets.detail, pk=display_set_pk
                 ),
-                complete_num_civ=len(display_set),
+                complete_num_sv=len(display_set),
             )
 
             for socket_slug, value in display_set.items():

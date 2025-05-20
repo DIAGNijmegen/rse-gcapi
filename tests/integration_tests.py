@@ -517,6 +517,88 @@ def test_add_and_update_file_to_archive_item(local_grand_challenge):
     assert "test2.csv" in new_csv_socket_value.file
 
 
+def test_add_and_update_file_to_display_set(local_grand_challenge):
+    c = Client(
+        base_url=local_grand_challenge, verify=False, token=READERSTUDY_TOKEN
+    )
+
+    # Create a new display set in the reader study
+    display_set_pks = c.add_cases_to_reader_study(
+        reader_study="reader-study",
+        display_sets=[
+            {"generic-medical-image": TESTDATA / "image10x10x101.mha"},
+        ],
+    )
+
+    @recurse_call
+    def get_target_display_set():
+        # Wait for the image to be added (async task)
+        display_set = c.reader_studies.display_sets.detail(
+            pk=display_set_pks[0]
+        )
+        if len(display_set.values) != 1:
+            raise ValueError
+        return display_set
+
+    target_display_set = get_target_display_set()
+
+    # Update the display set with a CSV file
+    _ = c.update_display_set(
+        display_set_pk=target_display_set.pk,
+        values={
+            "predictions-csv-file": [TESTDATA / "test.csv"],
+        },
+    )
+
+    @recurse_call
+    def get_updated_display_set():
+        display_set = c.reader_studies.display_sets.detail(
+            target_display_set.pk
+        )
+        if len(display_set.values) != 2:
+            raise ValueError
+        return display_set
+
+    item_updated = get_updated_display_set()
+
+    csv_socket_value = next(
+        v
+        for v in item_updated.values
+        if v.interface.slug == "predictions-csv-file"
+    )
+    assert "test.csv" in csv_socket_value.file
+
+    updated_socket_value_count = len(item_updated.values)
+
+    # Update again, replacing the previous CSV with a new one
+    c.update_display_set(
+        display_set_pk=target_display_set.pk,
+        values={
+            "predictions-csv-file": [TESTDATA / "test2.csv"],
+        },
+    )
+
+    @recurse_call
+    def get_updated_again_display_set():
+        display_set = c.reader_studies.display_sets.detail(
+            target_display_set.pk
+        )
+        if csv_socket_value.pk in [v.pk for v in display_set.values]:
+            raise ValueError
+        return display_set
+
+    item_updated_again = get_updated_again_display_set()
+
+    assert len(item_updated_again.values) == updated_socket_value_count
+    new_csv_socket_value = next(
+        v
+        for v in item_updated_again.values
+        if v.interface.slug == "predictions-csv-file"
+    )
+    assert new_csv_socket_value.interface.slug == "predictions-csv-file"
+    assert "test2.csv" in new_csv_socket_value.file
+
+
 def test_add_and_update_value_to_archive_item(local_grand_challenge):
     c = Client(
         base_url=local_grand_challenge, verify=False, token=ARCHIVE_TOKEN
@@ -552,6 +634,45 @@ def test_add_and_update_value_to_archive_item(local_grand_challenge):
     updated_archive_item = c.archive_items.detail(pk=archive_item_pks[0])
     assert updated_archive_item.values[0].interface.slug == "metrics-json-file"
     assert updated_archive_item.values[0].value["foo2"] == "bar2"
+
+
+def test_add_and_update_value_to_display_set(local_grand_challenge):
+    c = Client(
+        base_url=local_grand_challenge, verify=False, token=READERSTUDY_TOKEN
+    )
+
+    # Create new display set with a structured value
+    display_set_pks = c.add_cases_to_reader_study(
+        reader_study="reader-study",
+        display_sets=[
+            {
+                "metrics-json-file": {"foo": "bar"},
+            },
+        ],
+    )
+
+    display_set = c.reader_studies.display_sets.detail(pk=display_set_pks[0])
+
+    assert display_set.values[0].interface.slug == "metrics-json-file"
+    assert display_set.values[0].value["foo"] == "bar"
+
+    # Update the structured value
+    display_set = c.update_display_set(
+        display_set_pk=display_set.pk,
+        values={
+            "metrics-json-file": {"foo2": "bar2"},
+        },
+    )
+
+    assert (
+        display_set.values[0].value["foo2"] == "bar2"
+    ), "Sanity, values are applied directly"
+
+    updated_display_set = c.reader_studies.display_sets.detail(
+        pk=display_set_pks[0]
+    )
+    assert updated_display_set.values[0].interface.slug == "metrics-json-file"
+    assert updated_display_set.values[0].value["foo2"] == "bar2"
 
 
 @pytest.mark.parametrize(

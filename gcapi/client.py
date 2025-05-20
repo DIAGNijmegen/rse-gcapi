@@ -728,6 +728,57 @@ class ClientBase(ApiDefinitions, ClientInterface):
 
         return (yield from self.__org_api_meta.algorithm_jobs.create(**job))
 
+    def update_display_set(
+        self, *, display_set_pk: str, values: SocketValueSetDescription
+    ):
+        """
+        This function updates an existing display set with the provided values
+        and returns the updated display set.
+
+        You can use this function, for example, to add metadata to an display set.
+
+        First, retrieve the display_set from your archive:
+
+        reader_study = client.reader_studies.detail(slug="...")
+        items = list(
+            client.reader_studies.display_sets.iterate_all(
+                params={"reader_study": reader_study.pk}
+            )
+        )
+
+        To then add, for example, a PDF report and a lung volume
+        value to the first archive item , provide the interface slugs together
+        with the respective value or file path as follows:
+        client.update_display_set(
+            display_set_pk=items[0].id,
+            values={
+                "report": [...],
+                "lung-volume": 1.9,
+            },
+        )
+        If you provide a value or file for an existing interface of the display
+        set, the old value will be overwritten by the new one, hence allowing you
+        to update existing display-set values.
+
+        Parameters
+        display_set_pk
+        values
+
+        Returns
+        -------
+        The updated display set
+        """
+        ds = yield from self.__org_api_meta.reader_studies.display_sets.detail(
+            pk=display_set_pk
+        )
+        return (
+            yield from self._update_socket_value_set(
+                target=ds,
+                description=values,
+                api=self.__org_api_meta.reader_studies.display_sets,
+            )
+        )
+
     def add_cases_to_reader_study(
         self,
         *,
