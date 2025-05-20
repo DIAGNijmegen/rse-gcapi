@@ -338,20 +338,25 @@ def test_create_job_with_upload(
     job = run_job()
 
     assert job.status == "Validating inputs"
-    job = c.algorithm_jobs.detail(job.pk)
 
-    assert job.status in {
-        "Queued",
-        "Started",
-        "Re-Queued",
-        "Provisioning",
-        "Provisioned",
-        "Executing",
-        "Executed",
-        "Parsing Outputs",
-        "Executing Algorithm",
-        "Validating inputs",
-    }
+    @recurse_call
+    async def check_job_status():
+        j = c.algorithm_jobs.detail(job.pk)
+        if j.status in {
+            "Queued",
+            "Started",
+            "Re-Queued",
+            "Provisioning",
+            "Provisioned",
+            "Executing",
+            "Executed",
+            "Parsing Outputs",
+            "Executing Algorithm",
+            "Validating inputs",
+        }:
+            raise ValueError(f"Job not in incorrect state ({j.status})")
+
+    check_job_status()
 
 
 def test_get_algorithm_by_slug(local_grand_challenge):

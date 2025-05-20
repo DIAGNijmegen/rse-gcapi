@@ -17,7 +17,11 @@ from httpx import URL, HTTPStatusError, Timeout
 import gcapi.models
 from gcapi.apibase import APIBase, ClientInterface, ModifiableMixin
 from gcapi.check_version import check_version
-from gcapi.create_strategies import Empty, SocketValueCreateStrategy
+from gcapi.create_strategies import (
+    Empty,
+    JobInputsCreateStrategy,
+    SocketValueCreateStrategy,
+)
 from gcapi.exceptions import ObjectNotFound, SocketNotFound
 from gcapi.retries import BaseRetryStrategy, SelectiveBackoffStrategy
 from gcapi.sync_async_hybrid_support import CapturedCall, mark_generator
@@ -640,24 +644,34 @@ class ClientBase(ApiDefinitions, ClientInterface):
 
         return raw_image_upload_session
 
-    def run_external_job(  # noqa: C901
-        self, *, algorithm: str, inputs: dict[str, Any]
+    def run_external_job(
+        self,
+        *,
+        algorithm: Union[str, gcapi.models.Algorithm],
+        inputs: SocketValueSetDescription,
     ):
         """
         Starts an algorithm job with the provided inputs.
+
         You will need to provide the slug of the algorithm. You can find this in the
         url of the algorithm that you want to use. For instance, if you want to use
         the algorithm at
             https://grand-challenge.org/algorithms/corads-ai/
         the slug for this algorithm is "corads-ai".
-        For each input interface defined on the algorithm you need to provide a
-        key-value pair (unless the interface has a default value),
-        the key being the slug of the interface, the value being the
-        value for the interface. You can get the interfaces of an algorithm by calling
+
+        For each input socket defined on the algorithm you need to provide a
+        key-value pair (unless the socket has a default value),
+        the key being the slug of the socket, the value being the
+        value for the socket. You can get the interfaces
+        (i.e. all possible socket sets) of an algorithm by
+        calling
             client.algorithms.detail(slug="corads-ai")
-        and inspecting the ["inputs"] of the result.
-        For image type interfaces (super_kind="Image"), you can provide a list of
+
+        and inspecting the ["interfaces"] of the result.
+
+        For image-kind sockets (super_kind="Image"), you can provide a list of
         files, which will be uploaded, or a link to an existing image.
+
         So to run this algorithm with a new upload you would call this function by:
             client.run_external_job(
                 algorithm="corads-ai",
@@ -681,52 +695,27 @@ class ClientBase(ApiDefinitions, ClientInterface):
         -------
         The created job
         """
-        alg = yield from self.__org_api_meta.algorithms.detail(slug=algorithm)
 
-        if len(alg.interfaces) > 1:
-            raise NotImplementedError(
-                "Support for algorithms with multiple interfaces are "
-                "not currently supported by this method."
+        if isinstance(algorithm, str):
+            algorithm = yield from self.__org_api_meta.algorithms.detail(
+                slug=algorithm
             )
 
-        input_interfaces = {ci.slug: ci for ci in alg.interfaces[0]["inputs"]}
+        input_strategy = JobInputsCreateStrategy(
+            client=self,
+            algorithm=algorithm,
+            inputs=inputs,
+        )
 
-        for ci in input_interfaces:
-            if (
-                ci not in inputs
-                and input_interfaces[ci]["default_value"] is None
-            ):
-                raise ValueError(f"{ci} is not provided")
+        yield from input_strategy.prepare()
+        inputs = yield from input_strategy()
 
-        job = {"algorithm": alg.api_url, "inputs": []}
-        for input_title, value in inputs.items():
-            ci = input_interfaces.get(input_title, None)  # type: ignore
-            if not ci:
-                raise ValueError(
-                    f"{input_title} is not an input interface for this algorithm"
-                )
-
-            i = {"interface": ci.slug}  # type: ignore
-            if ci.super_kind.lower() == "image":  # type: ignore
-                if isinstance(value, list):
-                    raw_image_upload_session = (
-                        yield from self._upload_image_files(files=value)
-                    )
-                    i["upload_session"] = raw_image_upload_session.api_url
-                elif isinstance(value, str):
-                    i["image"] = value
-            elif ci["super_kind"].lower() == "file":  # type: ignore
-                if len(value) != 1:
-                    raise ValueError(
-                        f"Only a single file can be provided for {ci['title']}."  # type: ignore
-                    )
-                upload = yield from self._upload_file(value)
-                i["user_upload"] = upload.api_url
-            else:
-                i["value"] = value
-            job["inputs"].append(i)  # type: ignore
-
-        return (yield from self.__org_api_meta.algorithm_jobs.create(**job))
+        return (  # noqa: B901
+            yield from self.__org_api_meta.algorithm_jobs.create(
+                algorithm=algorithm.api_url,
+                inputs=inputs,
+            )
+        )
 
     def update_display_set(
         self, *, display_set_pk: str, values: SocketValueSetDescription
