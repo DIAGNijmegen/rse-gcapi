@@ -762,63 +762,27 @@ async def test_add_cases_to_reader_study_invalid_interface(
 
 
 @pytest.mark.anyio
-async def test_add_cases_to_reader_study_invalid_path(
-    local_grand_challenge,
-):
-    file_path = Path(__file__).parent / "testdata" / "image10x10x1011.mha"
-    display_sets = [{"generic-medical-image": [file_path]}]
+async def test_add_cases_to_archive_invalid_interface(local_grand_challenge):
 
-    async with AsyncClient(
-        base_url=local_grand_challenge, verify=False, token=READERSTUDY_TOKEN
-    ) as c:
-        with pytest.raises(ValueError) as e:
-            await c.add_cases_to_reader_study(
-                reader_study="reader-study", display_sets=display_sets
-            )
-
-        assert str(e.value) == (
-            "Invalid file paths: "
-            f"{{'generic-medical-image': ['{file_path}']}}"
-        )
-
-
-@pytest.mark.anyio
-async def test_add_cases_to_reader_study_invalid_value(
-    local_grand_challenge,
-):
-    display_sets = [{"generic-medical-image": "not a list"}]
-
-    async with AsyncClient(
-        base_url=local_grand_challenge, verify=False, token=READERSTUDY_TOKEN
-    ) as c:
-        with pytest.raises(ValueError) as e:
-            await c.add_cases_to_reader_study(
-                reader_study="reader-study", display_sets=display_sets
-            )
-
-        assert str(e.value) == (
-            "Values for generic-medical-image (image) should be a list of file paths."
-        )
-
-
-@pytest.mark.anyio
-async def test_add_cases_to_reader_study_multiple_files(local_grand_challenge):
-    files = [
-        Path(__file__).parent / "testdata" / f
-        for f in ["test.csv", "test.csv"]
+    archive_items = [
+        {
+            "very-specific-medical-image": [
+                Path(__file__).parent / "testdata" / "image10x10x101.mha"
+            ]
+        },
     ]
 
-    display_sets = [{"predictions-csv-file": files}]
-
     async with AsyncClient(
-        base_url=local_grand_challenge, verify=False, token=READERSTUDY_TOKEN
+        base_url=local_grand_challenge, verify=False, token=ARCHIVE_TOKEN
     ) as c:
+
         with pytest.raises(ValueError) as e:
-            await c.add_cases_to_reader_study(
-                reader_study="reader-study", display_sets=display_sets
+            await c.add_cases_to_archive(
+                archive="archive", archive_items=archive_items
             )
 
         assert str(e.value) == (
-            "You can only upload one single file to interface "
-            "predictions-csv-file (file)."
+            "very-specific-medical-image is not an existing interface. "
+            "Please provide one from this list: "
+            "https://grand-challenge.org/components/interfaces/inputs/"
         )

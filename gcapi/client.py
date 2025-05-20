@@ -2,6 +2,7 @@ import logging
 import os
 import re
 import uuid
+import warnings
 from collections.abc import Generator
 from io import BytesIO
 from pathlib import Path
@@ -17,7 +18,7 @@ import gcapi.models
 from gcapi.apibase import APIBase, ClientInterface, ModifiableMixin
 from gcapi.check_version import check_version
 from gcapi.create_strategies import Empty, SocketValueCreateStrategy
-from gcapi.exceptions import ObjectNotFound
+from gcapi.exceptions import ObjectNotFound, SocketNotFound
 from gcapi.retries import BaseRetryStrategy, SelectiveBackoffStrategy
 from gcapi.sync_async_hybrid_support import CapturedCall, mark_generator
 from gcapi.typing import SocketValueSet
@@ -579,6 +580,18 @@ class ClientBase(ApiDefinitions, ClientInterface):
         -------
             The created upload session.
         """
+
+        warnings.warn(
+            message=(
+                "Using upload_cases is deprecated "
+                "and will be removed in the next release. "
+                "Suggestion: use the specific functions: "
+                "update_archive_item, update_display_set, or add_cases_to_archive"
+            ),
+            category=DeprecationWarning,
+            stacklevel=3,
+        )
+
         upload_session_data = {}
 
         if len(files) == 0:
@@ -715,103 +728,65 @@ class ClientBase(ApiDefinitions, ClientInterface):
 
         return (yield from self.__org_api_meta.algorithm_jobs.create(**job))
 
-    def _validate_display_set_values(self, values, interfaces):
-        invalid_file_paths = {}
-        for slug, value in values:
-            if interfaces.get(slug):
-                interface = interfaces[slug]
-            else:
-                interface = yield from self._fetch_socket_detail(slug)
-                interfaces[slug] = interface
-            super_kind = interface.super_kind.casefold()
-            if super_kind != "value":
-                if not isinstance(value, list):
-                    raise ValueError(
-                        f"Values for {slug} ({super_kind}) "
-                        "should be a list of file paths."
-                    )
-                if super_kind != "image" and len(value) > 1:
-                    raise ValueError(
-                        f"You can only upload one single file "
-                        f"to interface {slug} ({super_kind})."
-                    )
-                for file_path in value:
-                    if not Path(file_path).exists():
-                        invalid_file_paths[slug] = invalid_file_paths.get(
-                            slug, []
-                        )
-                        invalid_file_paths[slug].append(str(file_path))
-        if invalid_file_paths:
-            raise ValueError(f"Invalid file paths: {invalid_file_paths}")
-
-        return interfaces
-
     def add_cases_to_reader_study(
-        self, *, reader_study: str, display_sets: list[dict[str, Any]]
+        self,
+        *,
+        reader_study: Union[str, gcapi.models.ReaderStudy],
+        display_sets: list[SocketValueSetDescription],
     ):
         """
-        This function takes a reader study slug and a list of diplay sets
-        and creates the provided display sets and adds them to the reader
-        study. The format for the list of display sets is as follows:
-        [
-            {
-                "slug_0": ["filepath_0", ...]
-                ...
-                "slug_n": {"json": "value"}
-
-            },
-            ...
-        ]
-
-        Where the file paths are local paths to the files making up a
-        single image. For file type interface the file path can only
-        contain a single file. For json type interfaces any value that
-        is valid for the interface can be passed.`
+        This function takes an reader-study slug or model and a list of display-set
+        descriptions. It then creates the display-sets for the reader study.
 
         Parameters
         ----------
         reader_study
+            slug for the reader study (e.g. "i-am-a-reader-study"). You can find this
+            readily in the URL you use to visit the archive page:
+
+                https://grand-challenge.org/reader-studies/i-am-a-reader-study/
+
         display_sets
+            The format for the description of display sets is as follows:
+
+            [
+                {
+                    "slug_0": ["filepath_0", ...],
+                    "slug_1": "filepath_0",
+                    "slug_2": pathlib.Path("filepath_0"),
+                    ...
+                    "slug_n": {"json": "value"}
+
+                },
+                ...
+            ]
+
+            Where the file paths are local paths to the files making up a
+            single image. For file-kind sockets the file path can only
+            reference a single file. For json-kind sockets any value that
+            is valid for the sockets can directly be passed.
 
         Returns
         -------
         The pks of the newly created display sets.
         """
-        res = []
-        interfaces: dict[str, gcapi.models.ComponentInterface] = {}
-        for display_set in display_sets:
-            new_interfaces = yield from self._validate_display_set_values(
-                display_set.items(), interfaces
-            )
-            interfaces.update(new_interfaces)
 
-        for display_set in display_sets:
-            ds = yield from self.__org_api_meta.reader_studies.display_sets.create(
-                reader_study=reader_study
+        if isinstance(reader_study, gcapi.models.ReaderStudy):
+            reader_study = reader_study.slug
+        try:
+            created_display_sets = yield from self._create_socket_value_sets(
+                creation_kwargs={"reader_study": reader_study},
+                descriptions=display_sets,
+                api=self.__org_api_meta.reader_studies.display_sets,
             )
-            values = []
-            for slug, value in display_set.items():
-                interface = interfaces[slug]
-                data = {"interface": slug}
-                super_kind = interface.super_kind.casefold()
-                if super_kind == "image":
-                    yield from self._upload_image_files(
-                        display_set=ds.pk, interface=slug, files=value
-                    )
-                    data = {}
-                elif super_kind == "file":
-                    upload = yield from self._upload_file(value)
-                    data["user_upload"] = upload.api_url
-                else:
-                    data["value"] = value
-                if data:
-                    values.append(data)
-            yield from self.__org_api_meta.reader_studies.display_sets.partial_update(
-                pk=ds.pk, values=values
-            )
+        except SocketNotFound as e:
+            raise ValueError(
+                f"{e.slug} is not an existing interface. "
+                f"Please provide one from this list: "
+                f"https://grand-challenge.org/components/interfaces/reader-studies/"
+            ) from e
 
-            res.append(ds.pk)
-        return res  # noqa: B901
+        return [ds.pk for ds in created_display_sets]
 
     def update_archive_item(
         self, *, archive_item_pk: str, values: SocketValueSetDescription
@@ -897,9 +872,9 @@ class ClientBase(ApiDefinitions, ClientInterface):
             ]
 
             Where the file paths are local paths to the files making up a
-            single image. For file type interfaces the file path can only
-            reference a single file. For json type interfaces any value that
-            is valid for the interface can directly be passed.
+            single image. For file-kind sockets the file path can only
+            reference a single file. For json-kind sockets any value that
+            is valid for the sockets can directly be passed.
 
         Returns
         -------
@@ -911,11 +886,18 @@ class ClientBase(ApiDefinitions, ClientInterface):
                 slug=archive
             )
 
-        created_archive_items = yield from self._create_socket_value_sets(
-            creation_kwargs={"archive": archive.api_url},
-            descriptions=archive_items,
-            api=self.__org_api_meta.archive_items,
-        )
+        try:
+            created_archive_items = yield from self._create_socket_value_sets(
+                creation_kwargs={"archive": archive.api_url},
+                descriptions=archive_items,
+                api=self.__org_api_meta.archive_items,
+            )
+        except SocketNotFound as e:
+            raise ValueError(
+                f"{e.slug} is not an existing interface. "
+                f"Please provide one from this list: "
+                f"https://grand-challenge.org/components/interfaces/inputs/"
+            ) from e
 
         return [ai.pk for ai in created_archive_items]
 
@@ -923,7 +905,6 @@ class ClientBase(ApiDefinitions, ClientInterface):
         self,
         slug_or_socket,
         cache=None,
-        ref_url="https://grand-challenge.org/components/interfaces/reader-studies/",
     ):
         if isinstance(slug_or_socket, gcapi.models.ComponentInterface):
             return slug_or_socket
@@ -936,17 +917,13 @@ class ClientBase(ApiDefinitions, ClientInterface):
             interface = yield from self.__org_api_meta.interfaces.detail(
                 slug=slug
             )
-
+        except ObjectNotFound as e:
+            raise SocketNotFound(slug=slug) from e
+        else:
             if cache:
                 cache[slug] = interface
 
             return interface
-        except ObjectNotFound as e:
-            raise ValueError(
-                f"{slug} is not an existing interface. "
-                f"Please provide one from this list: "
-                f"{ref_url}"
-            ) from e
 
     def _create_socket_value_sets(
         self,

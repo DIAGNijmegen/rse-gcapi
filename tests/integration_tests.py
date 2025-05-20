@@ -718,65 +718,24 @@ def test_add_cases_to_reader_study_invalid_interface(local_grand_challenge):
     )
 
 
-def test_add_cases_to_reader_study_invalid_path(local_grand_challenge):
+def test_add_cases_to_archive_invalid_interface(local_grand_challenge):
     c = Client(
-        base_url=local_grand_challenge, verify=False, token=READERSTUDY_TOKEN
+        base_url=local_grand_challenge, verify=False, token=ARCHIVE_TOKEN
     )
 
-    file_path = Path(__file__).parent / "testdata" / "image10x10x1011.mha"
-    display_sets = [
-        {"generic-medical-image": [file_path]},
+    archive_items = [
+        {
+            "very-specific-medical-image": [
+                Path(__file__).parent / "testdata" / "image10x10x101.mha"
+            ]
+        },
     ]
 
     with pytest.raises(ValueError) as e:
-        c.add_cases_to_reader_study(
-            reader_study="reader-study", display_sets=display_sets
-        )
+        c.add_cases_to_archive(archive="archive", archive_items=archive_items)
 
     assert str(e.value) == (
-        "Invalid file paths: " f"{{'generic-medical-image': ['{file_path}']}}"
-    )
-
-
-def test_add_cases_to_reader_study_invalid_value(local_grand_challenge):
-    c = Client(
-        base_url=local_grand_challenge, verify=False, token=READERSTUDY_TOKEN
-    )
-
-    display_sets = [
-        {"generic-medical-image": "not a list"},
-    ]
-
-    with pytest.raises(ValueError) as e:
-        c.add_cases_to_reader_study(
-            reader_study="reader-study", display_sets=display_sets
-        )
-
-    assert str(e.value) == (
-        "Values for generic-medical-image (image) should be a list of file paths."
-    )
-
-
-def test_add_cases_to_reader_study_multiple_files(local_grand_challenge):
-    c = Client(
-        base_url=local_grand_challenge, verify=False, token=READERSTUDY_TOKEN
-    )
-
-    files = [
-        Path(__file__).parent / "testdata" / f
-        for f in ["test.csv", "test.csv"]
-    ]
-
-    display_sets = [
-        {"predictions-csv-file": files},
-    ]
-
-    with pytest.raises(ValueError) as e:
-        c.add_cases_to_reader_study(
-            reader_study="reader-study", display_sets=display_sets
-        )
-
-    assert str(e.value) == (
-        "You can only upload one single file to interface "
-        "predictions-csv-file (file)."
+        "very-specific-medical-image is not an existing interface. "
+        "Please provide one from this list: "
+        "https://grand-challenge.org/components/interfaces/inputs/"
     )
