@@ -12,7 +12,7 @@
 	  - Expanded pre-flight validation and added broader input/Algorithm Interface support
 	  - Added: `update_display_set` and `add_cases_to_archive` (analogous to `update_archive_item` and `add_cases_to_reader_study`)
 	  - Deprecated: `upload_cases` in favor of the new utility functions
-  - Terminology update: renamed “component-interface” / “interface” to “socket” where applicable
+  - Renamed “component-interface” / “interface” to “socket” where applicable
   - Error handling updates:
 	  - Disabled retries on HTTP 500 errors
 	  - Retries now respect the Retry-After headers in error responses
