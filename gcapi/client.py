@@ -706,6 +706,16 @@ class ClientBase(ApiDefinitions, ClientInterface):
                     }
                 ]
 
+            One can also provide a same-socket socket value::
+
+                ai = client.archive_items.detail(pk="f5...")
+                archive_items = [
+                    {
+                        "slug_0": ai.values[0],
+                        "slug_1": ai.values[1],
+                        "slug_2": "some_local_file",
+                    },
+                ]
 
         Returns
         -------
@@ -841,6 +851,17 @@ class ClientBase(ApiDefinitions, ClientInterface):
                     }
                 ]
 
+            One can also provide a same-socket socket value::
+
+                ds = client.reader_study.display_sets.detail(pk="f5...")
+                display_sets = [
+                    {
+                        "slug_0": ds.values[0],
+                        "slug_1": ds.values[1],
+                        "slug_2": "some_local_file",
+                    },
+                ]
+
 
         Returns
         -------
@@ -954,6 +975,7 @@ class ClientBase(ApiDefinitions, ClientInterface):
             reference a single file. For json-kind sockets any value that
             is valid for the sockets can directly be passed, or a filepath
             to a file that contain the value can be provided.
+
             Existing images on Grand Challenge can be re-used by either
             passing an API url, or a socket value (display set)::
 
@@ -967,6 +989,17 @@ class ClientBase(ApiDefinitions, ClientInterface):
                         "slug_1": socket_value,
                         "slug_2": socket_value.image.api_url,
                     }
+                ]
+
+            One can also provide a same-socket socket value::
+
+                ai = client.archive_items.detail(pk="f5...")
+                archive_items = [
+                    {
+                        "slug_0": ai.values[0],
+                        "slug_1": ai.values[1],
+                        "slug_2": "some_local_file",
+                    },
                 ]
 
         Returns
