@@ -840,20 +840,20 @@ class ClientBase(ApiDefinitions, ClientInterface):
 
 
                 image = client.images.detail(pk="ad5...")
-                ds = client.reader_study.display_sets.detail(pk="f5...")
+                ds = client.reader_studies.display_sets.detail(pk="f5...")
                 socket_value = ds.values[0]
 
                 display_sets = [
                     {
                         "slug_0": image.api_url,
                         "slug_1": socket_value,
-                        "slug_2": socket_value.image.api_url,
+                        "slug_2": socket_value.image,
                     }
                 ]
 
             One can also provide a same-socket socket value::
 
-                ds = client.reader_study.display_sets.detail(pk="f5...")
+                ds = client.reader_studies.display_sets.detail(pk="f5...")
                 display_sets = [
                     {
                         "slug_0": ds.values[0],
@@ -987,7 +987,7 @@ class ClientBase(ApiDefinitions, ClientInterface):
                     {
                         "slug_0": image.api_url,
                         "slug_1": socket_value,
-                        "slug_2": socket_value.image.api_url,
+                        "slug_2": socket_value.image,
                     }
                 ]
 
