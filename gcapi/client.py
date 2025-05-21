@@ -735,7 +735,7 @@ class ClientBase(ApiDefinitions, ClientInterface):
         This function updates an existing display set with the provided values
         and returns the updated display set.
 
-        You can use this function, for example, to add metadata to an display set.
+        You can use this function, for example, to add metadata to a display set.
 
         First, retrieve the display_set from your archive:
 
