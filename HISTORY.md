@@ -2,13 +2,13 @@
 
 ## 0.13.0 (2025-05-21)
   - Version management:
-	   - Introduced version checking with reporting on available updates and minimum supported versions (based on Grand Challenge data)
+	  - Introduced version checking with reporting on available updates and minimum supported versions (based on Grand Challenge data)
   - Removed Retina endpoints
   - Python version support:
 	  - Dropped support for Python 3.8
 	  - Added support for Python 3.12 and 3.13
   - Migrated to Pydantic models for request/response validation; all endpoints now return dataclasses
-	- Utility function overhaul:
+  - Utility function overhaul:
 	  - Expanded pre-flight validation and added broader input/Algorithm Interface support
 	  - Added: `update_display_set` and `add_cases_to_archive` (analogous to `update_archive_item` and `add_cases_to_reader_study`)
 	  - Deprecated: `upload_cases` in favor of the new utility functions
