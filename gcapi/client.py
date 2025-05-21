@@ -747,7 +747,7 @@ class ClientBase(ApiDefinitions, ClientInterface):
         )
 
         To then add, for example, a PDF report and a lung volume
-        value to the first archive item , provide the interface slugs together
+        value to the first display set , provide the interface slugs together
         with the respective value or file path as follows:
         client.update_display_set(
             display_set_pk=items[0].id,
