@@ -653,44 +653,60 @@ class ClientBase(ApiDefinitions, ClientInterface):
         """
         Starts an algorithm job with the provided inputs.
 
-        You will need to provide the slug of the algorithm. You can find this in the
-        url of the algorithm that you want to use. For instance, if you want to use
-        the algorithm at
-            https://grand-challenge.org/algorithms/corads-ai/
-        the slug for this algorithm is "corads-ai".
-
-        For each input socket defined on the algorithm you need to provide a
-        key-value pair (unless the socket has a default value),
-        the key being the slug of the socket, the value being the
-        value for the socket. You can get the interfaces
-        (i.e. all possible socket sets) of an algorithm by
-        calling
-            client.algorithms.detail(slug="corads-ai")
-
-        and inspecting the ["interfaces"] of the result.
-
-        For image-kind sockets (super_kind="Image"), you can provide a list of
-        files, which will be uploaded, or a link to an existing image.
-
-        So to run this algorithm with a new upload you would call this function by:
-            client.run_external_job(
-                algorithm="corads-ai",
-                inputs={
-                    "generic-medical-image": [...]
-                }
-            )
-        or to run with an existing image by:
-            client.run_external_job(
-                algorithm="corads-ai",
-                inputs={
-                    "generic-medical-image":
-                    "https://grand-challenge.org/api/v1/cases/images/.../"
-                }
-            )
         Parameters
         ----------
         algorithm
+            You can find this in the
+            url of the algorithm that you want to use. For instance,
+            if you want to use the algorithm at::
+
+                https://grand-challenge.org/algorithms/corads-ai/
+
+            the slug for this algorithm is `"corads-ai"`.
+
         inputs
+            For each input socket defined on the algorithm you need to provide a
+            key-value pair, the key being the slug of the socket, the value being
+            the value for the socket::
+
+                {
+                    "slug_0": ["filepath_0", ...],
+                    "slug_1": "filepath_0",
+                    "slug_2": pathlib.Path("filepath_0"),
+                    ...
+                    "slug_n": {"json": "value"},
+                }
+
+
+            Where the file paths are local paths to the files making up a
+            single image. For file-kind sockets the file path can only
+            reference a single file. For json-kind sockets any value that
+            is valid for the sockets can directly be passed, or a filepath
+            to a file that contain the value can be provided.
+
+            You can get the interfaces (i.e. all possible socket sets) of
+            an algorithm by calling, and inspecting the .interface of the
+            result of::
+
+                client.algorithms.detail(slug="corads-ai")
+
+            Existing images on Grand Challenge can be re-used by either
+            passing an API url, or a socket value::
+
+                image = client.images.detail(pk="ad5...")
+                # Alternative:
+                ai = client.archive_items.detail(pk="f5...")
+                socket_value = ai.values[0]
+
+                archive_items = [
+                    {
+                        "slug_0": image.api_url,
+                        "slug_1": socket_value,
+                        "slug_2": socket_value.image.api_url,
+                    }
+                ]
+
+
         Returns
         -------
         The created job
@@ -726,25 +742,27 @@ class ClientBase(ApiDefinitions, ClientInterface):
 
         You can use this function, for example, to add metadata to a display set.
 
-        First, retrieve the display_set from your archive:
+        First, retrieve the display_set from your archive::
 
-        reader_study = client.reader_studies.detail(slug="...")
-        items = list(
-            client.reader_studies.display_sets.iterate_all(
-                params={"reader_study": reader_study.pk}
+            reader_study = client.reader_studies.detail(slug="...")
+            items = list(
+                client.reader_studies.display_sets.iterate_all(
+                    params={"reader_study": reader_study.pk}
+                )
             )
-        )
 
         To then add, for example, a PDF report and a lung volume
         value to the first display set , provide the interface slugs together
-        with the respective value or file path as follows:
-        client.update_display_set(
-            display_set_pk=items[0].id,
-            values={
-                "report": [...],
-                "lung-volume": 1.9,
-            },
-        )
+        with the respective value or file path as follows::
+
+            client.update_display_set(
+                display_set_pk=items[0].id,
+                values={
+                    "report": [...],
+                    "lung-volume": 1.9,
+                },
+            )
+
         If you provide a value or file for an existing interface of the display
         set, the old value will be overwritten by the new one, hence allowing you
         to update existing display-set values.
@@ -781,27 +799,26 @@ class ClientBase(ApiDefinitions, ClientInterface):
         Parameters
         ----------
         reader_study
-            slug for the reader study (e.g. "i-am-a-reader-study"). You can find this
-            readily in the URL you use to visit the archive page:
+            slug for the reader study (e.g. `"i-am-a-reader-study"`).
+            You can find this readily in the URL you use to visit the
+            reader-study page::
 
                 https://grand-challenge.org/reader-studies/i-am-a-reader-study/
 
         display_sets
-            The format for the descriptions of display sets are as follows:
+            The format for the descriptions of display sets are as follows::
 
-            ```python
-            [
-                {
-                    "slug_0": ["filepath_0", ...],
-                    "slug_1": "filepath_0",
-                    "slug_2": pathlib.Path("filepath_0"),
+                [
+                    {
+                        "slug_0": ["filepath_0", ...],
+                        "slug_1": "filepath_0",
+                        "slug_2": pathlib.Path("filepath_0"),
+                        ...
+                        "slug_n": {"json": "value"}
+
+                    },
                     ...
-                    "slug_n": {"json": "value"}
-
-                },
-                ...
-            ]
-            ```
+                ]
 
             Where the file paths are local paths to the files making up a
             single image. For file-kind sockets the file path can only
@@ -809,21 +826,21 @@ class ClientBase(ApiDefinitions, ClientInterface):
             is valid for the sockets can directly be passed, or a filepath
             to a file that contain the value can be provided.
             Existing images on Grand Challenge can be re-used by either
-            passing an API url, or a socket value (display set):
+            passing an API url, or a socket value (display set)::
 
-            ```python
-            image = client.images.detail(pk="ad5...")
-            ds = client.reader_study.display_set.detail(pk="f5...")
-            socket_value = ds.values[0]
 
-            display_sets = [
-                {
-                    "slug_0": image.api_url,
-                    "slug_1": socket_value,
-                    "slug_1": socket_value.image.api_url,
-                }
-            ]
-            ```
+                image = client.images.detail(pk="ad5...")
+                ds = client.reader_study.display_sets.detail(pk="f5...")
+                socket_value = ds.values[0]
+
+                display_sets = [
+                    {
+                        "slug_0": image.api_url,
+                        "slug_1": socket_value,
+                        "slug_2": socket_value.image.api_url,
+                    }
+                ]
+
 
         Returns
         -------
@@ -856,23 +873,25 @@ class ClientBase(ApiDefinitions, ClientInterface):
 
         You can use this function, for example, to add metadata to an archive item.
 
-        First, retrieve the archive items from your archive:
+        First, retrieve the archive items from your archive::
 
-        archive = client.archives.detail(slug="...")
-        items = list(
-            client.archive_items.iterate_all(params={"archive": archive.pk})
-        )
+            archive = client.archives.detail(slug="...")
+            items = list(
+                client.archive_items.iterate_all(params={"archive": archive.pk})
+            )
 
         To then add, for example, a PDF report and a lung volume
         value to the first archive item , provide the interface slugs together
-        with the respective value or file path as follows:
-        client.update_archive_item(
-            archive_item_pk=items[0].id,
-            values={
-                "report": [...],
-                "lung-volume": 1.9,
-            },
-        )
+        with the respective value or file path as follows::
+
+            client.update_archive_item(
+                archive_item_pk=items[0].id,
+                values={
+                    "report": [...],
+                    "lung-volume": 1.9,
+                },
+            )
+
         If you provide a value or file for an existing interface of the archive
         item, the old value will be overwritten by the new one, hence allowing you
         to update existing archive item values.
@@ -910,27 +929,25 @@ class ClientBase(ApiDefinitions, ClientInterface):
         Parameters
         ----------
         archive
-            slug for the archive (e.g. "i-am-an-archive"). You can find this
+            slug for the archive (e.g. `"i-am-an-archive"`). You can find this
             readily in the URL you use to visit the archive page:
 
-                https://grand-challenge.org/archives/i-am-an-archive/
+                `https://grand-challenge.org/archives/i-am-an-archive/`
 
         archive_items
-            The format for the descriptions of archive items are as follows:
+            The format for the descriptions of archive items are as follows::
 
-            ```python
-            [
-                {
-                    "slug_0": ["filepath_0", ...],
-                    "slug_1": "filepath_0",
-                    "slug_2": pathlib.Path("filepath_0"),
+                [
+                    {
+                        "slug_0": ["filepath_0", ...],
+                        "slug_1": "filepath_0",
+                        "slug_2": pathlib.Path("filepath_0"),
+                        ...
+                        "slug_n": {"json": "value"}
+
+                    },
                     ...
-                    "slug_n": {"json": "value"}
-
-                },
-                ...
-            ]
-            ```
+                ]
 
             Where the file paths are local paths to the files making up a
             single image. For file-kind sockets the file path can only
@@ -938,21 +955,19 @@ class ClientBase(ApiDefinitions, ClientInterface):
             is valid for the sockets can directly be passed, or a filepath
             to a file that contain the value can be provided.
             Existing images on Grand Challenge can be re-used by either
-            passing an API url, or a socket value (display set):
+            passing an API url, or a socket value (display set)::
 
-            ```python
-            image = client.images.detail(pk="ad5...")
-            ds = client.reader_study.display_set.detail(pk="f5...")
-            socket_value = ds.values[0]
+                image = client.images.detail(pk="ad5...")
+                ai = client.archive_items.detail(pk="f5...")
+                socket_value = ai.values[0]
 
-            display_sets = [
-                {
-                    "slug_0": image.api_url,
-                    "slug_1": socket_value,
-                    "slug_1": socket_value.image.api_url,
-                }
-            ]
-            ```
+                archive_items = [
+                    {
+                        "slug_0": image.api_url,
+                        "slug_1": socket_value,
+                        "slug_2": socket_value.image.api_url,
+                    }
+                ]
 
         Returns
         -------
