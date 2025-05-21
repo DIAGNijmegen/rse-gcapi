@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "gcapi"
-version = "0.12.0"
+version = "0.13.0"
 description = "Python client for the grand-challenge.org REST API"
 authors = ["James Meakin"]
 license = "Apache-2.0"
