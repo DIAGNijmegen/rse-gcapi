@@ -798,8 +798,9 @@ class ClientBase(ApiDefinitions, ClientInterface):
                 https://grand-challenge.org/reader-studies/i-am-a-reader-study/
 
         display_sets
-            The format for the description of display sets is as follows:
+            The format for the descriptions of display sets are as follows:
 
+            ```python
             [
                 {
                     "slug_0": ["filepath_0", ...],
@@ -811,11 +812,29 @@ class ClientBase(ApiDefinitions, ClientInterface):
                 },
                 ...
             ]
+            ```
 
             Where the file paths are local paths to the files making up a
             single image. For file-kind sockets the file path can only
             reference a single file. For json-kind sockets any value that
-            is valid for the sockets can directly be passed.
+            is valid for the sockets can directly be passed, or a filepath
+            to a file that contain the value can be provided.
+            Existing images on Grand Challenge can be re-used by either
+            passing an API url, or a socket value (display set):
+
+            ```python
+            image = client.images.detail(pk="ad5...")
+            ds = client.reader_study.display_set.detail(pk="f5...")
+            socket_value = ds.values[0]
+
+            display_sets = [
+                {
+                    "slug_0": image.api_url,
+                    "slug_1": socket_value,
+                    "slug_1": socket_value.image.api_url,
+                }
+            ]
+            ```
 
         Returns
         -------
@@ -908,8 +927,9 @@ class ClientBase(ApiDefinitions, ClientInterface):
                 https://grand-challenge.org/archives/i-am-an-archive/
 
         archive_items
-            The format for the description of archive items is as follows:
+            The format for the descriptions of archive items are as follows:
 
+            ```python
             [
                 {
                     "slug_0": ["filepath_0", ...],
@@ -921,11 +941,29 @@ class ClientBase(ApiDefinitions, ClientInterface):
                 },
                 ...
             ]
+            ```
 
             Where the file paths are local paths to the files making up a
             single image. For file-kind sockets the file path can only
             reference a single file. For json-kind sockets any value that
-            is valid for the sockets can directly be passed.
+            is valid for the sockets can directly be passed, or a filepath
+            to a file that contain the value can be provided.
+            Existing images on Grand Challenge can be re-used by either
+            passing an API url, or a socket value (display set):
+
+            ```python
+            image = client.images.detail(pk="ad5...")
+            ds = client.reader_study.display_set.detail(pk="f5...")
+            socket_value = ds.values[0]
+
+            display_sets = [
+                {
+                    "slug_0": image.api_url,
+                    "slug_1": socket_value,
+                    "slug_1": socket_value.image.api_url,
+                }
+            ]
+            ```
 
         Returns
         -------
