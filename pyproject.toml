@@ -34,11 +34,6 @@ dev = [
     "datamodel-code-generator",
 ]
 
-
-[build-system]
-requires = ["pdm-backend"]
-build-backend = "pdm.backend"
-
 [tool.isort]
 profile = "black"
 known_first_party = ["gcapi", "tests"]
