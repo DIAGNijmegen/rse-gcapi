@@ -1,5 +1,8 @@
 # History
 
+## 0.13.2a0 (Pre-release)
+  - Migrate from Poetry to uv
+
 ## 0.13.1 (2025-05-23)
 - Fix incorrectly constructed end-point for version checks
 
