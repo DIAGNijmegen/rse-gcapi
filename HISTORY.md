@@ -1,9 +1,15 @@
 # History
 
+## 0.13.3a0 (Alpha-release)
+  - Migrate from Poetry to uv
+
 ## 0.13.2 (2025-05-27)
 - Add missing `packaging` dependency
 - Update Grand-Challenge models
 - Fix models expecting `json_` fields
+
+## 0.13.2a0 (Pre-release)
+  - Migrate from Poetry to uv
 
 ## 0.13.1 (2025-05-23)
 - Fix incorrectly constructed end-point for version checks
