@@ -72,6 +72,5 @@ allowlist_externals =
 setenv =
     PYTHONPATH = {toxinidir}
 commands =
-    uv pip install -vv
     uv run pytest --cov-branch --cov-report term-missing --cov=tests/ --cov=gcapi/ --basetemp={envtmpdir} {posargs}
 """
