@@ -87,6 +87,7 @@ jobs:
           python -m pip install uv
       - name: Upload to pypi
         env:
-          POETRY_PYPI_TOKEN_PYPI: ${{ secrets.PYPI_TOKEN }}
+          UV_PUBLISH_TOKEN: ${{ secrets.PYPI_TOKEN }}
         run: |
-          uv publish --build
+          uv build
+          uv publish
