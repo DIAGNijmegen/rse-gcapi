@@ -1,5 +1,8 @@
 # History
 
+## 0.13.1 (2025-05-23)
+- Fix incorrectly constructed end-point for version checks
+
 ## 0.13.0 (2025-05-21)
   - Version management:
 	  - Introduced version checking with reporting on available updates and minimum supported versions (based on Grand Challenge data)
