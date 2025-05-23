@@ -19,6 +19,7 @@ python = "^3.9"
 httpx = "~0.23.0"
 Click = ">=6.0"
 pydantic = "*"
+packaging = "*"
 
 [tool.poetry.group.dev.dependencies]
 pytest = "*"

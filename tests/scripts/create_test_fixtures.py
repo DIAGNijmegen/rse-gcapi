@@ -29,6 +29,7 @@ from grandchallenge.components.models import (
 from grandchallenge.core.fixtures import create_uploaded_image
 from grandchallenge.evaluation.models import Method, Phase
 from grandchallenge.evaluation.utils import SubmissionKindChoices
+from grandchallenge.hanging_protocols.models import HangingProtocol
 from grandchallenge.invoices.models import Invoice
 from grandchallenge.reader_studies.models import (
     Answer,
@@ -161,6 +162,15 @@ def _create_reader_studies(users):
     )
     reader_study.editors_group.user_set.add(users["readerstudy"])
     reader_study.readers_group.user_set.add(users["demo"])
+
+    hanging_protocol = HangingProtocol.objects.create(
+        title="test",
+        creator=users["readerstudy"],
+        json=[{"viewport_name": "main"}],
+    )
+
+    reader_study.hanging_protocol = hanging_protocol
+    reader_study.save()
 
     question = Question.objects.create(
         reader_study=reader_study,
