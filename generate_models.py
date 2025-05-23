@@ -37,6 +37,13 @@ def main() -> int:
             output_model_type=DataModelType.DataclassesDataclass,
             target_python_version=PythonVersion.PY_39,
             input_file_type=InputFileType.OpenAPI,
+            aliases={
+                # Prevent resolving 'json' fields to 'json_'.
+                # This happends because the pydantic BaseModel has a
+                # deprecated json() function which makes 'json'
+                # technically an invalid field name
+                "json": "json",
+            },
         )
 
         with open(Path(__file__).parent / "gcapi" / "models.py", "w") as f:
