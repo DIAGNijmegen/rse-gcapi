@@ -39,7 +39,7 @@ def main() -> int:
             input_file_type=InputFileType.OpenAPI,
             aliases={
                 # Prevent resolving 'json' fields to 'json_'.
-                # This happends because the pydantic BaseModel has a
+                # This happens because the pydantic BaseModel has a
                 # deprecated json() function which makes 'json'
                 # technically an invalid field name
                 "json": "json",
