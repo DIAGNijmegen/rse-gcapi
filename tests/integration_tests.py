@@ -5,6 +5,7 @@ from pathlib import Path
 import pytest
 from httpx import HTTPStatusError
 
+import gcapi
 from gcapi import Client
 from gcapi.exceptions import MultipleObjectsReturned, ObjectNotFound
 from tests.utils import (
@@ -89,6 +90,30 @@ def test_local_response(local_grand_challenge):
     c = Client(base_url=local_grand_challenge, verify=False, token=ADMIN_TOKEN)
     # Empty response, but it didn't error out so the server is responding
     assert len(c.algorithms.page()) == 0
+
+
+def test_get_display_sets(local_grand_challenge):
+    c = Client(
+        base_url=local_grand_challenge, verify=False, token=READERSTUDY_TOKEN
+    )
+    display_sets = list(
+        c.reader_studies.display_sets.iterate_all(
+            params={"slug": "reader-study"}
+        )
+    )
+    assert len(display_sets) > 0
+    assert isinstance(display_sets[0], gcapi.models.DisplaySet)
+
+
+def test_get_answers(local_grand_challenge):
+    c = Client(
+        base_url=local_grand_challenge, verify=False, token=READERSTUDY_TOKEN
+    )
+    answers = list(
+        c.reader_studies.answers.iterate_all(params={"slug": "reader-study"})
+    )
+    assert len(answers) > 0
+    assert isinstance(answers[0], gcapi.models.Answer)
 
 
 def test_chunked_uploads(local_grand_challenge):
