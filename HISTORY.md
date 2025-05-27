@@ -1,5 +1,10 @@
 # History
 
+## 0.13.2 (2025-05-27)
+- Add missing `packaging` dependency
+- Update Grand-Challenge models
+- Fix models expecting `json_` fields
+
 ## 0.13.1 (2025-05-23)
 - Fix incorrectly constructed end-point for version checks
 
