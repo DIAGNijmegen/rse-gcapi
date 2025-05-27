@@ -5,6 +5,7 @@ from pathlib import Path
 import pytest
 from httpx import HTTPStatusError
 
+import gcapi
 from gcapi import AsyncClient
 from gcapi.exceptions import MultipleObjectsReturned, ObjectNotFound
 from tests.utils import (
@@ -73,6 +74,36 @@ async def test_local_response(local_grand_challenge):
     ) as c:
         # Empty response, but it didn't error out so the server is responding
         assert len(await c.algorithms.page()) == 0
+
+
+@pytest.mark.anyio
+async def test_get_display_sets(local_grand_challenge):
+    async with AsyncClient(
+        token=READERSTUDY_TOKEN, base_url=local_grand_challenge, verify=False
+    ) as c:
+        display_sets = [
+            ds
+            async for ds in c.reader_studies.display_sets.iterate_all(
+                params={"slug": "reader-study"}
+            )
+        ]
+        assert len(display_sets) > 0
+        assert isinstance(display_sets[0], gcapi.models.DisplaySet)
+
+
+@pytest.mark.anyio
+async def test_get_answers(local_grand_challenge):
+    async with AsyncClient(
+        token=READERSTUDY_TOKEN, base_url=local_grand_challenge, verify=False
+    ) as c:
+        answers = [
+            a
+            async for a in c.reader_studies.answers.iterate_all(
+                params={"slug": "reader-study"}
+            )
+        ]
+        assert len(answers) > 0
+        assert isinstance(answers[0], gcapi.models.Answer)
 
 
 @pytest.mark.anyio
