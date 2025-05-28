@@ -1,36 +1,38 @@
-[tool.poetry]
+[project]
+authors = [
+    {name = "James Meakin"},
+]
+license = {text = "Apache-2.0"}
+requires-python = ">=3.9, <4.0"
+dependencies = [
+    "httpx ~= 0.23.0",
+    "Click >= 6.0",
+    "pydantic",
+    "packaging",
+]
 name = "gcapi"
-version = "0.13.2"
+version = "0.13.3a0"
 description = "Python client for the grand-challenge.org REST API"
-authors = ["James Meakin"]
-license = "Apache-2.0"
 readme = "README.md"
-repository = "https://github.com/DIAGNijmegen/rse-gcapi"
 classifiers = [
     "Development Status :: 3 - Alpha",
     "Intended Audience :: Developers",
 ]
 
-[tool.poetry.scripts]
+[project.urls]
+repository = "https://github.com/DIAGNijmegen/rse-gcapi"
+
+[project.scripts]
 gcapi = "gcapi.cli:main"
 
-[tool.poetry.dependencies]
-python = "^3.9"
-httpx = "~0.23.0"
-Click = ">=6.0"
-pydantic = "*"
-packaging = "*"
-
-[tool.poetry.group.dev.dependencies]
-pytest = "*"
-pytest-randomly = "*"
-pytest-cov = "*"
-pyyaml = "*"
-datamodel-code-generator = "*"
-
-[build-system]
-requires = ["poetry-core>=1.0.0"]
-build-backend = "poetry.core.masonry.api"
+[dependency-groups]
+dev = [
+    "pytest",
+    "pytest-randomly",
+    "pytest-cov",
+    "pyyaml",
+    "datamodel-code-generator",
+]
 
 [tool.isort]
 profile = "black"
@@ -66,10 +68,9 @@ python =
 
 [testenv]
 allowlist_externals =
-    poetry
+    uv
 setenv =
     PYTHONPATH = {toxinidir}
 commands =
-    poetry install -v
-    poetry run pytest --cov-branch --cov-report term-missing --cov=tests/ --cov=gcapi/ --basetemp={envtmpdir} {posargs}
+    uv run pytest --cov-branch --cov-report term-missing --cov=tests/ --cov=gcapi/ --basetemp={envtmpdir} {posargs}
 """

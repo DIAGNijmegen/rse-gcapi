@@ -1,5 +1,8 @@
 # History
 
+## 0.13.3a0 (Alpha-release)
+  - Migrate from Poetry to uv
+
 ## 0.13.2 (2025-05-27)
 - Add missing `packaging` dependency
 - Update Grand-Challenge models
