@@ -1,40 +1,15 @@
 import collections
 from collections.abc import Iterator, Sequence
-from typing import Any, Generic, TypeVar, overload
+from typing import Generic, TypeVar, overload
 from urllib.parse import urljoin
 
-from httpx import URL, HTTPStatusError
-from httpx._types import URLTypes
+from httpx import HTTPStatusError
 from pydantic import RootModel
 from pydantic.dataclasses import is_pydantic_dataclass
 
-from gcapi.client import Client
 from gcapi.exceptions import MultipleObjectsReturned, ObjectNotFound
 
 T = TypeVar("T")
-
-
-class ClientInterface:
-    @property
-    def base_url(self) -> URL: ...
-
-    @base_url.setter
-    def base_url(self, v: URLTypes): ...
-
-    def validate_url(self, url): ...
-
-    def __call__(
-        self,
-        method="GET",
-        url="",
-        path="",
-        params=None,
-        json=None,
-        extra_headers=None,
-        files=None,
-        data=None,
-    ) -> Any:
-        raise NotImplementedError
 
 
 class PageResult(Generic[T], collections.abc.Sequence):
@@ -80,7 +55,6 @@ class PageResult(Generic[T], collections.abc.Sequence):
 
 class Common(Generic[T]):
     model: type[T]
-    _client: Client
     base_path: str
 
 
@@ -88,10 +62,12 @@ class APIBase(Generic[T], Common[T]):
     sub_apis: dict[str, type["APIBase"]] = {}
 
     def __init__(self, client) -> None:
+        from gcapi.client import Client
+
         if isinstance(self, ModifiableMixin):
             ModifiableMixin.__init__(self)
 
-        self._client = client
+        self._client: Client = client
 
         for k, api in list(self.sub_apis.items()):
             setattr(self, k, api(self._client))
@@ -163,9 +139,12 @@ class APIBase(Generic[T], Common[T]):
                 raise MultipleObjectsReturned
 
 
-class ModifiableMixin(Common):
+RT = TypeVar("RT")
 
-    response_model: type
+
+class ModifiableMixin(Generic[RT], Common):
+
+    response_model: type[RT]
 
     def _process_request_arguments(self, data):
         if data is None:
@@ -191,19 +170,19 @@ class ModifiableMixin(Common):
         )
         return self._client(method=method, path=url, json=data)
 
-    def perform_request(self, method, data=None, pk=False):
+    def perform_request(self, method, data=None, pk=False) -> RT:
         data = self._process_request_arguments(data)
         return self._execute_request(method, data, pk)
 
-    def create(self, **kwargs):
+    def create(self, **kwargs) -> RT:
         result = self.perform_request("POST", data=kwargs)
         return self.response_model(**result)
 
-    def update(self, pk, **kwargs):
+    def update(self, pk, **kwargs) -> RT:
         result = self.perform_request("PUT", pk=pk, data=kwargs)
         return self.response_model(**result)
 
-    def partial_update(self, pk, **kwargs):
+    def partial_update(self, pk, **kwargs) -> RT:
         result = self.perform_request("PATCH", pk=pk, data=kwargs)
         return self.response_model(**result)
 
