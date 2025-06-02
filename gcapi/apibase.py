@@ -1,5 +1,5 @@
 import collections
-from collections.abc import Generator, Iterator, Sequence
+from collections.abc import Iterator, Sequence
 from typing import Any, Generic, TypeVar, overload
 from urllib.parse import urljoin
 
@@ -8,12 +8,8 @@ from httpx._types import URLTypes
 from pydantic import RootModel
 from pydantic.dataclasses import is_pydantic_dataclass
 
+from gcapi.client import Client
 from gcapi.exceptions import MultipleObjectsReturned, ObjectNotFound
-from gcapi.sync_async_hybrid_support import (
-    CallCapture,
-    CapturedCall,
-    mark_generator,
-)
 
 T = TypeVar("T")
 
@@ -37,7 +33,7 @@ class ClientInterface:
         extra_headers=None,
         files=None,
         data=None,
-    ) -> Generator[CapturedCall, Any, Any]:
+    ) -> Any:
         raise NotImplementedError
 
 
@@ -84,10 +80,8 @@ class PageResult(Generic[T], collections.abc.Sequence):
 
 class Common(Generic[T]):
     model: type[T]
-    _client: ClientInterface
+    _client: Client
     base_path: str
-
-    yield_request = CallCapture()
 
 
 class APIBase(Generic[T], Common[T]):
@@ -103,21 +97,17 @@ class APIBase(Generic[T], Common[T]):
             setattr(self, k, api(self._client))
 
     def list(self, params=None):
-        result = yield self.yield_request(
-            method="GET", path=self.base_path, params=params
-        )
+        result = self._client(method="GET", path=self.base_path, params=params)
         return result
 
-    def page(
-        self, offset=0, limit=100, params=None
-    ) -> Generator[T, dict[Any, Any], PageResult[T]]:
+    def page(self, offset=0, limit=100, params=None) -> PageResult[T]:
         if params is None:
             params = {}
 
         params["offset"] = offset
         params["limit"] = limit
 
-        response = yield self.yield_request(
+        response = self._client(
             method="GET", path=self.base_path, params=params
         )
 
@@ -130,12 +120,11 @@ class APIBase(Generic[T], Common[T]):
             results=results,
         )
 
-    @mark_generator
     def iterate_all(self, params=None) -> Iterator[T]:
         req_count = 100
         offset = 0
         while True:
-            current_list = yield from self.page(
+            current_list = self.page(
                 offset=offset,
                 limit=req_count,
                 params=params,
@@ -145,9 +134,7 @@ class APIBase(Generic[T], Common[T]):
             yield from current_list
             offset += req_count
 
-    def detail(
-        self, pk=None, api_url=None, **params
-    ) -> Generator[T, dict[Any, Any], T]:
+    def detail(self, pk=None, api_url=None, **params) -> T:
         if sum(bool(arg) for arg in [pk, api_url, params]) != 1:
             raise ValueError(
                 "Exactly one of pk, api_url, or params must be specified"
@@ -158,9 +145,7 @@ class APIBase(Generic[T], Common[T]):
             else:
                 request_kwargs = dict(url=api_url)
             try:
-                result = yield self.yield_request(
-                    method="GET", **request_kwargs
-                )
+                result = self._client(method="GET", **request_kwargs)
                 return self.model(**result)
             except HTTPStatusError as e:
                 if e.response.status_code == 404:
@@ -168,7 +153,7 @@ class APIBase(Generic[T], Common[T]):
                 else:
                     raise e
         else:
-            results = yield from self.page(params=params)
+            results = self.page(params=params)
 
             if len(results) == 1:
                 return results[0]
@@ -204,23 +189,23 @@ class ModifiableMixin(Common):
             if not pk
             else urljoin(self.base_path, str(pk) + "/")
         )
-        return (yield self.yield_request(method=method, path=url, json=data))
+        return self._client(method=method, path=url, json=data)
 
     def perform_request(self, method, data=None, pk=False):
         data = self._process_request_arguments(data)
-        return (yield from self._execute_request(method, data, pk))
+        return self._execute_request(method, data, pk)
 
     def create(self, **kwargs):
-        result = yield from self.perform_request("POST", data=kwargs)
+        result = self.perform_request("POST", data=kwargs)
         return self.response_model(**result)
 
     def update(self, pk, **kwargs):
-        result = yield from self.perform_request("PUT", pk=pk, data=kwargs)
+        result = self.perform_request("PUT", pk=pk, data=kwargs)
         return self.response_model(**result)
 
     def partial_update(self, pk, **kwargs):
-        result = yield from self.perform_request("PATCH", pk=pk, data=kwargs)
+        result = self.perform_request("PATCH", pk=pk, data=kwargs)
         return self.response_model(**result)
 
     def delete(self, pk):
-        return (yield from self.perform_request("DELETE", pk=pk))
+        return self.perform_request("DELETE", pk=pk)

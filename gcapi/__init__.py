@@ -1,3 +1,3 @@
-from gcapi.gcapi import Client
+from .client import Client
 
 __all__ = ["Client"]

@@ -1,10 +1,8 @@
 import contextlib
-from functools import wraps
 from time import sleep
 
-from httpx import AsyncHTTPTransport, HTTPStatusError, HTTPTransport
+from httpx import HTTPStatusError, HTTPTransport
 
-import gcapi
 from gcapi.exceptions import ObjectNotFound
 from tests.scripts.constants import USER_TOKENS
 
@@ -36,34 +34,12 @@ def recurse_call(func):
     return wrapper
 
 
-def async_recurse_call(func):
-    async def wrapper(*args, **kwargs):
-        last_error = None
-        for _ in range(60):
-            try:
-                result = await func(*args, **kwargs)
-                break
-            except (
-                HTTPStatusError,
-                ValueError,
-                # Permissions are sometimes delayed, shows as ObjectNotFound
-                ObjectNotFound,
-            ) as e:
-                last_error = e
-                sleep(0.5)
-        else:
-            raise TimeoutError from last_error
-        return result
-
-    return wrapper
-
-
 @contextlib.contextmanager
 def mock_transport_responses(transport, responses):
     """
     Mocks the responses in the provided HTTPX transport by
     shadowing the request handlers just before the HTTPTransport
-    or AsyncHTTPTransport in the transport's MRO.
+     in the transport's MRO.
 
     Returns a class from which some metadata about the mocking can
     be read (such as number of requests).
@@ -89,7 +65,7 @@ def mock_transport_responses(transport, responses):
 
     bases = []
     for cls in transport.__class__.mro():
-        if cls in [HTTPTransport, AsyncHTTPTransport]:
+        if cls is HTTPTransport:
             bases.append(MockTransport)
         bases.append(cls)
     old_class = transport.__class__
@@ -103,26 +79,3 @@ def mock_transport_responses(transport, responses):
         yield ResponseMetaData
     finally:
         transport.__class__ = old_class
-
-
-def sync_generator_test(test):
-    """
-    Decorator allowing for unit testing the synchronous generators that
-    are the core of the syc and async hybrid constructs.
-
-    Example
-    ________
-    def a_function()
-        yield from another_function()
-    @sync_generator_test
-    def test_request():
-        with pytest.raises(ValueError):
-            yield from a_function()
-    """
-
-    @wraps(test)
-    def wrapper(*args, **kwargs):
-        client = gcapi.Client(token="foo")
-        client._wrap_function(test)(*args, **kwargs)
-
-    return wrapper
