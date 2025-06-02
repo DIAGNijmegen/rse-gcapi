@@ -1533,8 +1533,6 @@ class HyperlinkedJob(BaseModel):
     inputs: list[HyperlinkedComponentInterfaceValue]
     outputs: list[HyperlinkedComponentInterfaceValue]
     status: str
-    started_at: Optional[str]
-    completed_at: Optional[str]
     hanging_protocol: Optional[HangingProtocol]
     optional_hanging_protocols: list[HangingProtocol]
     view_content: Any
