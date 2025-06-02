@@ -1,4 +1,3 @@
-import asyncio
 import logging
 from time import sleep
 from typing import Callable, Optional
@@ -84,35 +83,5 @@ class RetryTransport(BaseRetryTransport, httpx.HTTPTransport):
                 # Close any connections kept open for this request
                 response.close()
                 sleep(retry_delay)
-
-        return response
-
-
-class AsyncRetryTransport(BaseRetryTransport, httpx.AsyncHTTPTransport):
-    """Same as the RetryTransport but adapted for asynchronous clients"""
-
-    async def handle_async_request(
-        self, request: httpx.Request, *args, **kwargs
-    ) -> httpx.Response:
-        retry_strategy = None
-        while True:
-            response = await super().handle_async_request(
-                request, *args, **kwargs
-            )
-
-            if response.is_success or not self.retry_strategy:
-                break
-
-            retry_strategy, retry_delay = self._get_retry_delay(
-                retry_strategy,
-                response,
-                request,
-            )
-            if retry_delay is None:
-                break
-            else:
-                # Close any connections kept open for this request
-                await response.aclose()
-                await asyncio.sleep(retry_delay)
 
         return response

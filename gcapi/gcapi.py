@@ -9,7 +9,7 @@ import httpx
 from .apibase import APIBase
 from .client import ClientBase
 from .sync_async_hybrid_support import CapturedCall, is_generator
-from .transports import AsyncRetryTransport, RetryTransport
+from .transports import RetryTransport
 
 logger = logging.getLogger(__name__)
 
@@ -145,69 +145,3 @@ class Client(httpx.Client, WrapApiInterfaces, ClientBase):
 
     def update_display_set(self, *args, **kwargs):
         return self._wrap_function(super().update_display_set)(*args, **kwargs)
-
-
-class AsyncClient(httpx.AsyncClient, WrapApiInterfaces, ClientBase):
-    def _wrap_generator(self, f):
-        @wraps(f)
-        async def result(*args, **kwargs):
-            calls = f(*args, **kwargs)
-            try:
-                call_result = None
-                call_exc = None
-                while True:
-                    if call_exc:
-                        yld_result = calls.throw(call_exc)
-                    else:
-                        yld_result = calls.send(call_result)
-                    try:
-                        if isinstance(yld_result, CapturedCall):
-                            call_result = await yld_result.execute(self)
-                        else:
-                            call_result = yield yld_result
-                    except Exception as e:  # Yes, capture them all!
-                        call_exc = e
-                    else:
-                        call_exc = None
-            except StopIteration as stop_iteration:
-                if stop_iteration.value is not None:
-                    yield AsyncResult(stop_iteration.value)
-
-        return result
-
-    def __init__(self, *args, **kwargs):
-        ClientBase.__init__(
-            self, httpx.AsyncClient, AsyncRetryTransport, *args, **kwargs
-        )
-        self._wrap_client_base_interfaces()
-
-    async def __call__(self, *args, **kwargs):
-        return await self._wrap_function(super().__call__)(*args, **kwargs)
-
-    async def upload_cases(self, *args, **kwargs):
-        return await self._wrap_function(super().upload_cases)(*args, **kwargs)
-
-    async def run_external_job(self, *args, **kwargs):
-        return await self._wrap_function(super().run_external_job)(
-            *args, **kwargs
-        )
-
-    async def add_cases_to_archive(self, *args, **kwargs):
-        return await self._wrap_function(super().add_cases_to_archive)(
-            *args, **kwargs
-        )
-
-    async def update_archive_item(self, *args, **kwargs):
-        return await self._wrap_function(super().update_archive_item)(
-            *args, **kwargs
-        )
-
-    async def add_cases_to_reader_study(self, *args, **kwargs):
-        return await self._wrap_function(super().add_cases_to_reader_study)(
-            *args, **kwargs
-        )
-
-    async def update_display_set(self, *args, **kwargs):
-        return await self._wrap_function(super().update_display_set)(
-            *args, **kwargs
-        )

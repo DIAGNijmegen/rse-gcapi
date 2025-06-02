@@ -4,7 +4,7 @@ from unittest.mock import MagicMock, patch
 
 import pytest
 
-from gcapi import AsyncClient, Client
+from gcapi import Client
 from gcapi.check_version import UnsupportedVersionError, check_version
 
 
@@ -83,8 +83,7 @@ def test_check_version_comparisons(
         ), f"No warning should be issued for version {current} >= {latest}"
 
 
-@pytest.mark.parametrize("client", [Client, AsyncClient])
-def test_check_version_calling(client, mock_check_version):
+def test_check_version_calling(mock_check_version):
     mock_check_version.assert_not_called()  # Sanity
-    client(token="Foo")
+    Client(token="Foo")
     mock_check_version.assert_called_once()
