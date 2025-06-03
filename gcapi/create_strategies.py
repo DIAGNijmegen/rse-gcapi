@@ -74,16 +74,9 @@ class BaseCreateStrategy:
         self.client = client
         self.prepared = False
 
-    @property
-    def hybrid_client_api(self):
-        """Return the original client API definitions that are async/sync hybrids"""
-        return self.client._ClientBase__org_api_meta
-
     def prepare(self):
         """Ensure that the strategy can be executed"""
         self.prepared = True
-        return
-        yield
 
     def __call__(self):
         """
@@ -91,7 +84,7 @@ class BaseCreateStrategy:
         that can be used in POSTs that would use the created objects.
         """
         if not self.prepared:
-            yield from self.prepare()
+            self.prepare()
 
 
 class SocketValueCreateStrategy(BaseCreateStrategy):
@@ -137,7 +130,7 @@ class SocketValueCreateStrategy(BaseCreateStrategy):
         self.parent = parent
 
     def prepare(self):
-        yield from super().prepare()
+        super().prepare()
 
         if (
             isinstance(self.source, HyperlinkedComponentInterfaceValue)
@@ -149,7 +142,7 @@ class SocketValueCreateStrategy(BaseCreateStrategy):
             )
 
     def __call__(self):
-        yield from super().__call__()
+        super().__call__()
 
         return ComponentInterfaceValuePostRequest(  # noqa: B901
             interface=self.socket.slug,
@@ -164,7 +157,7 @@ class SocketValueCreateStrategy(BaseCreateStrategy):
 class FileSocketValueCreateStrategy(SocketValueCreateStrategy):
 
     def prepare(self):
-        yield from super().prepare()
+        super().prepare()
 
         if isinstance(self.source, HyperlinkedComponentInterfaceValue):
             self.content_name = Path(self.source.file).name
@@ -199,11 +192,9 @@ class FileSocketValueCreateStrategy(SocketValueCreateStrategy):
         self.content_name = self.socket.relative_path
 
     def _create_from_socket(self, post_request):
-        from gcapi.client import ClientBase
 
         # Cannot link a file directly to file, so we download it first
-        response_or_json = yield from ClientBase.__call__(
-            self.client,
+        response_or_json = self.client(
             url=self.source.file,
             follow_redirects=True,
         )
@@ -213,7 +204,7 @@ class FileSocketValueCreateStrategy(SocketValueCreateStrategy):
             # Else, the response is actually the JSON
             fileobj = io.StringIO(json.dumps(response_or_json))
 
-        user_upload = yield from self.hybrid_client_api.uploads.upload_fileobj(
+        user_upload = self.client.uploads.upload_fileobj(
             fileobj=fileobj, filename=self.content_name
         )
 
@@ -221,17 +212,16 @@ class FileSocketValueCreateStrategy(SocketValueCreateStrategy):
         return post_request
 
     def __call__(self):
-        post_request = yield from super().__call__()
+        post_request = super().__call__()
 
         if isinstance(self.source, HyperlinkedComponentInterfaceValue):
-            return (yield from self._create_from_socket(post_request))
+            return self._create_from_socket(post_request)
         else:
             with open(self.content, "rb") as f:
-                user_upload = (
-                    yield from self.hybrid_client_api.uploads.upload_fileobj(
-                        fileobj=f, filename=self.content_name
-                    )
+                user_upload = self.client.uploads.upload_fileobj(
+                    fileobj=f, filename=self.content_name
                 )
+
             post_request.user_upload = user_upload.api_url
             return post_request
 
@@ -239,7 +229,7 @@ class FileSocketValueCreateStrategy(SocketValueCreateStrategy):
 class ImageSocketValueCreateStrategy(SocketValueCreateStrategy):
 
     def prepare(self):
-        yield from super().prepare()
+        super().prepare()
 
         if isinstance(self.source, HyperlinkedImage):
             self.content = self.source
@@ -247,14 +237,12 @@ class ImageSocketValueCreateStrategy(SocketValueCreateStrategy):
             isinstance(self.source, HyperlinkedComponentInterfaceValue)
             and self.source.image is not None
         ):
-            self.content = yield from self.hybrid_client_api.images.detail(
-                api_url=self.source.image
-            )
+            self.content = self.client.images.detail(api_url=self.source.image)
         else:
             self.content = clean_file_source(self.source)
 
     def __call__(self):
-        post_request = yield from super().__call__()
+        post_request = super().__call__()
 
         if isinstance(self.content, HyperlinkedImage):
             # Reuse the existing image
@@ -284,14 +272,12 @@ class ImageSocketValueCreateStrategy(SocketValueCreateStrategy):
         for file in self.content:
             with open(file, "rb") as f:
                 uploads.append(
-                    (
-                        yield from self.hybrid_client_api.uploads.upload_fileobj(
-                            fileobj=f, filename=file.name
-                        )
+                    self.client.uploads.upload_fileobj(
+                        fileobj=f, filename=file.name
                     )
                 )
         raw_image_upload_session = (
-            yield from self.hybrid_client_api.raw_image_upload_sessions.create(
+            self.client.raw_image_upload_sessions.create(
                 uploads=[u.api_url for u in uploads],
                 **upload_session_data,
             )
@@ -307,7 +293,7 @@ class ImageSocketValueCreateStrategy(SocketValueCreateStrategy):
 class ValueSocketValueCreateStrategy(SocketValueCreateStrategy):
 
     def prepare(self):
-        yield from super().prepare()
+        super().prepare()
 
         if isinstance(self.source, HyperlinkedComponentInterfaceValue):
             self.content = self.source.value
@@ -326,7 +312,7 @@ class ValueSocketValueCreateStrategy(SocketValueCreateStrategy):
             self.content = json.load(fp)
 
     def __call__(self):
-        post_request = yield from super().__call__()
+        post_request = super().__call__()
         post_request.value = self.content
         return post_request
 
@@ -347,14 +333,10 @@ class JobInputsCreateStrategy(BaseCreateStrategy):
         self.input_strategies: list[SocketValueCreateStrategy] = []
 
     def prepare(self):
-        yield from super().prepare()
+        super().prepare()
 
         if isinstance(self.algorithm, str):
-            self.algorithm = (
-                yield from self.hybrid_client_api.algorithms.detail(
-                    slug=self.algorithm
-                )
-            )
+            self.algorithm = self.client.algorithms.detail(slug=self.algorithm)
 
         # Find a matching interface
         matching_interface = None
@@ -395,17 +377,17 @@ class JobInputsCreateStrategy(BaseCreateStrategy):
                 socket=socket_lookup[socket_slug],
                 client=self.client,
             )
-            yield from socket_value_strategy.prepare()
+            socket_value_strategy.prepare()
 
             self.input_strategies.append(socket_value_strategy)
 
     def __call__(self):
-        yield from super().__call__()
+        super().__call__()
 
         input_post_requests = []
         for strat in self.input_strategies:
-            post_request = yield from strat()
+            post_request = strat()
             if post_request is not Empty:
                 input_post_requests.append(post_request)
 
-        return input_post_requests  # noqa: B901
+        return input_post_requests

@@ -3,7 +3,6 @@ import os
 import re
 import uuid
 import warnings
-from collections.abc import Generator
 from io import BytesIO
 from pathlib import Path
 from random import randint
@@ -24,7 +23,7 @@ from gcapi.create_strategies import (
 )
 from gcapi.exceptions import ObjectNotFound, SocketNotFound
 from gcapi.retries import BaseRetryStrategy, SelectiveBackoffStrategy
-from gcapi.sync_async_hybrid_support import CapturedCall, mark_generator
+from gcapi.transports import RetryTransport
 from gcapi.typing import SocketValueSet
 
 logger = logging.getLogger(__name__)
@@ -63,11 +62,11 @@ class ImagesAPI(APIBase[gcapi.models.HyperlinkedImage]):
         # Retrieve details of the image if needed
         if files is None:
             if pk is not None:
-                image = yield from self.detail(pk=pk)
+                image = self.detail(pk=pk)
             elif url is not None:
-                image = yield from self.detail(api_url=url)
+                image = self.detail(api_url=url)
             else:
-                image = yield from self.detail(**params)
+                image = self.detail(**params)
 
             files = image.files
 
@@ -83,10 +82,8 @@ class ImagesAPI(APIBase[gcapi.models.HyperlinkedImage]):
             if image_type and file.image_type != image_type:
                 continue
 
-            data = (
-                yield self.yield_request(
-                    method="GET", url=file.file, follow_redirects=True
-                )
+            data = self._client(
+                method="GET", url=file.file, follow_redirects=True
             ).content
 
             suffix = file.file.split(".")[-1]
@@ -172,13 +169,11 @@ class ReaderStudiesAPI(APIBase[gcapi.models.ReaderStudy]):
     display_sets = None  # type: ReaderStudyDisplaySetsAPI
 
     def ground_truth(self, pk, case_pk):
-        return (
-            yield self.yield_request(
-                method="GET",
-                path=urljoin(
-                    self.base_path, pk + "/ground-truth/" + case_pk + "/"
-                ),
-            )
+        return self._client(
+            method="GET",
+            path=urljoin(
+                self.base_path, pk + "/ground-truth/" + case_pk + "/"
+            ),
         )
 
 
@@ -192,7 +187,6 @@ class AlgorithmJobsAPI(ModifiableMixin, APIBase[gcapi.models.HyperlinkedJob]):
     model = gcapi.models.HyperlinkedJob
     response_model = gcapi.models.JobPost
 
-    @mark_generator
     def by_input_image(self, pk):
         yield from self.iterate_all(params={"image": pk})
 
@@ -222,7 +216,7 @@ class UploadsAPI(APIBase[gcapi.models.UserUpload]):
     max_retries = 10
 
     def create(self, *, filename):
-        result = yield self.yield_request(
+        result = self._client(
             method="POST",
             path=self.base_path,
             json={"filename": str(filename)},
@@ -233,49 +227,41 @@ class UploadsAPI(APIBase[gcapi.models.UserUpload]):
         url = urljoin(
             self.base_path, f"{pk}/{s3_upload_id}/generate-presigned-urls/"
         )
-        return (
-            yield self.yield_request(
-                method="PATCH", path=url, json={"part_numbers": part_numbers}
-            )
+        return self._client(
+            method="PATCH", path=url, json={"part_numbers": part_numbers}
         )
 
     def abort_multipart_upload(self, *, pk, s3_upload_id):
         url = urljoin(
             self.base_path, f"{pk}/{s3_upload_id}/abort-multipart-upload/"
         )
-        return (yield self.yield_request(method="PATCH", path=url))
+        return self._client(method="PATCH", path=url)
 
     def complete_multipart_upload(self, *, pk, s3_upload_id, parts):
         url = urljoin(
             self.base_path, f"{pk}/{s3_upload_id}/complete-multipart-upload/"
         )
-        return (
-            yield self.yield_request(
-                method="PATCH", path=url, json={"parts": parts}
-            )
-        )
+        return self._client(method="PATCH", path=url, json={"parts": parts})
 
     def list_parts(self, *, pk, s3_upload_id):
         url = urljoin(self.base_path, f"{pk}/{s3_upload_id}/list-parts/")
-        return (yield self.yield_request(path=url))
+        return self._client(path=url)
 
     def upload_fileobj(self, *, fileobj, filename):
-        user_upload = yield from self.create(filename=filename)
+        user_upload = self.create(filename=filename)
 
         pk = user_upload.pk
         s3_upload_id = user_upload.s3_upload_id
 
         try:
-            parts = yield from self._put_fileobj(
+            parts = self._put_fileobj(
                 fileobj=fileobj, pk=pk, s3_upload_id=s3_upload_id
             )
         except Exception:
-            yield from self.abort_multipart_upload(
-                pk=pk, s3_upload_id=s3_upload_id
-            )
+            self.abort_multipart_upload(pk=pk, s3_upload_id=s3_upload_id)
             raise
 
-        result = yield from self.complete_multipart_upload(
+        result = self.complete_multipart_upload(
             pk=pk, s3_upload_id=s3_upload_id, parts=parts
         )
         return self.model(**result)  # noqa: B901
@@ -293,16 +279,14 @@ class UploadsAPI(APIBase[gcapi.models.UserUpload]):
 
             if str(part_number) not in presigned_urls:
                 presigned_urls.update(
-                    (
-                        yield from self._get_next_presigned_urls(
-                            pk=pk,
-                            s3_upload_id=s3_upload_id,
-                            part_number=part_number,
-                        )
+                    self._get_next_presigned_urls(
+                        pk=pk,
+                        s3_upload_id=s3_upload_id,
+                        part_number=part_number,
                     )
                 )
 
-            response = yield from self._put_chunk(
+            response = self._put_chunk(
                 chunk=chunk, url=presigned_urls[str(part_number)]
             )
 
@@ -315,7 +299,7 @@ class UploadsAPI(APIBase[gcapi.models.UserUpload]):
         return parts
 
     def _get_next_presigned_urls(self, *, pk, s3_upload_id, part_number):
-        response = yield from self.generate_presigned_urls(
+        response = self.generate_presigned_urls(
             pk=pk,
             s3_upload_id=s3_upload_id,
             part_numbers=[
@@ -333,7 +317,7 @@ class UploadsAPI(APIBase[gcapi.models.UserUpload]):
 
         while num_retries < self.max_retries:
             try:
-                result = yield self.yield_request.request(
+                result = self._client.request(
                     method="PUT", url=url, content=chunk
                 )
                 break
@@ -386,21 +370,18 @@ class ApiDefinitions:
     interfaces: ComponentInterfacesAPI
 
 
-class ClientBase(ApiDefinitions, ClientInterface):
+class Client(httpx.Client, ApiDefinitions, ClientInterface):
     # Make MyPy happy, this is a mixin now, so the dependent values will
     # come in through a side-channel
     if TYPE_CHECKING:
         _Base = httpx.Client
 
     _api_meta: ApiDefinitions
-    __org_api_meta: ApiDefinitions
 
     from gcapi.typing import SocketValueSet, SocketValueSetDescription
 
     def __init__(
         self,
-        init_base_cls: Union[httpx.Client, httpx.AsyncClient],
-        transport_cls: Union[httpx.HTTPTransport, httpx.AsyncHTTPTransport],
         token: str = "",
         base_url: str = "https://grand-challenge.org/api/v1/",
         verify: bool = True,
@@ -413,11 +394,11 @@ class ClientBase(ApiDefinitions, ClientInterface):
             backoff_factor=0.1,
             maximum_number_of_retries=8,  # ~25.5 seconds total backoff
         )
-        init_base_cls.__init__(
+        httpx.Client.__init__(
             self,
             verify=verify,
             timeout=Timeout(timeout=timeout),
-            transport=transport_cls(
+            transport=RetryTransport(
                 verify=verify,
                 retry_strategy=retry_strategy,
             ),
@@ -431,19 +412,15 @@ class ClientBase(ApiDefinitions, ClientInterface):
             raise RuntimeError("Base URL must be https")
 
         self._api_meta = ApiDefinitions()
-        self.__org_api_meta = ApiDefinitions()
         for name, cls in self._api_meta.__annotations__.items():
             setattr(self._api_meta, name, cls(client=self))
-            setattr(self.__org_api_meta, name, cls(client=self))
 
     def __getattr__(self, item):
         api = getattr(self._api_meta, item, None)
         if api:
             return api
         else:
-            raise AttributeError(
-                f"'ClientBase' has no function or API {item!r}"
-            )
+            raise AttributeError(f"Client has no function or API {item!r}")
 
     def validate_url(self, url):
         url = URL(url)
@@ -462,7 +439,7 @@ class ClientBase(ApiDefinitions, ClientInterface):
         files=None,
         data=None,
         follow_redirects=False,
-    ) -> Generator[CapturedCall, Any, Any]:
+    ) -> Any:
         if url:
             url = URL(url)
         else:
@@ -474,23 +451,19 @@ class ClientBase(ApiDefinitions, ClientInterface):
 
         self.validate_url(url)
 
-        response = yield CapturedCall(
-            func=self.request,
-            args=(),
-            kwargs={
-                "method": method,
-                "url": str(url),
-                "files": {} if files is None else files,
-                "data": {} if data is None else data,
-                "headers": {
-                    **self.headers,
-                    **self._auth_header,
-                    **extra_headers,
-                },
-                "params": {} if params is None else params,
-                "json": json,
-                "follow_redirects": follow_redirects,
+        response = self.request(
+            method=method,
+            url=str(url),
+            files={} if files is None else files,
+            data={} if data is None else data,
+            headers={
+                **self.headers,
+                **self._auth_header,
+                **extra_headers,
             },
+            params={} if params is None else params,
+            json=json,
+            follow_redirects=follow_redirects,
         )
 
         try:
@@ -511,22 +484,18 @@ class ClientBase(ApiDefinitions, ClientInterface):
         for file in files:
             with open(file, "rb") as f:
                 uploads.append(
-                    (
-                        yield from self.__org_api_meta.uploads.upload_fileobj(
-                            fileobj=f, filename=os.path.basename(file)
-                        )
+                    self.uploads.upload_fileobj(
+                        fileobj=f, filename=os.path.basename(file)
                     )
                 )
 
-        return (
-            yield from self.__org_api_meta.raw_image_upload_sessions.create(
-                uploads=[u.api_url for u in uploads], **kwargs
-            )
+        return self.raw_image_upload_sessions.create(
+            uploads=[u.api_url for u in uploads], **kwargs
         )
 
     def _upload_file(self, value):
         with open(value[0], "rb") as f:
-            upload = yield from self.__org_api_meta.uploads.upload_fileobj(
+            upload = self.uploads.upload_fileobj(
                 fileobj=f, filename=value[0].name
             )
         return upload
@@ -638,7 +607,7 @@ class ClientBase(ApiDefinitions, ClientInterface):
                 "You need to define an interface for display set uploads."
             )
 
-        raw_image_upload_session = yield from self._upload_image_files(
+        raw_image_upload_session = self._upload_image_files(
             files=files, **upload_session_data
         )
 
@@ -723,9 +692,7 @@ class ClientBase(ApiDefinitions, ClientInterface):
         """
 
         if isinstance(algorithm, str):
-            algorithm = yield from self.__org_api_meta.algorithms.detail(
-                slug=algorithm
-            )
+            algorithm = self.algorithms.detail(slug=algorithm)
 
         input_strategy = JobInputsCreateStrategy(
             client=self,
@@ -733,14 +700,12 @@ class ClientBase(ApiDefinitions, ClientInterface):
             inputs=inputs,
         )
 
-        yield from input_strategy.prepare()
-        inputs = yield from input_strategy()
+        input_strategy.prepare()
+        inputs = input_strategy()
 
-        return (  # noqa: B901
-            yield from self.__org_api_meta.algorithm_jobs.create(
-                algorithm=algorithm.api_url,
-                inputs=inputs,
-            )
+        return self.algorithm_jobs.create(
+            algorithm=algorithm.api_url,
+            inputs=inputs,
         )
 
     def update_display_set(
@@ -785,15 +750,11 @@ class ClientBase(ApiDefinitions, ClientInterface):
         -------
         The updated display set
         """
-        ds = yield from self.__org_api_meta.reader_studies.display_sets.detail(
-            pk=display_set_pk
-        )
-        return (
-            yield from self._update_socket_value_set(
-                target=ds,
-                description=values,
-                api=self.__org_api_meta.reader_studies.display_sets,
-            )
+        ds = self.reader_studies.display_sets.detail(pk=display_set_pk)
+        return self._update_socket_value_set(
+            target=ds,
+            description=values,
+            api=self.reader_studies.display_sets,
         )
 
     def add_cases_to_reader_study(
@@ -871,10 +832,10 @@ class ClientBase(ApiDefinitions, ClientInterface):
         if isinstance(reader_study, gcapi.models.ReaderStudy):
             reader_study = reader_study.slug
         try:
-            created_display_sets = yield from self._create_socket_value_sets(
+            created_display_sets = self._create_socket_value_sets(
                 creation_kwargs={"reader_study": reader_study},
                 descriptions=display_sets,
-                api=self.__org_api_meta.reader_studies.display_sets,
+                api=self.reader_studies.display_sets,
             )
         except SocketNotFound as e:
             raise ValueError(
@@ -926,15 +887,11 @@ class ClientBase(ApiDefinitions, ClientInterface):
         -------
         The updated archive item
         """
-        item = yield from self.__org_api_meta.archive_items.detail(
-            pk=archive_item_pk
-        )
-        return (
-            yield from self._update_socket_value_set(
-                target=item,
-                description=values,
-                api=self.__org_api_meta.archive_items,
-            )
+        item = self.archive_items.detail(pk=archive_item_pk)
+        return self._update_socket_value_set(
+            target=item,
+            description=values,
+            api=self.archive_items,
         )
 
     def add_cases_to_archive(
@@ -1008,15 +965,13 @@ class ClientBase(ApiDefinitions, ClientInterface):
         """
 
         if isinstance(archive, str):
-            archive = yield from self.__org_api_meta.archives.detail(
-                slug=archive
-            )
+            archive = self.archives.detail(slug=archive)
 
         try:
-            created_archive_items = yield from self._create_socket_value_sets(
+            created_archive_items = self._create_socket_value_sets(
                 creation_kwargs={"archive": archive.api_url},
                 descriptions=archive_items,
-                api=self.__org_api_meta.archive_items,
+                api=self.archive_items,
             )
         except SocketNotFound as e:
             raise ValueError(
@@ -1040,9 +995,7 @@ class ClientBase(ApiDefinitions, ClientInterface):
         if cache and slug in cache:
             return cache[slug]
         try:
-            interface = yield from self.__org_api_meta.interfaces.detail(
-                slug=slug
-            )
+            interface = self.interfaces.detail(slug=slug)
         except ObjectNotFound as e:
             raise SocketNotFound(slug=slug) from e
         else:
@@ -1067,7 +1020,7 @@ class ClientBase(ApiDefinitions, ClientInterface):
 
             for socket_slug, source in description.items():
                 socket: gcapi.models.ComponentInterface = (
-                    yield from self._fetch_socket_detail(
+                    self._fetch_socket_detail(
                         slug_or_socket=socket_slug,
                         cache=interface_cache,
                     )
@@ -1085,14 +1038,14 @@ class ClientBase(ApiDefinitions, ClientInterface):
         # Secondly, create + update socket-value sets
         socket_value_sets: list[SocketValueSet] = []
         for strategies in strategies_per_value_set:
-            socket_value_set = yield from api.create(**creation_kwargs)
+            socket_value_set = api.create(**creation_kwargs)
             values = []
             for strategy in strategies:
                 strategy.parent = socket_value_set
-                post_value = yield from strategy()
+                post_value = strategy()
                 if post_value is not Empty:
                     values.append(post_value)
-            update_socket_value_set = yield from api.partial_update(
+            update_socket_value_set = api.partial_update(
                 pk=socket_value_set.pk, values=values
             )
             socket_value_sets.append(update_socket_value_set)
@@ -1110,23 +1063,22 @@ class ClientBase(ApiDefinitions, ClientInterface):
 
         for socket_slug, source in description.items():
             socket: gcapi.models.ComponentInterface = (
-                yield from self._fetch_socket_detail(socket_slug)
+                self._fetch_socket_detail(socket_slug)
             )
+
             strategy = SocketValueCreateStrategy(
                 source=source,
                 socket=socket,
                 client=self,
                 parent=target,
             )
-            yield from strategy.prepare()
+            strategy.prepare()
             strategies.append(strategy)
 
         values = []
         for strategy in strategies:
-            value = yield from strategy()
+            value = strategy()
             if value is not Empty:
                 values.append(value)
 
-        return (  # noqa: B901
-            yield from api.partial_update(pk=target.pk, values=values)
-        )
+        return api.partial_update(pk=target.pk, values=values)

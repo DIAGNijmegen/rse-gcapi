@@ -20,7 +20,6 @@ from tests.factories import (
     HyperlinkedImageFactory,
     SocketFactory,
 )
-from tests.utils import sync_generator_test
 
 TESTDATA = Path(__file__).parent / "testdata"
 
@@ -170,7 +169,6 @@ value_socket = SocketFactory(super_kind="Value")
         ),
     ),
 )
-@sync_generator_test
 def test_socket_strategy_reuse_of_sockets_prep(socket, source, context):
     strategy = SocketValueCreateStrategy(
         source=source,
@@ -178,7 +176,7 @@ def test_socket_strategy_reuse_of_sockets_prep(socket, source, context):
         client=MagicMock(),
     )
     with context:
-        yield from strategy.prepare()
+        strategy.prepare()
 
 
 @pytest.mark.parametrize(
@@ -206,7 +204,6 @@ def test_socket_strategy_reuse_of_sockets_prep(socket, source, context):
         ),
     ),
 )
-@sync_generator_test
 def test_file_socket_value_prep(source, context, interface_kind):
     strategy = FileSocketValueCreateStrategy(
         source=source,
@@ -214,10 +211,9 @@ def test_file_socket_value_prep(source, context, interface_kind):
         client=MagicMock(),
     )
     with context:
-        yield from strategy.prepare()
+        strategy.prepare()
 
 
-@sync_generator_test
 def test_file_socket_value_prep_socket_reuse():
     socket = SocketFactory(super_kind="File")
 
@@ -230,7 +226,7 @@ def test_file_socket_value_prep_socket_reuse():
         client=MagicMock(),
     )
 
-    yield from strategy.prepare()
+    strategy.prepare()
 
 
 @pytest.mark.parametrize(
@@ -250,7 +246,6 @@ def test_file_socket_value_prep_socket_reuse():
         ),
     ),
 )
-@sync_generator_test
 def test_image_socket_value_prep(source, context):
     strategy = ImageSocketValueCreateStrategy(
         source=source,
@@ -258,10 +253,9 @@ def test_image_socket_value_prep(source, context):
         client=MagicMock(),
     )
     with context:
-        yield from strategy.prepare()
+        strategy.prepare()
 
 
-@sync_generator_test
 def test_image_socket_value_prep_socket_reuse():
     socket = SocketFactory(super_kind="Image")
 
@@ -274,7 +268,7 @@ def test_image_socket_value_prep_socket_reuse():
         client=MagicMock(),
     )
 
-    yield from strategy.prepare()
+    strategy.prepare()
 
 
 @pytest.mark.parametrize(
@@ -318,7 +312,6 @@ def test_image_socket_value_prep_socket_reuse():
         ),
     ),
 )
-@sync_generator_test
 def test_value_socket_value_prep(source, context):
     strategy = ValueSocketValueCreateStrategy(
         source=source,
@@ -326,10 +319,9 @@ def test_value_socket_value_prep(source, context):
         client=MagicMock(),
     )
     with context:
-        yield from strategy.prepare()
+        strategy.prepare()
 
 
-@sync_generator_test
 def test_value_socket_value_prep_socket_reuse():
     socket = SocketFactory(super_kind="Value")
 
@@ -342,7 +334,7 @@ def test_value_socket_value_prep_socket_reuse():
         client=MagicMock(),
     )
 
-    yield from strategy.prepare()
+    strategy.prepare()
 
 
 @pytest.mark.parametrize(
@@ -388,7 +380,6 @@ def test_value_socket_value_prep_socket_reuse():
         ),
     ),
 )
-@sync_generator_test
 def test_job_inputs_create_prep(algorithm, inputs, context):
     strategy = JobInputsCreateStrategy(
         algorithm=algorithm,
@@ -396,4 +387,4 @@ def test_job_inputs_create_prep(algorithm, inputs, context):
         client=MagicMock(),
     )
     with context:
-        yield from strategy.prepare()
+        strategy.prepare()
