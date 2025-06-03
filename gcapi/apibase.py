@@ -170,7 +170,7 @@ class ModifiableMixin(Generic[RT], Common):
         )
         return self._client(method=method, path=url, json=data)
 
-    def perform_request(self, method, data=None, pk=False) -> RT:
+    def perform_request(self, method, data=None, pk=False):
         data = self._process_request_arguments(data)
         return self._execute_request(method, data, pk)
 
