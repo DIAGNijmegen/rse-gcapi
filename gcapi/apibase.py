@@ -32,6 +32,7 @@ class ClientInterface:
         extra_headers=None,
         files=None,
         data=None,
+        follow_redirects=False,
     ) -> Any:
         raise NotImplementedError
 
@@ -87,12 +88,10 @@ class APIBase(Generic[T], Common[T]):
     sub_apis: dict[str, type["APIBase"]] = {}
 
     def __init__(self, client) -> None:
-        from gcapi.client import Client
-
         if isinstance(self, ModifiableMixin):
             ModifiableMixin.__init__(self)
 
-        self._client: Client = client
+        self._client = client
 
         for k, api in list(self.sub_apis.items()):
             setattr(self, k, api(self._client))
@@ -164,12 +163,9 @@ class APIBase(Generic[T], Common[T]):
                 raise MultipleObjectsReturned
 
 
-RT = TypeVar("RT")
+class ModifiableMixin(Common):
 
-
-class ModifiableMixin(Generic[RT], Common):
-
-    response_model: type[RT]
+    response_model: type
 
     def _process_request_arguments(self, data):
         if data is None:
@@ -199,15 +195,15 @@ class ModifiableMixin(Generic[RT], Common):
         data = self._process_request_arguments(data)
         return self._execute_request(method, data, pk)
 
-    def create(self, **kwargs) -> RT:
+    def create(self, **kwargs):
         result = self.perform_request("POST", data=kwargs)
         return self.response_model(**result)
 
-    def update(self, pk, **kwargs) -> RT:
+    def update(self, pk, **kwargs):
         result = self.perform_request("PUT", pk=pk, data=kwargs)
         return self.response_model(**result)
 
-    def partial_update(self, pk, **kwargs) -> RT:
+    def partial_update(self, pk, **kwargs):
         result = self.perform_request("PATCH", pk=pk, data=kwargs)
         return self.response_model(**result)
 

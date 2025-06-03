@@ -14,7 +14,7 @@ import httpx
 from httpx import URL, HTTPStatusError, Timeout
 
 import gcapi.models
-from gcapi.apibase import APIBase, ModifiableMixin
+from gcapi.apibase import APIBase, ClientInterface, ModifiableMixin
 from gcapi.check_version import check_version
 from gcapi.create_strategies import (
     Empty,
@@ -97,8 +97,7 @@ class ImagesAPI(APIBase[gcapi.models.HyperlinkedImage]):
 
 
 class UploadSessionsAPI(
-    ModifiableMixin[gcapi.models.RawImageUploadSession],
-    APIBase[gcapi.models.RawImageUploadSession],
+    ModifiableMixin, APIBase[gcapi.models.RawImageUploadSession]
 ):
     base_path = "cases/upload-sessions/"
     model = gcapi.models.RawImageUploadSession
@@ -117,18 +116,14 @@ class ReaderStudyQuestionsAPI(APIBase[gcapi.models.Question]):
 
 
 class ReaderStudyMineAnswersAPI(
-    ModifiableMixin[gcapi.models.Answer],
-    APIBase[gcapi.models.ReaderStudy],
+    ModifiableMixin, APIBase[gcapi.models.ReaderStudy]
 ):
     base_path = "reader-studies/answers/mine/"
     model = gcapi.models.ReaderStudy
     response_model = gcapi.models.Answer
 
 
-class ReaderStudyAnswersAPI(
-    ModifiableMixin[gcapi.models.Answer],
-    APIBase[gcapi.models.Answer],
-):
+class ReaderStudyAnswersAPI(ModifiableMixin, APIBase[gcapi.models.Answer]):
     base_path = "reader-studies/answers/"
     model = gcapi.models.Answer
     response_model = gcapi.models.Answer
@@ -152,8 +147,7 @@ class ReaderStudyAnswersAPI(
 
 
 class ReaderStudyDisplaySetsAPI(
-    ModifiableMixin[gcapi.models.DisplaySetPost],
-    APIBase[gcapi.models.DisplaySet],
+    ModifiableMixin, APIBase[gcapi.models.DisplaySet]
 ):
     base_path = "reader-studies/display-sets/"
     model = gcapi.models.DisplaySet
@@ -188,10 +182,7 @@ class AlgorithmsAPI(APIBase[gcapi.models.Algorithm]):
     model = gcapi.models.Algorithm
 
 
-class AlgorithmJobsAPI(
-    ModifiableMixin[gcapi.models.JobPost],
-    APIBase[gcapi.models.HyperlinkedJob],
-):
+class AlgorithmJobsAPI(ModifiableMixin, APIBase[gcapi.models.HyperlinkedJob]):
     base_path = "algorithms/jobs/"
     model = gcapi.models.HyperlinkedJob
     response_model = gcapi.models.JobPost
@@ -205,10 +196,7 @@ class ArchivesAPI(APIBase[gcapi.models.Archive]):
     model = gcapi.models.Archive
 
 
-class ArchiveItemsAPI(
-    ModifiableMixin[gcapi.models.ArchiveItemPost],
-    APIBase[gcapi.models.ArchiveItem],
-):
+class ArchiveItemsAPI(ModifiableMixin, APIBase[gcapi.models.ArchiveItem]):
     base_path = "archives/items/"
     model = gcapi.models.ArchiveItem
     response_model = gcapi.models.ArchiveItemPost
@@ -382,7 +370,7 @@ class ApiDefinitions:
     interfaces: ComponentInterfacesAPI
 
 
-class Client(httpx.Client, ApiDefinitions):
+class Client(httpx.Client, ApiDefinitions, ClientInterface):
     # Make MyPy happy, this is a mixin now, so the dependent values will
     # come in through a side-channel
     if TYPE_CHECKING:
