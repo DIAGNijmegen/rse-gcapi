@@ -1,15 +1,39 @@
 import collections
 from collections.abc import Iterator, Sequence
-from typing import Generic, TypeVar, overload
+from typing import Any, Generic, TypeVar, overload
 from urllib.parse import urljoin
 
-from httpx import HTTPStatusError
+from httpx import URL, HTTPStatusError
+from httpx._types import URLTypes
 from pydantic import RootModel
 from pydantic.dataclasses import is_pydantic_dataclass
 
 from gcapi.exceptions import MultipleObjectsReturned, ObjectNotFound
 
 T = TypeVar("T")
+
+
+class ClientInterface:
+    @property
+    def base_url(self) -> URL: ...
+
+    @base_url.setter
+    def base_url(self, v: URLTypes): ...
+
+    def validate_url(self, url): ...
+
+    def __call__(
+        self,
+        method="GET",
+        url="",
+        path="",
+        params=None,
+        json=None,
+        extra_headers=None,
+        files=None,
+        data=None,
+    ) -> Any:
+        raise NotImplementedError
 
 
 class PageResult(Generic[T], collections.abc.Sequence):
@@ -55,6 +79,7 @@ class PageResult(Generic[T], collections.abc.Sequence):
 
 class Common(Generic[T]):
     model: type[T]
+    _client: ClientInterface
     base_path: str
 
 
