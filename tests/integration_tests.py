@@ -105,6 +105,20 @@ def test_get_display_sets(local_grand_challenge):
     assert isinstance(display_sets[0], gcapi.models.DisplaySet)
 
 
+def test_get_algorithm_images(local_grand_challenge):
+    c = Client(
+        base_url=local_grand_challenge,
+        verify=False,
+        token=DEMO_PARTICIPANT_TOKEN,
+    )
+    algorithm = c.algorithms.detail(slug="test-algorithm-evaluation-image-0")
+    algorithm_images = list(
+        c.algorithm_images.iterate_all(params={"algorithm": algorithm.pk})
+    )
+    assert len(algorithm_images) > 0
+    assert isinstance(algorithm_images[0], gcapi.models.AlgorithmImage)
+
+
 def test_get_answers(local_grand_challenge):
     c = Client(
         base_url=local_grand_challenge, verify=False, token=READERSTUDY_TOKEN
