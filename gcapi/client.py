@@ -7,14 +7,14 @@ from io import BytesIO
 from pathlib import Path
 from random import randint
 from time import sleep
-from typing import TYPE_CHECKING, Any, Callable, Optional, Union, cast
+from typing import TYPE_CHECKING, Any, Callable, Optional, Union
 from urllib.parse import urljoin
 
 import httpx
 from httpx import URL, HTTPStatusError, Timeout
 
 import gcapi.models
-from gcapi.apibase import APIBase, ClientInterface, ModifiableMixin
+from gcapi.apibase import APIBase, ModifiableMixin
 from gcapi.check_version import check_version
 from gcapi.create_strategies import (
     Empty,
@@ -24,9 +24,11 @@ from gcapi.create_strategies import (
 from gcapi.exceptions import ObjectNotFound, SocketNotFound
 from gcapi.retries import BaseRetryStrategy, SelectiveBackoffStrategy
 from gcapi.transports import RetryTransport
-from gcapi.typing import SocketValueSet
 
 logger = logging.getLogger(__name__)
+
+if TYPE_CHECKING:
+    from gcapi.typing import SocketValueSet, SocketValueSetDescription
 
 
 def is_uuid(s):
@@ -370,15 +372,9 @@ class ApiDefinitions:
     interfaces: ComponentInterfacesAPI
 
 
-class Client(httpx.Client, ApiDefinitions, ClientInterface):
-    # Make MyPy happy, this is a mixin now, so the dependent values will
-    # come in through a side-channel
-    if TYPE_CHECKING:
-        _Base = httpx.Client
+class Client(httpx.Client, ApiDefinitions):
 
     _api_meta: ApiDefinitions
-
-    from gcapi.typing import SocketValueSet, SocketValueSetDescription
 
     def __init__(
         self,
@@ -986,7 +982,7 @@ class Client(httpx.Client, ApiDefinitions, ClientInterface):
         self,
         slug_or_socket,
         cache=None,
-    ):
+    ) -> gcapi.models.ComponentInterface:
         if isinstance(slug_or_socket, gcapi.models.ComponentInterface):
             return slug_or_socket
         else:
@@ -1019,15 +1015,13 @@ class Client(httpx.Client, ApiDefinitions, ClientInterface):
             strategy_per_value = []
 
             for socket_slug, source in description.items():
-                socket: gcapi.models.ComponentInterface = (
-                    self._fetch_socket_detail(
-                        slug_or_socket=socket_slug,
-                        cache=interface_cache,
-                    )
+                socket = self._fetch_socket_detail(
+                    slug_or_socket=socket_slug,
+                    cache=interface_cache,
                 )
                 strategy = SocketValueCreateStrategy(
                     client=self,
-                    socket=cast(gcapi.models.ComponentInterface, socket),
+                    socket=socket,
                     source=source,
                 )
                 strategy.prepare()
