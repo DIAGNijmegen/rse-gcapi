@@ -159,7 +159,7 @@ class ModifiableMixin(Common):
         elif isinstance(data, dict):
             return {k: self.recurse_model_dump(v) for k, v in data.items()}
         elif is_pydantic_dataclass(type(data)):
-            return RootModel[type(data)](data).model_dump()
+            return RootModel[type(data)](data).model_dump()  # type: ignore
         else:
             return data
 
