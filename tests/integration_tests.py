@@ -1,6 +1,7 @@
 from functools import partial
 from io import BytesIO
 from pathlib import Path
+from typing import cast
 
 import pytest
 from httpx import HTTPStatusError
@@ -647,7 +648,8 @@ def test_add_and_update_value_to_archive_item(local_grand_challenge):
     archive_item = c.archive_items.detail(pk=archive_item_pks[0])
 
     assert archive_item.values[0].interface.slug == "metrics-json-file"
-    assert archive_item.values[0].value["foo"] == "bar"
+    value = cast(dict, archive_item.values[0].value)
+    assert value["foo"] == "bar"
 
     # Update value
     archive_item = c.update_archive_item(
@@ -657,13 +659,13 @@ def test_add_and_update_value_to_archive_item(local_grand_challenge):
         },
     )
 
-    assert (
-        archive_item.values[0].value["foo2"] == "bar2"
-    ), "Sanity, values are applied directly"
+    value = cast(dict, archive_item.values[0].value)
+    assert value["foo2"] == "bar2", "Sanity, values are applied directly"
 
     updated_archive_item = c.archive_items.detail(pk=archive_item_pks[0])
     assert updated_archive_item.values[0].interface.slug == "metrics-json-file"
-    assert updated_archive_item.values[0].value["foo2"] == "bar2"
+    value = cast(dict, archive_item.values[0].value)
+    assert value["foo2"] == "bar2"
 
 
 def test_add_and_update_value_to_display_set(local_grand_challenge):
@@ -684,7 +686,7 @@ def test_add_and_update_value_to_display_set(local_grand_challenge):
     display_set = c.reader_studies.display_sets.detail(pk=display_set_pks[0])
 
     assert display_set.values[0].interface.slug == "metrics-json-file"
-    assert display_set.values[0].value["foo"] == "bar"
+    assert cast(dict, display_set.values[0].value)["foo"] == "bar"
 
     # Update the structured value
     display_set = c.update_display_set(
@@ -695,14 +697,14 @@ def test_add_and_update_value_to_display_set(local_grand_challenge):
     )
 
     assert (
-        display_set.values[0].value["foo2"] == "bar2"
+        cast(dict, display_set.values[0].value)["foo2"] == "bar2"
     ), "Sanity, values are applied directly"
 
     updated_display_set = c.reader_studies.display_sets.detail(
         pk=display_set_pks[0]
     )
     assert updated_display_set.values[0].interface.slug == "metrics-json-file"
-    assert updated_display_set.values[0].value["foo2"] == "bar2"
+    assert cast(dict, display_set.values[0].value)["foo2"] == "bar2"
 
 
 @pytest.mark.parametrize(
