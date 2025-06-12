@@ -191,6 +191,11 @@ class AlgorithmJobsAPI(ModifiableMixin, APIBase[gcapi.models.HyperlinkedJob]):
         yield from self.iterate_all(params={"image": pk})
 
 
+class AlgorithmImagesAPI(APIBase[gcapi.models.AlgorithmImage]):
+    base_path = "algorithms/images/"
+    model = gcapi.models.AlgorithmImage
+
+
 class ArchivesAPI(APIBase[gcapi.models.Archive]):
     base_path = "archives/"
     model = gcapi.models.Archive
@@ -363,6 +368,7 @@ class ApiDefinitions:
     uploads: UploadsAPI
     algorithms: AlgorithmsAPI
     algorithm_jobs: AlgorithmJobsAPI
+    algorithm_images: AlgorithmImagesAPI
     archives: ArchivesAPI
     workstation_configs: WorkstationConfigsAPI
     raw_image_upload_sessions: UploadSessionsAPI
