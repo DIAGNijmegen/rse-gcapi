@@ -1,5 +1,11 @@
 # History
 
+## 0.13.3
+* Migrate from Poetry to uv
+* Remove AsyncClient, only support the synchronous client
+* Add algorithm images API
+* Update models
+
 ## 0.13.3a0 (Alpha-release)
   - Migrate from Poetry to uv
 
