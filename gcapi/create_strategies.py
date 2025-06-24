@@ -1,22 +1,25 @@
-import io
+from __future__ import annotations
+
 import json
+from io import BytesIO
 from pathlib import Path
-from typing import Optional, Union
+from typing import TYPE_CHECKING, Any, Optional
 
 import httpx
 
+if TYPE_CHECKING:
+    from gcapi.client import Client
+
+from gcapi.exceptions import ObjectNotFound
 from gcapi.models import (
     Algorithm,
-    ArchiveItem,
-    ArchiveItemPost,
     ComponentInterface,
     ComponentInterfaceValuePostRequest,
-    DisplaySet,
-    DisplaySetPost,
     HyperlinkedComponentInterfaceValue,
     HyperlinkedImage,
+    UserUpload,
 )
-from gcapi.typing import FileSource, SocketValueSet, SocketValueSetDescription
+from gcapi.typing import FileSource, SocketValueSetDescription
 
 
 class TooManyFiles(ValueError):
@@ -61,90 +64,51 @@ class BaseCreateStrategy:
     a chain of dependent items to exists. The raison d'être of the strategies
     is to re-use code that checks and handles these relations.
 
-    Each strategy has a `prepare()` function to support batch preparing
+    Each strategy prepares when initiating to support batch preparing
     before things actually land on Grand Challenge. Preparing should **not**
-    create anything on Grand Challenge.
+    create anything on Grand Challenge. But can reach out to the API.
 
     Calling the strategy will, if applicable, upload contents and hence cause
-    objects to be created on Grand Challenge. Calling the strategy will return
-    a dict that describes how others items can hook up to the created items.
+    objects to be created on Grand Challenge.
     """
+
+    client: Client
 
     def __init__(self, *, client):
         self.client = client
-        self.prepared = False
 
-    def prepare(self):
-        """Ensure that the strategy can be executed"""
-        self.prepared = True
-
-    def __call__(self):
-        """
-        If applicable, upload any contents and returns an item
-        that can be used in POSTs that would use the created objects.
-        """
-        if not self.prepared:
-            self.prepare()
+    def __call__(self) -> Any: ...
 
 
 class SocketValueCreateStrategy(BaseCreateStrategy):
-
-    def __new__(cls, *, socket: ComponentInterface, **__):
-        # Determine the class specialization based on the interface's super_kind.
-        handler_class = {
-            "image": ImageSocketValueCreateStrategy,
-            "file": FileSocketValueCreateStrategy,
-            "value": ValueSocketValueCreateStrategy,
-        }.get(socket.super_kind.casefold())
-
-        if handler_class is None:
-            raise NotImplementedError(
-                f"Unsupported interface super_kind: {socket.super_kind}"
-            )
-
-        if cls is not SocketValueCreateStrategy:
-            # Specialized class: double check if it supports the interface.
-            if cls is not handler_class:
-                raise RuntimeError(
-                    f"{cls} does not support interface "
-                    f"super_kind: {socket.super_kind}"
-                )
-            return super().__new__(cls)
-
-        return super().__new__(handler_class)
+    supported_super_kind: str
+    socket: ComponentInterface
 
     def __init__(
         self,
         *,
-        source: Union[
-            FileSource, HyperlinkedComponentInterfaceValue, HyperlinkedImage
-        ],
         socket: ComponentInterface,
-        parent: Optional[SocketValueSet] = None,
         **kwargs,
-    ):
+    ) -> None:
         super().__init__(**kwargs)
 
-        self.source = source
         self.socket = socket
-        self.parent = parent
-
-    def prepare(self):
-        super().prepare()
 
         if (
-            isinstance(self.source, HyperlinkedComponentInterfaceValue)
-            and self.source.interface.pk != self.socket.pk
+            self.socket.super_kind.casefold()
+            != self.supported_super_kind.casefold()
         ):
-            raise ValueError(
-                f"Source {self.source.interface.title!r} does not "
-                f"match socket {self.socket.title!r}"
+            raise NotSupportedError(
+                f"Socket {self.socket.title!r} is not supported by this strategy: "
+                f"it has super_kind {self.socket.super_kind!r}, whereas we expected "
+                f"{self.supported_super_kind!r}"
             )
 
-    def __call__(self):
-        super().__call__()
+    def __call__(
+        self: SocketValueCreateStrategy,
+    ) -> ComponentInterfaceValuePostRequest:
 
-        return ComponentInterfaceValuePostRequest(  # noqa: B901
+        return ComponentInterfaceValuePostRequest(
             interface=self.socket.slug,
             value=None,
             file=None,
@@ -154,121 +118,188 @@ class SocketValueCreateStrategy(BaseCreateStrategy):
         )
 
 
-class FileSocketValueCreateStrategy(SocketValueCreateStrategy):
+_strategy_registry = []
 
-    def prepare(self):
-        super().prepare()
 
-        if isinstance(self.source, HyperlinkedComponentInterfaceValue):
-            self.content_name = Path(self.source.file).name
-        else:
-            try:
-                self._prepare_from_local_file(file=self.source)
-            except FileNotFoundError as file_val_error:
-                self._prepare_from_provided_value(
-                    value=self.source, file_val_error=file_val_error
-                )
+def register_socket_value_strategy(strategy_class):
+    _strategy_registry.append(strategy_class)
+    return strategy_class
 
-    def _prepare_from_local_file(self, file):
-        cleaned_sources = clean_file_source(file, maximum_number=1)
+
+class NotSupportedError(Exception):
+    """
+    Exception raised when a strategy is not supported for a given socket / source
+    """
+
+    pass
+
+
+def select_socket_value_strategy(
+    *,
+    socket,
+    source,
+    client,
+) -> SocketValueCreateStrategy:
+    for strategy_class in _strategy_registry:
+        try:
+            return strategy_class(socket=socket, source=source, client=client)
+        except NotSupportedError:
+            continue
+
+    raise NotImplementedError(
+        f"No strategy found that supports socket {socket.title} with source {source}"
+    )
+
+
+@register_socket_value_strategy
+class FileCreateStrategy(SocketValueCreateStrategy):
+    """Direct file upload strategy"""
+
+    supported_super_kind = "file"
+
+    content: Path
+    content_name: str
+
+    def __init__(self, source, **kwargs):
+        super().__init__(**kwargs)
+
+        try:
+            cleaned_sources = clean_file_source(source, maximum_number=1)
+        except FileNotFoundError as e:
+            raise NotSupportedError from e
+        except TooManyFiles as e:
+            raise ValueError("Too many files provided") from e
+
         self.content = cleaned_sources[0]
         self.content_name = self.content.name
 
-    def _prepare_from_provided_value(self, value, file_val_error):
-        if self.socket.kind.casefold() == "string":
-            # Incorrect paths being uploaded as content to a String
-            # socket can easily bypass detection.
-            # We'll be overprotective and not allow via-value uploads.
-            raise FileNotFoundError(
-                f"Socket kind {self.socket.kind} requires to be uploaded "
-                "as a file, replace the value with an existing file path"
-            ) from file_val_error
-        try:
-            json_str = json.dumps(value)
-        except TypeError:
-            raise file_val_error
+    def __call__(self):
+        post_request = super().__call__()
 
-        self.content = io.StringIO(json_str)
-        self.content_name = self.socket.relative_path
-
-    def _create_from_socket(self, post_request):
-
-        # Cannot link a file directly to file, so we download it first
-        response_or_json = self.client(
-            url=self.source.file,
-            follow_redirects=True,
-        )
-        if isinstance(response_or_json, httpx.Response):
-            fileobj = io.StringIO(response_or_json.content.decode("utf-8"))
-        else:
-            # Else, the response is actually the JSON
-            fileobj = io.StringIO(json.dumps(response_or_json))
-
-        user_upload = self.client.uploads.upload_fileobj(
-            fileobj=fileobj, filename=self.content_name
-        )
+        with open(self.content, "rb") as f:
+            user_upload = self.client.uploads.upload_fileobj(
+                fileobj=f, filename=self.content_name
+            )
 
         post_request.user_upload = user_upload.api_url
         return post_request
 
+
+@register_socket_value_strategy
+class FileJSONCreateStrategy(SocketValueCreateStrategy):
+    """Some JSON serializable Python object upload strategy"""
+
+    supported_super_kind = "file"
+
+    content: bytes
+    content_name: str
+
+    def __init__(self, source, **kwargs):
+        super().__init__(**kwargs)
+
+        if self.socket.kind.casefold() == "string":
+            # Incorrect paths being uploaded as content to a String
+            # socket can easily bypass detection.
+            # We'll be overprotective and not allow via-value uploads.
+            raise ValueError(
+                f"Socket kind {self.socket.kind} requires to be uploaded "
+                "as a file, replace the value with an existing file path"
+            )
+        try:
+            json_bytes = json.dumps(source).encode()
+        except TypeError:
+            raise NotSupportedError(
+                "Source is not JSON serializable"
+            ) from None
+        else:
+            self.content = json_bytes
+            self.content_name = self.socket.relative_path
+
     def __call__(self):
         post_request = super().__call__()
 
-        if isinstance(self.source, HyperlinkedComponentInterfaceValue):
-            return self._create_from_socket(post_request)
-        else:
-            with open(self.content, "rb") as f:
-                user_upload = self.client.uploads.upload_fileobj(
-                    fileobj=f, filename=self.content_name
-                )
-
-            post_request.user_upload = user_upload.api_url
-            return post_request
-
-
-class ImageSocketValueCreateStrategy(SocketValueCreateStrategy):
-
-    def prepare(self):
-        super().prepare()
-
-        if isinstance(self.source, HyperlinkedImage):
-            self.content = self.source
-        elif (
-            isinstance(self.source, HyperlinkedComponentInterfaceValue)
-            and self.source.image is not None
-        ):
-            self.content = self.client.images.detail(api_url=self.source.image)
-        else:
-            self.content = clean_file_source(self.source)
-
-    def __call__(self):
-        post_request = super().__call__()
-
-        if isinstance(self.content, HyperlinkedImage):
-            # Reuse the existing image
-            post_request.image = self.content.api_url
-            return post_request
-
-        # Upload the image
-        if self.parent is None:
-            # No need to specify target
-            upload_session_data = {}
-        elif isinstance(self.parent, (DisplaySet, DisplaySetPost)):
-            upload_session_data = {
-                "display_set": self.parent.pk,
-                "interface": self.socket.slug,
-            }
-        elif isinstance(self.parent, (ArchiveItem, ArchiveItemPost)):
-            upload_session_data = {
-                "archive_item": self.parent.pk,
-                "interface": self.socket.slug,
-            }
-        else:
-            raise NotImplementedError(
-                f"{type(self.parent)} not supported for uploading images"
+        with BytesIO(self.content) as f:
+            user_upload = self.client.uploads.upload_fileobj(
+                fileobj=f, filename=self.content_name
             )
 
-        uploads = []
+        post_request.user_upload = user_upload.api_url
+        return post_request
+
+
+@register_socket_value_strategy
+class FileFromSVCreateStrategy(SocketValueCreateStrategy):
+    """Uses a SocketValue as source"""
+
+    supported_super_kind = "file"
+
+    content_api_url: str
+    content_name: str
+
+    def __init__(self, source, **kwargs):
+        super().__init__(**kwargs)
+
+        if not isinstance(source, HyperlinkedComponentInterfaceValue):
+            raise NotSupportedError("Source must be a SocketValue")
+
+        if source.interface.pk != self.socket.pk:
+            raise ValueError(
+                f"Source {source.interface.title!r} does not "
+                f"match socket {self.socket.title!r}"
+            )
+
+        if source.file is None:
+            raise ValueError("SocketValue must have a file")
+
+        self.content_api_url = source.file
+        self.content_name = Path(source.file).name
+
+    def _download_from_socket(self) -> bytes:
+        response_or_json = self.client(
+            url=self.content_api_url,
+            follow_redirects=True,
+        )
+        if isinstance(response_or_json, httpx.Response):
+            return response_or_json.content
+        else:
+            # Else, the response is actually the JSON already
+            return json.dumps(response_or_json).encode()
+
+    def __call__(self):
+        post_request = super().__call__()
+
+        # Cannot link a file directly to file, so we download it first
+
+        content = self._download_from_socket()
+
+        with BytesIO(content) as f:
+            user_upload = self.client.uploads.upload_fileobj(
+                fileobj=f, filename=self.content_name
+            )
+
+        post_request.user_upload = user_upload.api_url
+        return post_request
+
+
+@register_socket_value_strategy
+class ImageCreateStrategy(SocketValueCreateStrategy):
+    """Direct image-file upload strategy"""
+
+    supported_super_kind = "image"
+    content: list[Path]
+
+    def __init__(self, source, **kwargs):
+        super().__init__(**kwargs)
+
+        try:
+            self.content = clean_file_source(source)
+        except FileNotFoundError as e:
+            raise NotSupportedError from e
+
+    def __call__(self):
+        post_request = super().__call__()
+
+        uploads: list[UserUpload] = []
         for file in self.content:
             with open(file, "rb") as f:
                 uploads.append(
@@ -279,37 +310,155 @@ class ImageSocketValueCreateStrategy(SocketValueCreateStrategy):
         raw_image_upload_session = (
             self.client.raw_image_upload_sessions.create(
                 uploads=[u.api_url for u in uploads],
-                **upload_session_data,
             )
         )
 
-        if self.parent is None:
-            post_request.upload_session = raw_image_upload_session.api_url
-            return post_request
-        else:
-            return Empty
+        post_request.upload_session = raw_image_upload_session.api_url
+        return post_request
 
 
-class ValueSocketValueCreateStrategy(SocketValueCreateStrategy):
+@register_socket_value_strategy
+class ImageFromSVCreateStrategy(SocketValueCreateStrategy):
+    """Indirect via an HyperlinkedImage or SocketValue"""
 
-    def prepare(self):
-        super().prepare()
+    supported_super_kind = "image"
+    content_api_url: httpx.URL
 
-        if isinstance(self.source, HyperlinkedComponentInterfaceValue):
-            self.content = self.source.value
-        else:
+    def __init__(
+        self,
+        source: Any,
+        **kwargs,
+    ) -> None:
+        super().__init__(**kwargs)
+
+        if isinstance(source, HyperlinkedImage):
+            url = source.api_url
+        elif isinstance(source, HyperlinkedComponentInterfaceValue):
+            if source.image is None:
+                raise ValueError(
+                    "HyperlinkedComponentInterfaceValue must have an image"
+                )
+            url = source.image
+            if self.socket.pk != source.interface.pk:
+                raise ValueError(
+                    f"Source {source.interface.title!r} does not "
+                    f"match socket {self.socket.title!r}"
+                )
+        elif isinstance(source, str):
+            # Possibly an identifier (i.e. uuid or API url)
             try:
-                self._prepare_from_local_file(file=self.source)
-            except FileNotFoundError:
-                json.dumps(self.source)  # Check if it is JSON serializable
-                self.content = self.source
+                image = self.client.images.detail(api_url=source)
+            except ObjectNotFound:
+                try:
+                    image = self.client.images.detail(pk=source)
+                except ObjectNotFound:
+                    raise ValueError(
+                        f"Image with pk or api_url {source} does not exist"
+                    ) from None
 
-    def _prepare_from_local_file(self, file):
-        cleaned_sources = clean_file_source(file, maximum_number=1)
+            url = image.api_url
+        else:
+            raise NotSupportedError(
+                "Source must be a HyperlinkedImage, a pk/api_url pointing to one "
+                "or a HyperlinkedComponentInterfaceValue"
+            )
+
+        self.content_api_url = httpx.URL(url)
+
+    def __call__(self):
+        post_request = super().__call__()
+        post_request.image = str(self.content_api_url)
+        return post_request
+
+
+@register_socket_value_strategy
+class ValueFromFileCreateStrategy(SocketValueCreateStrategy):
+    """Directly provided value"""
+
+    supported_super_kind = "value"
+    content: Path
+
+    def __init__(self, source: Any, **kwargs):
+        super().__init__(**kwargs)
+
+        try:
+            cleaned_sources = clean_file_source(source, maximum_number=1)
+        except FileNotFoundError as e:
+            raise NotSupportedError from e
+        except TooManyFiles as e:
+            raise ValueError("Too many files provided") from e
+
         self.content = cleaned_sources[0]
 
+        # Check parsable JSON, but for
+        # memory considerations do not load it yet
+
         with open(self.content) as fp:
-            self.content = json.load(fp)
+            try:
+                json.load(fp)
+            except json.JSONDecodeError as e:
+                raise ValueError(
+                    f"File {self.content} is not a valid JSON file. "
+                    "Nothing has been uploaded."
+                ) from e
+
+    def __call__(self):
+        post_request = super().__call__()
+
+        with open(self.content) as fp:
+            post_request.value = json.load(fp)
+
+        return post_request
+
+
+@register_socket_value_strategy
+class ValueFromSVStrategy(SocketValueCreateStrategy):
+
+    supported_super_kind = "value"
+    content: Any
+
+    def __init__(self, source: Any, **kwargs):
+        super().__init__(**kwargs)
+
+        if not isinstance(source, HyperlinkedComponentInterfaceValue):
+            raise NotSupportedError("Source must be a SocketValue")
+
+        if source.interface.pk != self.socket.pk:
+            raise ValueError(
+                f"Source {source.interface.title!r} does not "
+                f"match socket {self.socket.title!r}"
+            )
+
+        if source.value is None:
+            raise ValueError("SocketValue must have a value")
+
+        self.content = source.value
+
+    def __call__(self):
+        post_request = super().__call__()
+
+        post_request.value = self.content
+
+        return post_request
+
+
+@register_socket_value_strategy
+class ValueCreateStrategy(SocketValueCreateStrategy):
+
+    supported_super_kind = "value"
+    content: Any
+
+    def __init__(self, source: Any, **kwargs):
+        super().__init__(**kwargs)
+
+        try:
+            json.dumps(source)  # Check if it is JSON serializable
+        except TypeError as e:
+            raise ValueError(
+                "Source is not JSON serializable. Nothing has been uploaded."
+            ) from e
+
+        self.content = source
 
     def __call__(self):
         post_request = super().__call__()
@@ -318,30 +467,44 @@ class ValueSocketValueCreateStrategy(SocketValueCreateStrategy):
 
 
 class JobInputsCreateStrategy(BaseCreateStrategy):
+    input_strategies: list[SocketValueCreateStrategy]
+    algorithm: Algorithm
+
     def __init__(
         self,
         *,
-        algorithm: Union[str, Algorithm],
+        algorithm: Algorithm,
         inputs: SocketValueSetDescription,
         **kwargs,
     ):
         super().__init__(**kwargs)
 
         self.algorithm = algorithm
-        self.inputs = inputs
+        self.input_strategies = []
 
-        self.input_strategies: list[SocketValueCreateStrategy] = []
+        self._assert_matching_interface(inputs)
 
-    def prepare(self):
-        super().prepare()
+        socket_lookup: dict[str, ComponentInterface] = {
+            socket.slug: socket
+            for interface in self.algorithm.interfaces
+            for socket in interface.inputs
+        }
 
-        if isinstance(self.algorithm, str):
-            self.algorithm = self.client.algorithms.detail(slug=self.algorithm)
+        for socket_slug, source in inputs.items():
+            socket_value_strategy = select_socket_value_strategy(
+                source=source,
+                socket=socket_lookup[socket_slug],
+                client=self.client,
+            )
+
+            self.input_strategies.append(socket_value_strategy)
+
+    def _assert_matching_interface(self, inputs) -> None:
 
         # Find a matching interface
         matching_interface = None
 
-        input_keys = set(self.inputs.keys())
+        input_keys = set(inputs.keys())
 
         best_matching_sockets_count = 0
         best_matching_interface = None
@@ -365,29 +528,5 @@ class JobInputsCreateStrategy(BaseCreateStrategy):
                 msg += f" The closest match is {best_matching_interface}."
             raise ValueError(msg)
 
-        socket_lookup = {
-            socket.slug: socket
-            for interface in self.algorithm.interfaces
-            for socket in interface.inputs
-        }
-
-        for socket_slug, source in self.inputs.items():
-            socket_value_strategy = SocketValueCreateStrategy(
-                source=source,
-                socket=socket_lookup[socket_slug],
-                client=self.client,
-            )
-            socket_value_strategy.prepare()
-
-            self.input_strategies.append(socket_value_strategy)
-
     def __call__(self):
-        super().__call__()
-
-        input_post_requests = []
-        for strat in self.input_strategies:
-            post_request = strat()
-            if post_request is not Empty:
-                input_post_requests.append(post_request)
-
-        return input_post_requests
+        return [s() for s in self.input_strategies]

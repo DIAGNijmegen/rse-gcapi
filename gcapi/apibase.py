@@ -1,10 +1,11 @@
+from __future__ import annotations
+
 import collections
 from collections.abc import Iterator, Sequence
-from typing import Any, Generic, TypeVar, overload
+from typing import TYPE_CHECKING, Generic, TypeVar, overload
 from urllib.parse import urljoin
 
-from httpx import URL, HTTPStatusError
-from httpx._types import URLTypes
+from httpx import HTTPStatusError
 from pydantic import RootModel
 from pydantic.dataclasses import is_pydantic_dataclass
 
@@ -12,29 +13,8 @@ from gcapi.exceptions import MultipleObjectsReturned, ObjectNotFound
 
 T = TypeVar("T")
 
-
-class ClientInterface:
-    @property
-    def base_url(self) -> URL: ...
-
-    @base_url.setter
-    def base_url(self, v: URLTypes): ...
-
-    def validate_url(self, url): ...
-
-    def __call__(
-        self,
-        method="GET",
-        url="",
-        path="",
-        params=None,
-        json=None,
-        extra_headers=None,
-        files=None,
-        data=None,
-        follow_redirects=False,
-    ) -> Any:
-        raise NotImplementedError
+if TYPE_CHECKING:
+    from gcapi import Client
 
 
 class PageResult(Generic[T], collections.abc.Sequence):
@@ -80,14 +60,14 @@ class PageResult(Generic[T], collections.abc.Sequence):
 
 class Common(Generic[T]):
     model: type[T]
-    _client: ClientInterface
+    _client: Client
     base_path: str
 
 
 class APIBase(Generic[T], Common[T]):
-    sub_apis: dict[str, type["APIBase"]] = {}
+    sub_apis: dict[str, type[APIBase]] = {}
 
-    def __init__(self, client) -> None:
+    def __init__(self, client: Client) -> None:
         if isinstance(self, ModifiableMixin):
             ModifiableMixin.__init__(self)
 
@@ -179,7 +159,7 @@ class ModifiableMixin(Common):
         elif isinstance(data, dict):
             return {k: self.recurse_model_dump(v) for k, v in data.items()}
         elif is_pydantic_dataclass(type(data)):
-            return RootModel[type(data)](data).model_dump()
+            return RootModel[type(data)](data).model_dump()  # type: ignore
         else:
             return data
 
