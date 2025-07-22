@@ -4,6 +4,7 @@ from unittest.mock import MagicMock
 
 import pytest
 
+import gcapi.create_strategies
 from gcapi.create_strategies import (
     FileCreateStrategy,
     FileFromSVCreateStrategy,
@@ -17,6 +18,7 @@ from gcapi.create_strategies import (
     ValueCreateStrategy,
     ValueFromFileCreateStrategy,
     ValueFromSVStrategy,
+    _strategy_registry,
     clean_file_source,
     select_socket_value_strategy,
 )
@@ -410,3 +412,21 @@ def test_job_inputs_create_prep(algorithm, inputs, context):
             inputs=inputs,
             client=MagicMock(),
         )
+
+
+def test_ordering_strategy_registry():
+    """Ensure that the strategy registry is ordered correctly."""
+
+    assert _strategy_registry == [
+        # File
+        gcapi.create_strategies.FileCreateStrategy,
+        gcapi.create_strategies.FileJSONCreateStrategy,
+        gcapi.create_strategies.FileFromSVCreateStrategy,
+        # Image
+        gcapi.create_strategies.ImageCreateStrategy,
+        gcapi.create_strategies.ImageFromSVCreateStrategy,
+        # Value
+        gcapi.create_strategies.ValueFromFileCreateStrategy,
+        gcapi.create_strategies.ValueFromSVStrategy,
+        gcapi.create_strategies.ValueCreateStrategy,
+    ]
