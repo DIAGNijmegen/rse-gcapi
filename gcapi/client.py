@@ -7,24 +7,24 @@ from io import BytesIO
 from pathlib import Path
 from random import randint
 from time import sleep
-from typing import TYPE_CHECKING, Any, Callable, Optional, Union, cast
+from typing import Any, Callable, Optional, Union
 from urllib.parse import urljoin
 
 import httpx
 from httpx import URL, HTTPStatusError, Timeout
 
 import gcapi.models
-from gcapi.apibase import APIBase, ClientInterface, ModifiableMixin
+from gcapi.apibase import APIBase, ModifiableMixin
 from gcapi.check_version import check_version
 from gcapi.create_strategies import (
-    Empty,
     JobInputsCreateStrategy,
     SocketValueCreateStrategy,
+    select_socket_value_strategy,
 )
 from gcapi.exceptions import ObjectNotFound, SocketNotFound
 from gcapi.retries import BaseRetryStrategy, SelectiveBackoffStrategy
 from gcapi.transports import RetryTransport
-from gcapi.typing import SocketValueSet
+from gcapi.typing import SocketValueSet, SocketValueSetDescription
 
 logger = logging.getLogger(__name__)
 
@@ -315,7 +315,7 @@ class UploadsAPI(APIBase[gcapi.models.UserUpload]):
 
     def _put_chunk(self, *, chunk, url):
         num_retries = 0
-        e = Exception
+        e = Exception()
 
         if isinstance(chunk, BytesIO):
             chunk = chunk.read()
@@ -376,15 +376,9 @@ class ApiDefinitions:
     interfaces: ComponentInterfacesAPI
 
 
-class Client(httpx.Client, ApiDefinitions, ClientInterface):
-    # Make MyPy happy, this is a mixin now, so the dependent values will
-    # come in through a side-channel
-    if TYPE_CHECKING:
-        _Base = httpx.Client
+class Client(httpx.Client, ApiDefinitions):
 
     _api_meta: ApiDefinitions
-
-    from gcapi.typing import SocketValueSet, SocketValueSetDescription
 
     def __init__(
         self,
@@ -509,7 +503,7 @@ class Client(httpx.Client, ApiDefinitions, ClientInterface):
     def upload_cases(  # noqa: C901
         self,
         *,
-        files: list[str],
+        files: list[Union[str, Path]],
         archive: Optional[str] = None,
         answer: Optional[str] = None,
         archive_item: Optional[str] = None,
@@ -701,12 +695,11 @@ class Client(httpx.Client, ApiDefinitions, ClientInterface):
             algorithm = self.algorithms.detail(slug=algorithm)
 
         input_strategy = JobInputsCreateStrategy(
-            client=self,
             algorithm=algorithm,
             inputs=inputs,
+            client=self,
         )
 
-        input_strategy.prepare()
         inputs = input_strategy()
 
         return self.algorithm_jobs.create(
@@ -992,7 +985,7 @@ class Client(httpx.Client, ApiDefinitions, ClientInterface):
         self,
         slug_or_socket,
         cache=None,
-    ):
+    ) -> gcapi.models.ComponentInterface:
         if isinstance(slug_or_socket, gcapi.models.ComponentInterface):
             return slug_or_socket
         else:
@@ -1025,18 +1018,15 @@ class Client(httpx.Client, ApiDefinitions, ClientInterface):
             strategy_per_value = []
 
             for socket_slug, source in description.items():
-                socket: gcapi.models.ComponentInterface = (
-                    self._fetch_socket_detail(
-                        slug_or_socket=socket_slug,
-                        cache=interface_cache,
-                    )
+                socket = self._fetch_socket_detail(
+                    slug_or_socket=socket_slug,
+                    cache=interface_cache,
                 )
-                strategy = SocketValueCreateStrategy(
+                strategy = select_socket_value_strategy(
                     client=self,
-                    socket=cast(gcapi.models.ComponentInterface, socket),
+                    socket=socket,
                     source=source,
                 )
-                strategy.prepare()
                 strategy_per_value.append(strategy)
 
             strategies_per_value_set.append(strategy_per_value)
@@ -1045,12 +1035,7 @@ class Client(httpx.Client, ApiDefinitions, ClientInterface):
         socket_value_sets: list[SocketValueSet] = []
         for strategies in strategies_per_value_set:
             socket_value_set = api.create(**creation_kwargs)
-            values = []
-            for strategy in strategies:
-                strategy.parent = socket_value_set
-                post_value = strategy()
-                if post_value is not Empty:
-                    values.append(post_value)
+            values = [s() for s in strategies]
             update_socket_value_set = api.partial_update(
                 pk=socket_value_set.pk, values=values
             )
@@ -1072,19 +1057,13 @@ class Client(httpx.Client, ApiDefinitions, ClientInterface):
                 self._fetch_socket_detail(socket_slug)
             )
 
-            strategy = SocketValueCreateStrategy(
+            strategy = select_socket_value_strategy(
                 source=source,
                 socket=socket,
                 client=self,
-                parent=target,
             )
-            strategy.prepare()
             strategies.append(strategy)
 
-        values = []
-        for strategy in strategies:
-            value = strategy()
-            if value is not Empty:
-                values.append(value)
+        values = [s() for s in strategies]
 
         return api.partial_update(pk=target.pk, values=values)

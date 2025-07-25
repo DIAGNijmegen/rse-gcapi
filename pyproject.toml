@@ -52,6 +52,15 @@ python_files = "tests.py test_*.py *_tests.py"
 addopts = "--strict-markers --showlocals"
 xfail_strict = true
 
+[tool.mypy]
+python_version = 3.9
+plugins = "pydantic.mypy"
+warn_unused_configs = true
+warn_redundant_casts = true
+warn_unused_ignores = true
+strict_equality = true
+check_untyped_defs = true
+
 [tool.tox]
 legacy_tox_ini = """
 [tox]

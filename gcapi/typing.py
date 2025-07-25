@@ -1,5 +1,5 @@
 from pathlib import Path
-from typing import Union
+from typing import Any, Union
 
 import gcapi.models
 
@@ -11,14 +11,7 @@ FileSource = Union[
 ]
 
 
-SocketValueSetDescription = dict[
-    Union[str, gcapi.models.ComponentInterface],
-    Union[
-        FileSource,
-        gcapi.models.HyperlinkedComponentInterfaceValue,
-        gcapi.models.HyperlinkedImage,
-    ],
-]
+SocketValueSetDescription = dict[str, Any]
 
 SocketValueSet = Union[
     gcapi.models.DisplaySet,

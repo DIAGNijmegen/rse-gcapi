@@ -1,8 +1,10 @@
+from typing import Any
+
 import pytest
 
 from gcapi.models import Algorithm
 
-DEFAULT_ALGORITHM_ARGS = {
+DEFAULT_ALGORITHM_ARGS: dict[str, Any] = {
     "pk": "1234",
     "api_url": "",
     "url": "",
@@ -17,12 +19,12 @@ DEFAULT_ALGORITHM_ARGS = {
 
 @pytest.mark.filterwarnings("ignore::DeprecationWarning")
 def test_extra_definitions_allowed():
-    a = Algorithm(**DEFAULT_ALGORITHM_ARGS, extra="extra")
+    a = Algorithm(**DEFAULT_ALGORITHM_ARGS, extra="extra")  # type: ignore
 
     assert a.pk == "1234"
 
     with pytest.raises(AttributeError):
-        a.extra
+        a.extra  # type: ignore
 
 
 @pytest.mark.filterwarnings("ignore::DeprecationWarning")
