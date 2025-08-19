@@ -133,15 +133,16 @@ class ReaderStudyAnswersAPI(ModifiableMixin, APIBase[gcapi.models.Answer]):
     mine = None  # type: ReaderStudyMineAnswersAPI
 
     def _process_request_arguments(self, data):
-        key_and_url = {
-            "question": ReaderStudyQuestionsAPI.base_path,
-            "display_set": ReaderStudyDisplaySetsAPI.base_path,
-        }
-        for key, api in key_and_url.items():
-            if is_uuid(data.get(key, "")):
-                data[key] = str(
-                    self._client.base_url.join(api).join(data[key] + "/")
-                )
+        if data is not None:
+            key_and_url = {
+                "question": ReaderStudyQuestionsAPI.base_path,
+                "display_set": ReaderStudyDisplaySetsAPI.base_path,
+            }
+            for key, api in key_and_url.items():
+                if is_uuid(data.get(key, "")):
+                    data[key] = str(
+                        self._client.base_url.join(api).join(data[key] + "/")
+                    )
 
         return ModifiableMixin._process_request_arguments(self, data)
 
