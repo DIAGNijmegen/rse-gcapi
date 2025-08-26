@@ -410,7 +410,7 @@ def test_get_algorithm_by_slug(local_grand_challenge):
     by_pk = c.algorithms.detail(pk=by_slug.pk)
     by_api_url = c.algorithms.detail(by_api_url=by_slug.api_url)
 
-    assert by_pk == by_slug == by_api_url
+    assert by_pk.pk == by_slug.pk == by_api_url.pk
 
 
 def test_get_reader_study_by_slug(local_grand_challenge):
@@ -422,7 +422,7 @@ def test_get_reader_study_by_slug(local_grand_challenge):
     by_pk = c.reader_studies.detail(pk=by_slug.pk)
     by_api_url = c.reader_studies.detail(by_api_url=by_slug.api_url)
 
-    assert by_pk == by_slug == by_api_url
+    assert by_pk.pk == by_slug.pk == by_api_url.pk
 
 
 @pytest.mark.parametrize(
