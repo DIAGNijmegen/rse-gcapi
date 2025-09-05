@@ -32,6 +32,7 @@ dev = [
     "pytest-cov",
     "pyyaml",
     "datamodel-code-generator",
+    "pre-commit",
 ]
 
 [tool.isort]
