@@ -20,18 +20,13 @@ jobs:
   precommit:
     runs-on: ubuntu-latest
     steps:
-      - name: Install Python ${{ env.MINIMUM_PYTHON_VERSION }}
-        uses: actions/setup-python@v5
+      - uses: actions/checkout@v4
+      - name: Install uv and set the python version
+        uses: astral-sh/setup-uv@v6
         with:
           python-version: ${{ env.MINIMUM_PYTHON_VERSION }}
-      - uses: actions/checkout@v4
-      - name: Install pre-commit
-        run: |
-          python -m pip install --upgrade pip
-          python -m pip install pre-commit virtualenv!=20.0.6
-          pre-commit install
       - name: Run static code inspections
-        run: pre-commit run --all-files
+        run: uv run pre-commit run --all-files
 
   build:
     runs-on: ubuntu-latest
@@ -45,14 +40,10 @@ jobs:
         python-version: ["3.9", "3.10", "3.11", "3.12", "3.13"]
     steps:
       - uses: actions/checkout@v4
-      - name: Set up Python ${{ matrix.python-version }}
-        uses: actions/setup-python@v5
+      - name: Install uv and set the python version
+        uses: astral-sh/setup-uv@v6
         with:
           python-version: ${{ matrix.python-version }}
-      - name: Install dependencies
-        run: |
-          python -m pip install --upgrade pip
-          python -m pip install tox-gh-actions uv
       - name: Configure AWS credentials
         uses: aws-actions/configure-aws-credentials@v4
         with:
@@ -68,23 +59,20 @@ jobs:
           retry -t 5 -- docker pull public.ecr.aws/diag-nijmegen/grand-challenge/http:latest
       - name: Add gc.localhost to /etc/hosts
         run: sudo echo "127.0.0.1 gc.localhost\n127.0.0.1 minio.localhost" | sudo tee -a /etc/hosts
-      - name: Run tox
-        run: tox
+      - name: Run uv
+        run: |
+          uv run pytest --cov-branch --cov-report term-missing --cov=tests/ --cov=gcapi/
 
   deploy:
     if: github.event_name == 'release'
     needs: [precommit, build]
     runs-on: ubuntu-latest
     steps:
-      - name: Install Python ${{ env.MINIMUM_PYTHON_VERSION }}
-        uses: actions/setup-python@v5
+      - uses: actions/checkout@v4
+      - name: Install uv and set the python version
+        uses: astral-sh/setup-uv@v6
         with:
           python-version: ${{ env.MINIMUM_PYTHON_VERSION }}
-      - uses: actions/checkout@v4
-      - name: Install dependencies
-        run: |
-          python -m pip install --upgrade pip
-          python -m pip install uv
       - name: Upload to pypi
         env:
           UV_PUBLISH_TOKEN: ${{ secrets.PYPI_TOKEN }}
