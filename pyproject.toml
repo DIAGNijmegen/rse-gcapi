@@ -62,24 +62,12 @@ strict_equality = true
 check_untyped_defs = true
 
 [tool.tox]
-legacy_tox_ini = """
-[tox]
-isolated_build = True
-envlist = py39, py310, py311, py312, py313
+isolated_build = true
+env_list = ["py39", "py310", "py311", "py312", "py313"]
 
-[gh-actions]
-python =
-    3.9: py39
-    3.10: py310
-    3.11: py311
-    3.12: py312
-    3.13: py313
-
-[testenv]
-allowlist_externals =
-    uv
-setenv =
-    PYTHONPATH = {toxinidir}
-commands =
-    uv run pytest --cov-branch --cov-report term-missing --cov=tests/ --cov=gcapi/ --basetemp={envtmpdir} {posargs}
-"""
+[tool.tox.env_run_base]
+allowlist_externals = ["uv"]
+set_env = { PYTHONPATH = "{toxinidir}" }
+commands = [
+    "uv run pytest --cov-branch --cov-report term-missing --cov=tests/ --cov=gcapi/ --basetemp={envtmpdir} {posargs}",
+]
