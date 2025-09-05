@@ -60,14 +60,3 @@ warn_redundant_casts = true
 warn_unused_ignores = true
 strict_equality = true
 check_untyped_defs = true
-
-[tool.tox]
-isolated_build = true
-env_list = ["py39", "py310", "py311", "py312", "py313"]
-
-[tool.tox.env_run_base]
-allowlist_externals = ["uv"]
-set_env = { PYTHONPATH = "{toxinidir}" }
-commands = [
-    "uv run pytest --cov-branch --cov-report term-missing --cov=tests/ --cov=gcapi/ --basetemp={envtmpdir} {posargs}",
-]
