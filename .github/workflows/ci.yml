@@ -52,7 +52,8 @@ jobs:
       - name: Install dependencies
         run: |
           python -m pip install --upgrade pip
-          python -m pip install tox-gh-actions uv
+          python -m pip install uv
+          uv tool install tox --with tox-uv
       - name: Configure AWS credentials
         uses: aws-actions/configure-aws-credentials@v4
         with:
@@ -69,7 +70,8 @@ jobs:
       - name: Add gc.localhost to /etc/hosts
         run: sudo echo "127.0.0.1 gc.localhost\n127.0.0.1 minio.localhost" | sudo tee -a /etc/hosts
       - name: Run tox
-        run: tox
+        run: |
+          tox -e py
 
   deploy:
     if: github.event_name == 'release'
