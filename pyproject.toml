@@ -11,7 +11,7 @@ dependencies = [
     "packaging",
 ]
 name = "gcapi"
-version = "0.13.3"
+version = "0.13.4"
 description = "Python client for the grand-challenge.org REST API"
 readme = "README.md"
 classifiers = [
