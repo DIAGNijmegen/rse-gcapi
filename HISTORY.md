@@ -1,5 +1,9 @@
 # History
 
+## 0.13.4
+* Increased typing coverage (making MyPy check more strictly)
+* Refactored socket-value creation strategies (related to typing)
+
 ## 0.13.3
 * Migrate from Poetry to uv
 * Remove AsyncClient, only support the synchronous client
