@@ -5,9 +5,15 @@ slug = "my-archive-slug"
 archive = client.archives.detail(slug=slug)
 ```
 
-Then download the content, which depends on the kinds of content. In the simplest case, an archive item consists of just one medical image.
+Then continue below to download the archive's content.
 
-Archive items, however, also allow you to store metadata or additional images, like an overlay, along with each image. An archive item could, for example, consist of a medical image and a segmentation map for the image, or a specific disease likelihood score as metadata or a combination of all of these.
+Archive items allow you to store multiple related files together. For example, you can store:
+- A medical image with its segmentation mask
+- An image with associated metadata (e.g., disease likelihood scores)
+- Multiple images with their annotations
+- Any combination of images, files, and metadata
+
+This makes archives ideal for storing complex datasets where multiple files are logically grouped together. However, it makes downloading a bit more complex.
 
 
 ## Download **image-only** Archive Items
@@ -42,8 +48,7 @@ archive_items = list(
 )
 ```
 
-
-Then one-by-one, download the values found within:
+Then one-by-one, download the values found within. The snippet below will download all the files to the `download/` directory: creating a subdirectory for each archive item.
 
 ```python
 from pathlib import Path

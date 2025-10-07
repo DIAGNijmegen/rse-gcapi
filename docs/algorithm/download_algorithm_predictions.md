@@ -43,7 +43,9 @@ jobs = client.algorithm_jobs.iterate_all(
 
 ## Download the outputs
 
-With a job list ready, download the outputs of the jobs by handling the socket values depending on the output socket:
+With a job list ready, download the outputs of the jobs by handling the socket values depending on the output socket.
+
+The snippet below will download all contents as files and place them under the `download/` directory: creating a subdirectory for each job that has ran.
 
 ```python
 from pathlib import Path

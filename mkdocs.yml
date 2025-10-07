@@ -14,7 +14,7 @@ nav:
   - Algorithms:
     - Start Jobs: algorithm/start_algorithm_jobs.md
     - Download Predictions: algorithm/download_algorithm_predictions.md
-  - Client Methods:
+  - Misc:
     - Retries: retries.md
 repo_url: https://github.com/DIAGNijmegen/rse-gcapi
 repo_name: gcapi
@@ -59,7 +59,6 @@ theme:
     - navigation.tabs
     - navigation.tabs.sticky
     - navigation.expand
-    - navigation.path
     - toc.follow
     - navigation.instant
     - navigation.instant.prefetch
