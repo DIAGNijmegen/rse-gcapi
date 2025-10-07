@@ -1,0 +1,84 @@
+site_name: GCAPI Documentation
+nav:
+  - About: index.md
+  - Getting Started: getting-started.md
+  - Archives:
+    - Create Archive Items: archive/create_archive_items.md
+    - Update Archive Items: archive/update_archive_items.md
+    - Download Archive Items: archive/download_archive_items.md
+  - Reader Studies:
+    - Create Display Sets: reader_study/create_display_sets.md
+    - Update Display Sets: reader_study/update_display_sets.md
+    - Re-use Display-Set Images: reader_study/reuse_images_in_display_sets.md
+    - Download Answers: reader_study/download_answers.md
+  - Algorithms:
+    - Start Jobs: algorithm/start_algorithm_jobs.md
+    - Download Predictions: algorithm/download_algorithm_predictions.md
+  - Client Methods:
+    - Retries: retries.md
+repo_url: https://github.com/DIAGNijmegen/rse-gcapi
+repo_name: gcapi
+edit_uri: docs/
+
+
+# Plugins
+plugins:
+  - search
+  - mkdocstrings
+
+
+# Markdown
+markdown_extensions:
+  - pymdownx.highlight:
+      anchor_linenums: true
+      line_spans: __span
+      pygments_lang_class: true
+  - pymdownx.inlinehilite
+  - pymdownx.snippets
+  - pymdownx.superfences
+  - attr_list
+  - pymdownx.emoji:
+      emoji_index: !!python/name:material.extensions.emoji.twemoji
+      emoji_generator: !!python/name:material.extensions.emoji.to_svg
+  - admonition
+  - pymdownx.details
+  - pymdownx.superfences
+
+
+# Theme settings
+extra_css:
+  - stylesheets/extra.css
+theme:
+  name: material
+  features:
+    - content.action.view
+    - content.action.edit
+    - content.code.copy
+    - search.suggest
+    - search.highlight
+    # - navigation.tabs
+    # - navigation.tabs.sticky
+    - navigation.expand
+    - navigation.path
+    - toc.follow
+    - navigation.instant
+    - navigation.instant.prefetch
+    - navigation.tracking
+    - navigation.top
+  icon:
+    logo: material/connection
+    repo: fontawesome/brands/github
+  favicon: images/favicon.ico
+  palette:
+    # Palette toggle for light mode
+    - media: "(prefers-color-scheme: light)"
+      scheme: default
+      toggle:
+        icon: material/lightbulb
+        name: Switch to dark mode
+    # Palette toggle for dark mode
+    - media: "(prefers-color-scheme: dark)"
+      scheme: slate
+      toggle:
+        icon: material/lightbulb-outline
+        name: Switch to light mode

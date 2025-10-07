@@ -33,6 +33,9 @@ dev = [
     "pyyaml",
     "datamodel-code-generator",
     "pre-commit",
+    "mkdocs>=1.6.1",
+    "mkdocstrings-python>=1.18.2",
+    "mkdocs-material>=9.6.20",
 ]
 
 [tool.isort]

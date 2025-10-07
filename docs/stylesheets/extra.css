@@ -1,0 +1,11 @@
+:root>* {
+    --md-primary-fg-color: #2c3e50;
+}
+
+a.md-nav__link--active,
+a.md-nav__link--active:focus,
+a.md-nav__link--active:hover {
+    text-decoration: underline;
+    text-decoration-thickness: 2px;
+    text-underline-offset: 3px;
+}

@@ -1,0 +1,83 @@
+If you are working on an algorithm, you most likely want to automatically upload cases to an algorithm on the platform. This can be done via the API and most easily using the convienence method: `client.run_external_job`.
+
+!!! info "Job limits"
+    The number of jobs running at the same time and the number jobs you are allowed to run in a set time period have [limits](https://grand-challenge.org/documentation/try-out-your-algorithm/#credits). For large processing batches these exceptions will need to be handled.
+
+Initiate the client by first [getting started](../getting-started.md).
+
+## Start jobs
+
+Start off by getting the algorithm details, making sure you [have access rights](../getting-started.md#access-rights):
+
+```Python
+algorithm_slug = "your-algorithm-slug"
+algorithm = client.algorithms.detail(slug=algorithm_slug)
+```
+
+Explore the inputs that the algorithm expects by visiting the Try-Out page on Grand Challenge.
+
+
+
+Next, we will submit the inputs to the algorithm case-by-case. For this example we'll assume the algorithm requires an `ct-image` and a `lung-volume` as inputs.
+
+```python
+job_1 = client.run_external_job(
+    algorithm="your-algorithm-slug",
+    inputs={
+        "ct-image": [ "0.dcm", "1.dcm"],
+        "lung-volume": 42,
+    }
+)
+```
+
+As an alternative, let us source the `ct-image` from an archive and the `lung-volume` from a local JSON file for a second job:
+
+```python
+archive_item_pk = "09e38ccd..."
+archive_item = client.archive_items.details(pk=archive_item_pk)
+
+job_2 =  client.run_external_job(
+    algorithm="your-algorithm-slug",
+    inputs={
+        "ct-image": archive_item.values[0],
+        "lung-volume": "path/to/lung-volume.json",
+    }
+)
+```
+
+!!! tip "Store the job identifiers"
+
+    Starting a lot of jobs in sequence might benefit from storing the job identifiers in an offline manner.
+
+    Imagine you have a collection of local CT images you are inputting:
+
+    ```python
+    import glob
+    ct_images = glob.glob("*.mha")
+    ```
+
+    Storing the job identifiers in a local JSON file (e.g. `running_jobs.json`) means they can later be used to query state or download results:
+
+    ```python
+    jobs = []
+    for ct_image in c_images:
+        job = client.run_external_job(
+            algorithm="your-algorithm-slug",
+            inputs={"ct-image": ct_image}
+        )
+        jobs.append(job.pk)
+
+    # Store the started jobs offline
+    with open("running_jobs.json", "w") as f:
+        json.dump(jobs, f, indent=2)
+    ```
+
+## Inspect jobs
+After all of your jobs have ended with the status `'Succeeded'`, you can [download the predictions](../algorithm/download_algorithm_predictions.md).
+
+Here is how to query their state:
+
+```python
+jobs = [client.algorithm_jobs.detail(job.pk) for job in jobs]
+print([job.status for job in jobs])
+```
