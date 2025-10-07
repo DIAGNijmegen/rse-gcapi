@@ -1,4 +1,4 @@
-Once your Algorithm Job is in the `'Succeeded'` state you can proceed to download the predictions.
+Once your Algorithm Job is in the `'Succeeded'` state you can proceed to download the predictions the algorithm has created.
 
 Make sure you have [gotten started](../getting-started.md) and have the algorithm object handy:
 
