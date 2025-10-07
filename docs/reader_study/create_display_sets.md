@@ -1,6 +1,11 @@
 If you are working on a reader study, you most likely need to upload the cases to the platform. This can be done via the API and most easily using the convienence method: `client.add_cases_to_reader_study`.
 
-Initiate the client by first [getting started](../getting-started.md).
+First things first, we need to [get started](../getting-started.md) and initiate the client:
+
+```Python
+import gcapi
+client = gcapi.Client(token="your-personal-token")
+```
 
 
 ## Example
@@ -70,4 +75,4 @@ print("Uploaded cases and created display sets: " + display_set_pks)
 
 ## Setting title and order
 
-Titles and order can easiest be set by [updating the display sets](../reader_study/update_display_sets.md#updating-the-order-of-display-sets).
+Titles and order can easiest be set by [updating the display sets](../reader_study/update_display_sets.md#update-the-content-of-display-sets).

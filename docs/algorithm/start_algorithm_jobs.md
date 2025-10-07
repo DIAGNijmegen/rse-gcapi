@@ -1,11 +1,17 @@
 If you are working on an algorithm, you most likely want to automatically upload cases to an algorithm on the platform. This can be done via the API and most easily using the convienence method: `client.run_external_job`.
 
+First things first, we need to [get started](../getting-started.md) and initiate the client:
+
+```Python
+import gcapi
+client = gcapi.Client(token="your-personal-token")
+```
+
+## Start jobs
+
 !!! info "Job limits"
     The number of jobs running at the same time and the number jobs you are allowed to run in a set time period have [limits](https://grand-challenge.org/documentation/try-out-your-algorithm/#credits). For large processing batches these exceptions will need to be handled.
 
-Initiate the client by first [getting started](../getting-started.md).
-
-## Start jobs
 
 Start off by getting the algorithm details, making sure you [have access rights](../getting-started.md#access-rights):
 

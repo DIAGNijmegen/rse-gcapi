@@ -1,6 +1,11 @@
 If you are working on a challenge, you most likely need to upload cases to an archive on the platform. This can be done via the API and most easily using the convienence method: `client.add_cases_to_archive`.
 
-Initiate the client by first [getting started](../getting-started.md).
+First things first, we need to [get started](../getting-started.md) and initiate the client:
+
+```Python
+import gcapi
+client = gcapi.Client(token="your-personal-token")
+```
 
 
 ## Example

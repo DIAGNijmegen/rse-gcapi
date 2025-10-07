@@ -5,7 +5,7 @@ slug = "my-archive-slug"
 archive = client.archives.detail(slug=slug)
 ```
 
-Then download the answers, which depending on what you need. In the simplest case, an archive item consists of just one medical image.
+Then download the content, which depends on the kinds of content. In the simplest case, an archive item consists of just one medical image.
 
 Archive items, however, also allow you to store metadata or additional images, like an overlay, along with each image. An archive item could, for example, consist of a medical image and a segmentation map for the image, or a specific disease likelihood score as metadata or a combination of all of these.
 

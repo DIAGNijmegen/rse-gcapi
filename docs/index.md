@@ -12,4 +12,4 @@ The main functionalities of gcapi are:
 
 ---
 
-[:material-rocket-launch: Getting Started](getting-started.md){ .md-button .md-button--primary }
+[:rocket: Getting Started](getting-started.md){ .md-button .md-button--primary }

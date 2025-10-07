@@ -19,7 +19,7 @@ A full token looks like this:
 "df41b403eac8ca19c80f04c3f129809f5e9635f65fbead1aa3cafccc7e865c5a"
 ```
 
-You can generate the token yourself on Grand Challenge. After logging in, navigate to *Your Profile ➞ Manage API Tokens* and click on *Create a Token*. Once you click *Save*, the token will be generated for you and displayed in a blue ribbon at the top of the page.
+You can generate the token yourself [on Grand Challenge](https://grand-challenge.org/settings/api-tokens/). After logging in, navigate to *Your Profile ➞ Manage API Tokens* and click on *Create a Token*. Once you click *Save*, the token will be generated for you and displayed in a blue ribbon at the top of the page.
 
 You will only be able to see this token once, so store it safely in a password manager for later use. Please treat your API token like a password and remove the key if necessary.
 
@@ -72,3 +72,10 @@ Requesting access can be done by navigating to the respective object page on Gra
 
 !!! note
     Responding to an access request is generally a manual step for the object owners and might take a couple of hours! Please be patient.
+
+
+#### Next
+
+[Create Display Sets](./reader_study/create_display_sets.md){ .md-button }
+[Create Archive Items](./archive/create_archive_items.md){ .md-button }
+[Start Algorithm Jobs](./algorithm/start_algorithm_jobs.md){ .md-button }
