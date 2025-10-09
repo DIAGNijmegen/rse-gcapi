@@ -1,6 +1,6 @@
-If you are working on a reader study, you most likely need to upload the cases to the platform. This can be done via the API and most easily using the convienence method: `client.add_cases_to_reader_study`.
+If you are working on a reader study, you most likely need to upload the cases to the platform. This can be done via the API and most easily using the convienence method: `Client.add_cases_to_reader_study`.
 
-First things first, we need to [get started](../getting-started.md) and initiate the client:
+First things first, we need to [get started](../../getting-started.md) and initiate the client:
 
 ```Python
 import gcapi

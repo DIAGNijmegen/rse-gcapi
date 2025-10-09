@@ -2,7 +2,7 @@
 
 ## Update the **content** of archive items
 
-To update the contents of a archive items you can use the convenience function: `client.update_archive_item`.
+To update the contents of a archive items you can use the convenience function: `Client.update_archive_item`.
 
 ### Example
 

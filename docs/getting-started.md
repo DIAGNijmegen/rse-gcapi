@@ -1,4 +1,7 @@
-
+---
+hide:
+  - navigation
+---
 
 # Getting started with gcapi
 
@@ -72,10 +75,3 @@ Requesting access can be done by navigating to the respective object page on Gra
 
 !!! note
     Responding to an access request is generally a manual step for the object owners and might take a couple of hours! Please be patient.
-
-
-#### Next
-
-[Create Display Sets](./reader_study/create_display_sets.md){ .md-button }
-[Create Archive Items](./archive/create_archive_items.md){ .md-button }
-[Start Algorithm Jobs](./algorithm/start_algorithm_jobs.md){ .md-button }

@@ -1,4 +1,4 @@
-First, start off by getting the reader study object.  For this you will need either the [pk, slug or api url](../getting-started.md#on-object-identifiers) of the reader study.
+First, start off by getting the reader study object.  For this you will need either the [pk, slug or api url](../../getting-started.md#on-object-identifiers) of the reader study.
 
 ```python
 slug = "my-reader-study-slug"

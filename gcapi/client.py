@@ -39,6 +39,8 @@ def is_uuid(s):
 
 
 class ImagesAPI(APIBase[gcapi.models.HyperlinkedImage]):
+    """API class for handling images. Access it via `Client.images`."""
+
     base_path = "cases/images/"
     model = gcapi.models.HyperlinkedImage
 
@@ -115,9 +117,7 @@ class ReaderStudyQuestionsAPI(APIBase[gcapi.models.Question]):
     model = gcapi.models.Question
 
 
-class ReaderStudyMineAnswersAPI(
-    ModifiableMixin, APIBase[gcapi.models.ReaderStudy]
-):
+class ReaderStudyMineAnswersAPI(ModifiableMixin, APIBase[gcapi.models.Answer]):
     base_path = "reader-studies/answers/mine/"
     model = gcapi.models.ReaderStudy
     response_model = gcapi.models.Answer
@@ -388,6 +388,7 @@ class Client(httpx.Client, ApiDefinitions):
         timeout: float = 60.0,
         retry_strategy: Optional[Callable[[], BaseRetryStrategy]] = None,
     ):
+        """test"""
         check_version(base_url=base_url)
 
         retry_strategy = retry_strategy or SelectiveBackoffStrategy(
