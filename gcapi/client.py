@@ -39,8 +39,6 @@ def is_uuid(s):
 
 
 class ImagesAPI(APIBase[gcapi.models.HyperlinkedImage]):
-    """API class for handling images. Access it via `Client.images`."""
-
     base_path = "cases/images/"
     model = gcapi.models.HyperlinkedImage
 
@@ -388,7 +386,6 @@ class Client(httpx.Client, ApiDefinitions):
         timeout: float = 60.0,
         retry_strategy: Optional[Callable[[], BaseRetryStrategy]] = None,
     ):
-        """test"""
         check_version(base_url=base_url)
 
         retry_strategy = retry_strategy or SelectiveBackoffStrategy(

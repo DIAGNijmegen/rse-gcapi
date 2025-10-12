@@ -17,10 +17,9 @@ nav:
     - Algorithms:
       - Start Jobs: usage/algorithm/start_algorithm_jobs.md
       - Download Predictions: usage/algorithm/download_algorithm_predictions.md
-  - API Reference:
-    - Initialisation: api/initialisation.md
+  - Python API Reference:
     - Methods: api/client_methods.md
-    - API:
+    - APIs:
       - algorithm_images: api/algorithm_images.md
       - algorithm_jobs: api/algorithm_jobs.md
       - algorithms: api/algorithms.md
