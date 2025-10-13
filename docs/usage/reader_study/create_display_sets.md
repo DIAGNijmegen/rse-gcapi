@@ -60,7 +60,7 @@ display_sets = [
 ]
 ```
 
-To upload cases and create the display sets, you will need to know the [slug](../getting-started.md#slugs) of the particular reader study you will work with.
+To upload cases and create the display sets, you will need to know the [slug](../../getting-started.md#slugs) of the particular reader study you will work with.
 
 ```python
 # Specify the "slug" of the study you want to upload your data to.

@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import collections
 from collections.abc import Iterator, Sequence
-from typing import TYPE_CHECKING, Generic, TypeVar, overload
+from typing import TYPE_CHECKING, Any, Generic, Optional, TypeVar, overload
 from urllib.parse import urljoin
 
 from httpx import HTTPStatusError
@@ -12,12 +12,24 @@ from pydantic.dataclasses import is_pydantic_dataclass
 from gcapi.exceptions import MultipleObjectsReturned, ObjectNotFound
 
 T = TypeVar("T")
+C = TypeVar("C")
 
 if TYPE_CHECKING:
     from gcapi import Client
 
 
 class PageResult(Generic[T], collections.abc.Sequence):
+    """A paginated result container for API responses.
+
+    This class provides a sequence-like interface for handling paginated API responses,
+    containing metadata about the pagination state and the actual results.
+
+    Attributes:
+        offset (int): The starting index of the results.
+        limit (int): The maximum number of results in this page.
+        total_count (int): The total number of items available.
+    """
+
     def __init__(
         self,
         *,
@@ -76,11 +88,36 @@ class APIBase(Generic[T], Common[T]):
         for k, api in list(self.sub_apis.items()):
             setattr(self, k, api(self._client))
 
-    def list(self, params=None):
+    def list(self, params: Optional[dict[str, Any]] = None) -> list[T]:
+        """
+        Retrieve a raw list of resources from the API endpoint.
+
+        Args:
+            params: Query parameters to include in the API request.
+
+        Returns:
+            Raw JSON response from the API containing the list of resources.
+        """
         result = self._client(method="GET", path=self.base_path, params=params)
         return result
 
-    def page(self, offset=0, limit=100, params=None) -> PageResult[T]:
+    def page(
+        self,
+        offset: int = 0,
+        limit: int = 100,
+        params: Optional[dict[str, Any]] = None,
+    ) -> PageResult[T]:
+        """
+        Retrieve a paginated set of resources from the API endpoint.
+
+        Args:
+            offset: The starting index for pagination (zero-based).
+            limit: The maximum number of results to return in this page.
+            params: Additional query parameters to include in the API request.
+
+        Returns:
+            A paginated result containing the requested resources and metadata.
+        """
         if params is None:
             params = {}
 
@@ -100,7 +137,21 @@ class APIBase(Generic[T], Common[T]):
             results=results,
         )
 
-    def iterate_all(self, params=None) -> Iterator[T]:
+    def iterate_all(
+        self, params: Optional[dict[str, Any]] = None
+    ) -> Iterator[T]:
+        """
+        Iterate through all resources from the API endpoint across all pages.
+
+        This method automatically handles pagination and yields individual resources
+        from all pages until all resources have been retrieved.
+
+        Args:
+            params: Query parameters to include in the API requests.
+
+        Yields:
+            Individual resources from the API endpoint.
+        """
         req_count = 100
         offset = 0
         while True:
@@ -114,7 +165,28 @@ class APIBase(Generic[T], Common[T]):
             yield from current_list
             offset += req_count
 
-    def detail(self, pk=None, api_url=None, **params) -> T:
+    def detail(
+        self,
+        pk: Optional[str] = None,
+        api_url: Optional[str] = None,
+        **params: Any,
+    ) -> T:
+        """
+        Retrieve a specific resource by primary key, URL, or search parameters.
+
+        Args:
+            pk: Primary key of the resource to retrieve.
+            api_url: Direct API URL of the resource to retrieve.
+            **params: Search parameters to find a unique resource, such as `slug="your-slug"`.
+
+        Returns:
+            The requested resource instance.
+
+        Raises:
+            ValueError: If more than one or none of pk, api_url, or params are specified.
+            ObjectNotFound: If no resource is found matching the criteria.
+            MultipleObjectsReturned: If multiple resources match the search parameters.
+        """
         if sum(bool(arg) for arg in [pk, api_url, params]) != 1:
             raise ValueError(
                 "Exactly one of pk, api_url, or params must be specified"
@@ -122,7 +194,7 @@ class APIBase(Generic[T], Common[T]):
         if pk is not None or api_url is not None:
             if pk is not None:
                 request_kwargs = dict(path=urljoin(self.base_path, pk + "/"))
-            else:
+            elif api_url is not None:
                 request_kwargs = dict(url=api_url)
             try:
                 result = self._client(method="GET", **request_kwargs)
@@ -143,21 +215,20 @@ class APIBase(Generic[T], Common[T]):
                 raise MultipleObjectsReturned
 
 
-class ModifiableMixin(Common):
-
+class ModifiableMixin(Generic[C], Common):
     response_model: type
 
     def _process_request_arguments(self, data):
         if data is None:
             return {}
         else:
-            return self.recurse_model_dump(data)
+            return self._recurse_model_dump(data)
 
-    def recurse_model_dump(self, data):
+    def _recurse_model_dump(self, data):
         if isinstance(data, list):
-            return [self.recurse_model_dump(v) for v in data]
+            return [self._recurse_model_dump(v) for v in data]
         elif isinstance(data, dict):
-            return {k: self.recurse_model_dump(v) for k, v in data.items()}
+            return {k: self._recurse_model_dump(v) for k, v in data.items()}
         elif is_pydantic_dataclass(type(data)):
             return RootModel[type(data)](data).model_dump()  # type: ignore
         else:
@@ -171,21 +242,59 @@ class ModifiableMixin(Common):
         )
         return self._client(method=method, path=url, json=data)
 
-    def perform_request(self, method, data=None, pk=False):
+    def _perform_request(self, method, data=None, pk=False):
         data = self._process_request_arguments(data)
         return self._execute_request(method, data, pk)
 
-    def create(self, **kwargs):
-        result = self.perform_request("POST", data=kwargs)
+    def create(self, **kwargs: Any) -> C:
+        """
+        Create a new resource via the API.
+
+        Args:
+            **kwargs: Field values for the new resource.
+
+        Returns:
+            The created resource instance.
+        """
+        result = self._perform_request("POST", data=kwargs)
         return self.response_model(**result)
 
-    def update(self, pk, **kwargs):
-        result = self.perform_request("PUT", pk=pk, data=kwargs)
+    def update(self, pk: str, **kwargs: Any) -> C:
+        """
+        Update an existing resource with a complete replacement.
+
+        Args:
+            pk: Primary key of the resource to update.
+            **kwargs: Complete field values for the resource update.
+
+        Returns:
+            The updated resource instance.
+        """
+        result = self._perform_request("PUT", pk=pk, data=kwargs)
         return self.response_model(**result)
 
-    def partial_update(self, pk, **kwargs):
-        result = self.perform_request("PATCH", pk=pk, data=kwargs)
+    def partial_update(self, pk: str, **kwargs: Any) -> C:
+        """
+        Partially update an existing resource with only specified fields.
+
+        Args:
+            pk: Primary key of the resource to update.
+            **kwargs: Partial field values for the resource update.
+
+        Returns:
+            The updated resource instance.
+        """
+        result = self._perform_request("PATCH", pk=pk, data=kwargs)
         return self.response_model(**result)
 
-    def delete(self, pk):
-        return self.perform_request("DELETE", pk=pk)
+    def delete(self, pk: str) -> Any:
+        """
+        Delete a resource from the API.
+
+        Args:
+            pk: Primary key of the resource to delete.
+
+        Returns:
+            Response from the delete operation.
+        """
+        return self._perform_request("DELETE", pk=pk)

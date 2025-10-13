@@ -61,7 +61,7 @@ archive_items = [
 ]
 ```
 
-To upload cases and create the archive items, you will need to know the [slug](../getting-started.md#slugs) of the particular archive you will work with.
+To upload cases and create the archive items, you will need to know the [slug](../../getting-started.md#slugs) of the particular archive you will work with.
 
 ```python
 # Specify the "slug" of the archive you want to upload your data to.

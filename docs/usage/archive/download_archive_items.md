@@ -1,4 +1,4 @@
-First, start off by getting the archive object. For this you will need either the [pk, slug or api url](../getting-started.md#on-object-identifiers) or the archive.
+First, start off by getting the archive object. For this you will need either the [pk, slug or api url](../../getting-started.md#on-object-identifiers) or the archive.
 
 ```python
 slug = "my-archive-slug"

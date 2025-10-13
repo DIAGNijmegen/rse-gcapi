@@ -13,7 +13,7 @@ client = gcapi.Client(token="your-personal-token")
     The number of jobs running at the same time and the number jobs you are allowed to run in a set time period have [limits](https://grand-challenge.org/documentation/try-out-your-algorithm/#credits). For large processing batches these exceptions will need to be handled.
 
 
-Start off by getting the algorithm details, making sure you [have access rights](../getting-started.md#access-rights):
+Start off by getting the algorithm details, making sure you [have access rights](../../getting-started.md#access-rights):
 
 ```Python
 algorithm_slug = "your-algorithm-slug"
@@ -51,7 +51,7 @@ job_2 =  client.run_external_job(
 )
 ```
 
-!!! tip "Store the job identifiers"
+!!! tip "Tip: store the job identifiers"
 
     Starting a lot of jobs in sequence might benefit from storing the job identifiers in an offline manner.
 

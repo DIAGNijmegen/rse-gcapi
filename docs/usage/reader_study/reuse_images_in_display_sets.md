@@ -1,6 +1,6 @@
 When creating display sets for a reader study, it is sometimes the case that images are being shown multiple times in different display sets. Once uploaded, ot is beneficial to re-use the image references.
 
-!!! tip
+!!! info "Speed Benefit"
     Viewer applications such as CIRRUS need to **download each image** in the display set. If a display set correctly re-uses an image a viewer can re-use a previous download. This generally speeds up the case loading.
 
 ## Get an image reference

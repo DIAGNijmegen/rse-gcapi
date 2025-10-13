@@ -18,7 +18,7 @@ nav:
       - Start Jobs: usage/algorithm/start_algorithm_jobs.md
       - Download Predictions: usage/algorithm/download_algorithm_predictions.md
   - Python API Reference:
-    - Methods: api/client_methods.md
+    - Client: api/client_methods.md
     - APIs:
       - algorithm_images: api/algorithm_images.md
       - algorithm_jobs: api/algorithm_jobs.md
@@ -59,8 +59,10 @@ plugins:
             separate_signature: true
             docstring_section_style: list
             show_bases: false
+            docstring_style: google
             extensions:
                 - griffe_generics
+
 
 # Markdown
 markdown_extensions:
@@ -95,8 +97,8 @@ theme:
     - search.highlight
     - navigation.tabs
     - navigation.tabs.sticky
-    # - navigation.expand
-    # - toc.follow
+    - navigation.expand
+    - toc.follow
     - navigation.instant
     - navigation.instant.prefetch
     - navigation.tracking
