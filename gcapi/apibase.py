@@ -12,7 +12,7 @@ from pydantic.dataclasses import is_pydantic_dataclass
 from gcapi.exceptions import MultipleObjectsReturned, ObjectNotFound
 
 T = TypeVar("T")
-C = TypeVar("C")
+RT = TypeVar("RT")
 
 if TYPE_CHECKING:
     from gcapi import Client
@@ -208,10 +208,10 @@ class APIBase(Generic[T]):
                 raise MultipleObjectsReturned
 
 
-class ModifiableMixin(Generic[C]):
+class ModifiableMixin(Generic[RT]):
     base_path: str
     _client: Client
-    response_model: type[C]
+    response_model: type[RT]
 
     def _process_request_arguments(self, data):
         if data is None:
@@ -241,7 +241,7 @@ class ModifiableMixin(Generic[C]):
         data = self._process_request_arguments(data)
         return self._execute_request(method, data, pk)
 
-    def create(self, **kwargs: Any) -> C:
+    def create(self, **kwargs: Any) -> RT:
         """
         Create a new resource via the API.
 
@@ -254,7 +254,7 @@ class ModifiableMixin(Generic[C]):
         result = self._perform_request("POST", data=kwargs)
         return self.response_model(**result)
 
-    def update(self, pk: str, **kwargs: Any) -> C:
+    def update(self, pk: str, **kwargs: Any) -> RT:
         """
         Update an existing resource with a complete replacement.
 
@@ -268,7 +268,7 @@ class ModifiableMixin(Generic[C]):
         result = self._perform_request("PUT", pk=pk, data=kwargs)
         return self.response_model(**result)
 
-    def partial_update(self, pk: str, **kwargs: Any) -> C:
+    def partial_update(self, pk: str, **kwargs: Any) -> RT:
         """
         Partially update an existing resource with only specified fields.
 
