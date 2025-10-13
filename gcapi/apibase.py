@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import collections
+from asyncio import Protocol
 from collections.abc import Iterator, Sequence
 from typing import TYPE_CHECKING, Any, Generic, Optional, TypeVar, overload
 from urllib.parse import urljoin
@@ -70,7 +71,7 @@ class PageResult(Generic[T], collections.abc.Sequence):
         return self._total_count
 
 
-class Common(Generic[T]):
+class Common(Generic[T], Protocol):
     model: type[T]
     _client: Client
     base_path: str
@@ -215,8 +216,10 @@ class APIBase(Generic[T], Common[T]):
                 raise MultipleObjectsReturned
 
 
-class ModifiableMixin(Generic[C], Common):
-    response_model: type
+class ModifiableMixin(Generic[C]):
+    base_path: str
+    _client: Client
+    response_model: type[C]
 
     def _process_request_arguments(self, data):
         if data is None:

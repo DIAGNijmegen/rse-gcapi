@@ -148,7 +148,7 @@ class ReaderStudyMineAnswersAPI(
     APIBase[gcapi.models.Answer],
 ):
     base_path = "reader-studies/answers/mine/"
-    model = gcapi.models.ReaderStudy
+    model = gcapi.models.Answer
     response_model = gcapi.models.Answer
 
 
