@@ -1,4 +1,4 @@
-If you are working on a challenge, you most likely need to upload cases to an archive on the platform. This can be done via the API and most easily using the convienence method: `Client.add_cases_to_archive`.
+If you are working on a challenge, you most likely need to upload cases to an archive on the platform. This can be done via the API and most easily using the convienence method: [Client.add_cases_to_archive][gcapi.client.Client.add_cases_to_archive]
 
 First things first, we need to [get started](../../getting-started.md) and initiate the client:
 

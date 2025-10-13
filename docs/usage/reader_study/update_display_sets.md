@@ -2,7 +2,7 @@
 
 ## Update the **content** of display sets
 
-To update the contents of a display set you can use the convenience function: `client.update_display_set`.
+To update the contents of a display set you can use the convenience function: [Client.update_display_set][gcapi.client.Client.update_display_set].
 
 ### Example
 

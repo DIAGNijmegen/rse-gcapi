@@ -1,4 +1,4 @@
-If you are working on an algorithm, you most likely want to automatically upload cases to an algorithm on the platform. This can be done via the API and most easily using the convienence method: `Client.run_external_job`.
+If you are working on an algorithm, you most likely want to automatically upload cases to an algorithm on the platform. This can be done via the API and most easily using the convienence method: [Client.run_external_job][gcapi.client.Client.run_external_job].
 
 First things first, we need to [get started](../../getting-started.md) and initiate the client:
 
