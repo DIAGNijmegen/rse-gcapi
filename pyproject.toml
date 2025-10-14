@@ -33,10 +33,10 @@ dev = [
     "pyyaml",
     "datamodel-code-generator",
     "pre-commit",
-    "mkdocs>=1.6.1",
-    "mkdocstrings-python>=1.18.2",
-    "mkdocs-material>=9.6.20",
-    "griffe-generics>=1.0.13",
+    "mkdocs",
+    "mkdocstrings-python",
+    "mkdocs-material",
+    "griffe-generics",
 ]
 
 [tool.isort]
