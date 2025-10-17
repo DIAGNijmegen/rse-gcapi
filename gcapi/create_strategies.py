@@ -115,6 +115,8 @@ class SocketValueCreateStrategy(BaseCreateStrategy):
             image=None,
             upload_session=None,
             user_upload=None,
+            user_uploads=None,
+            image_name=None,
         )
 
 
@@ -291,6 +293,12 @@ class ImageCreateStrategy(SocketValueCreateStrategy):
     def __init__(self, source, **kwargs):
         super().__init__(**kwargs)
 
+        if self.socket.kind.casefold() in ("img", "seg", "hmap", "dspf"):
+            raise NotSupportedError(
+                f"Socket {self.socket.title!r} is not supported by this strategy: "
+                f"it has kind {self.socket.kind!r}, which is not a panimg kind"
+            )
+
         try:
             self.content = clean_file_source(source)
         except FileNotFoundError as e:
@@ -314,6 +322,46 @@ class ImageCreateStrategy(SocketValueCreateStrategy):
         )
 
         post_request.upload_session = raw_image_upload_session.api_url
+        return post_request
+
+
+@register_socket_value_strategy
+class ImageDICOMCreateStrategy(SocketValueCreateStrategy):
+    """Direct image-file upload strategy for DICOM kind images"""
+
+    supported_super_kind = "image"
+    content: list[Path]
+    image_name: str
+
+    def __init__(self, *, source, **kwargs):
+        super().__init__(**kwargs)
+
+        if self.socket.kind.casefold() == "dmcis":
+            raise NotSupportedError(
+                f"Socket {self.socket.title!r} is not supported by this strategy: "
+                f"it has kind {self.socket.kind!r}, which is not a DICOM kind"
+            )
+
+        self.image_name = source[0]
+        try:
+            self.content = clean_file_source(source[1])
+        except FileNotFoundError as e:
+            raise NotSupportedError from e
+
+    def __call__(self):
+        post_request = super().__call__()
+
+        uploads: list[UserUpload] = []
+        for file in self.content:
+            with open(file, "rb") as f:
+                uploads.append(
+                    self.client.uploads.upload_fileobj(
+                        fileobj=f, filename=file.name
+                    )
+                )
+
+        post_request.image_name = self.image_name
+        post_request.user_uploads = [u.api_url for u in uploads]
         return post_request
 
 
