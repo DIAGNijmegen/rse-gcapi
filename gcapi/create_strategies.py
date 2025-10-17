@@ -281,7 +281,8 @@ class FileFromSVCreateStrategy(SocketValueCreateStrategy):
         return post_request
 
 
-class BaseImageCreateStrategy(SocketValueCreateStrategy):
+@register_socket_value_strategy
+class ImageCreateStrategy(SocketValueCreateStrategy):
     """Direct image-file upload strategy"""
 
     supported_super_kind = "image"
@@ -314,34 +315,6 @@ class BaseImageCreateStrategy(SocketValueCreateStrategy):
 
         post_request.upload_session = raw_image_upload_session.api_url
         return post_request
-
-
-@register_socket_value_strategy
-class ImagePanImgCreateStrategy(SocketValueCreateStrategy):
-    """Direct image-file upload strategy for panimg kind images"""
-
-    def __init__(self, **kwargs):
-        super().__init__(**kwargs)
-
-        if self.socket.kind.casefold() in ("img", "seg", "hmap", "dspf"):
-            raise NotSupportedError(
-                f"Socket {self.socket.title!r} is not supported by this strategy: "
-                f"it has kind {self.socket.kind!r}, which is not a panimg kind"
-            )
-
-
-@register_socket_value_strategy
-class ImageDICOMCreateStrategy(SocketValueCreateStrategy):
-    """Direct image-file upload strategy for DICOM kind images"""
-
-    def __init__(self, **kwargs):
-        super().__init__(**kwargs)
-
-        if self.socket.kind.casefold() == "dmcis":
-            raise NotSupportedError(
-                f"Socket {self.socket.title!r} is not supported by this strategy: "
-                f"it has kind {self.socket.kind!r}, which is not a DICOM kind"
-            )
 
 
 @register_socket_value_strategy
