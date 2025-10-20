@@ -666,18 +666,18 @@ def test_add_and_update_value_to_archive_item(local_grand_challenge):
     assert value["foo"] == "bar"
 
     # Update value
-    archive_item = c.update_archive_item(
+    updated_archive_item = c.update_archive_item(
         archive_item_pk=archive_item.pk,
         values={
             "metrics-json-file": {"foo2": "bar2"},
         },
     )
 
-    value = cast(dict, archive_item.values[0].value)
+    value = cast(dict, cast(list, updated_archive_item.values)[0].value)
     assert value["foo2"] == "bar2", "Sanity, values are applied directly"
 
-    updated_archive_item = c.archive_items.detail(pk=archive_item_pks[0])
-    assert updated_archive_item.values[0].interface.slug == "metrics-json-file"
+    archive_item = c.archive_items.detail(pk=archive_item_pks[0])
+    assert archive_item.values[0].interface.slug == "metrics-json-file"
     value = cast(dict, archive_item.values[0].value)
     assert value["foo2"] == "bar2"
 
@@ -703,21 +703,21 @@ def test_add_and_update_value_to_display_set(local_grand_challenge):
     assert cast(dict, display_set.values[0].value)["foo"] == "bar"
 
     # Update the structured value
-    display_set = c.update_display_set(
+    updated_display_set = c.update_display_set(
         display_set_pk=display_set.pk,
         values={
             "metrics-json-file": {"foo2": "bar2"},
         },
     )
 
+    assert updated_display_set.values is not None
+
     assert (
-        cast(dict, display_set.values[0].value)["foo2"] == "bar2"
+        cast(dict, updated_display_set.values[0].value)["foo2"] == "bar2"
     ), "Sanity, values are applied directly"
 
-    updated_display_set = c.reader_studies.display_sets.detail(
-        pk=display_set_pks[0]
-    )
-    assert updated_display_set.values[0].interface.slug == "metrics-json-file"
+    display_set = c.reader_studies.display_sets.detail(pk=display_set_pks[0])
+    assert display_set.values[0].interface.slug == "metrics-json-file"
     assert cast(dict, display_set.values[0].value)["foo2"] == "bar2"
 
 
