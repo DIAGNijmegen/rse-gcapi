@@ -79,3 +79,19 @@ jobs:
         run: |
           uv build
           uv publish
+
+  deploy-documentation:
+    if: github.event_name == 'release'
+    needs: [deploy]
+    permissions:
+      contents: write # Permission required to write to gh-pages branch
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install uv and set the python version
+        uses: astral-sh/setup-uv@v6
+        with:
+          python-version: ${{ env.MINIMUM_PYTHON_VERSION }}
+      - name:
+        run: |
+          uv run mkdocs gh-pages --force
