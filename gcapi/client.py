@@ -2,7 +2,6 @@ import logging
 import os
 import re
 import uuid
-import warnings
 from collections.abc import Iterator
 from io import BytesIO
 from pathlib import Path
@@ -675,116 +674,6 @@ class Client(httpx.Client, ApiDefinitions):
                 fileobj=f, filename=value[0].name
             )
         return upload
-
-    def upload_cases(  # noqa: C901
-        self,
-        *,
-        files: list[Union[str, Path]],
-        archive: Optional[str] = None,
-        answer: Optional[str] = None,
-        archive_item: Optional[str] = None,
-        display_set: Optional[str] = None,
-        interface: Optional[str] = None,
-    ) -> gcapi.models.RawImageUploadSession:
-        """
-        Uploads a set of files to an archive, archive item or display set.
-        A new upload session will be created on grand challenge to import and
-        standardise your file(s). This function will return this new upload
-        session object, that you can query for the import status. If this
-        import is successful, the new image(s) will then be added to the selected
-        archive, archive item or reader study.
-        You will need to provide the slugs of the archive or reader study or the
-        pk of the archive item to pass the images along to.
-        You can find the slug in the url of the object that you want
-        to use. For instance, if you want to use the archive at
-            https://grand-challenge.org/archives/corads-ai/
-        the slug for this is "corads-ai", so you would call this function with
-            upload_cases(files=[...], archive="corads-ai")
-        For archive uploads, you can additionally specify the interface slug
-        for the to be created archive items. For archive item uploads, the
-        interface is mandatory. If you define an already existing interface,
-        the old file associated with that interface will be replaced by the new file.
-        You can find a list of interfaces here:
-        https://grand-challenge.org/algorithms/interfaces/
-        The interface slug corresponds to the lowercase hyphenated title of the
-        interface, e.g. generic-medical-image for Generic Medical Image.
-
-        Args:
-            files (list[Union[str, Path]]): The list of files on disk that form 1 Image. These can be a set of
-                .mha, .mhd, .raw, .zraw, .dcm, .nii, .nii.gz, .tiff, .png, .jpeg,
-                .jpg, .svs, .vms, .vmu, .ndpi, .scn, .mrxs and/or .bif files.
-            archive (Optional[str]): The slug of the archive to use.
-            answer (Optional[str]): The pk of the reader study answer to use.
-            archive_item (Optional[str]): The pk of the archive item to use.
-            display_set (Optional[str]): The pk of the display set to use.
-            interface (Optional[str]): The slug of the interface to use. Can only be defined for archive
-                and archive item uploads.
-
-        Returns:
-            The created upload session.
-
-        Raises:
-            ValueError: If the input parameters are not valid.
-        """
-
-        warnings.warn(
-            message=(
-                "Using upload_cases is deprecated "
-                "and will be removed in the next release. "
-                "Suggestion: use the specific functions: "
-                "update_archive_item, update_display_set, or add_cases_to_archive"
-            ),
-            category=DeprecationWarning,
-            stacklevel=3,
-        )
-
-        upload_session_data = {}
-
-        if len(files) == 0:
-            raise ValueError("You must specify the files to upload")
-
-        if archive is not None:
-            upload_session_data["archive"] = archive
-
-        if answer is not None:
-            upload_session_data["answer"] = answer
-
-        if archive_item is not None:
-            upload_session_data["archive_item"] = archive_item
-
-        if display_set is not None:
-            upload_session_data["display_set"] = display_set
-
-        if len(upload_session_data) != 1:
-            raise ValueError(
-                "One of archive, archive_item, display_set, answer or "
-                "reader_study can be set"
-            )
-
-        if interface:
-            upload_session_data["interface"] = interface
-
-        if interface and not (archive or archive_item or display_set):
-            raise ValueError(
-                "An interface can only be defined for archive, archive item "
-                "or display set uploads."
-            )
-
-        if archive_item and not interface:
-            raise ValueError(
-                "You need to define an interface for archive item uploads."
-            )
-
-        if display_set and not interface:
-            raise ValueError(
-                "You need to define an interface for display set uploads."
-            )
-
-        raw_image_upload_session = self._upload_image_files(
-            files=files, **upload_session_data
-        )
-
-        return raw_image_upload_session
 
     def run_external_job(
         self,
