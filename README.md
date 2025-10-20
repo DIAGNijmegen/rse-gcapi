@@ -3,9 +3,9 @@
 Python client for the grand-challenge.org REST API
 
 [![CI](https://github.com/DIAGNijmegen/rse-gcapi/actions/workflows/ci.yml/badge.svg?branch=main)](https://github.com/DIAGNijmegen/rse-gcapi/actions/workflows/ci.yml?query=branch%3Amain)
+[![documentation](https://img.shields.io/badge/docs-mkdocs-708FCC.svg?style=flat)](https://diagnijmegen.github.io/rse-gcapi/)
 [![PyPI](https://img.shields.io/pypi/v/gcapi)](https://pypi.org/project/gcapi/)
 ![Python Version from PEP 621 TOML](https://img.shields.io/python/required-version-toml?tomlFilePath=https%3A%2F%2Fraw.githubusercontent.com%2FDIAGNijmegen%2Frse-gcapi%2Frefs%2Fheads%2Fmain%2Fpyproject.toml)
-[![Code style: black](https://img.shields.io/badge/code%20style-black-000000.svg)](https://github.com/psf/black)
 
 ## Features
 
