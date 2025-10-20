@@ -91,9 +91,7 @@ class ImagesAPI(APIBase[gcapi.models.HyperlinkedImage]):
             elif url is not None:
                 image = self.detail(api_url=url)
             else:
-                image = self.detail(
-                    **params
-                )  # Ensure params is passed correctly
+                image = self.detail(**params)
 
             files = image.files
 
@@ -206,11 +204,11 @@ class ReaderStudiesAPI(APIBase[gcapi.models.ReaderStudy]):
         Get ground truth data for a specific case in a reader study.
 
         Args:
-            pk (str): Primary key of the reader study.
-            case_pk (str): Primary key of the case.
+            pk: Primary key of the reader study.
+            case_pk: Primary key of the case.
 
         Returns:
-            dict: Ground truth data for the specified case.
+            Ground truth data for the specified case.
         """
         return self._client(
             method="GET",
@@ -238,10 +236,10 @@ class AlgorithmJobsAPI(
         Get algorithm jobs filtered by input image.
 
         Args:
-            pk (str): Primary key of the input image to filter jobs by.
+            pk: Primary key of the input image to filter jobs by.
 
         Yields:
-            HyperlinkedJob: Algorithm job instances that use the specified input image.
+            Algorithm job instances that use the specified input image.
         """
         yield from self.iterate_all(params={"image": pk})
 
