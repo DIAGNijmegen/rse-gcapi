@@ -948,7 +948,7 @@ class Client(httpx.Client, ApiDefinitions):
         This function takes an reader-study slug or model and a list of display-set
         descriptions. It then creates the display-sets for the reader study.
 
-        ??? tip "RE-using existing images"
+        ??? tip "Re-using existing images"
             Existing images on Grand Challenge can be re-used by either
             passing an API url, or a socket value (display set):
 
