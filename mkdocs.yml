@@ -1,4 +1,6 @@
 site_name: GCAPI Documentation
+dev_addr: 127.0.0.1:8001
+strict: true
 nav:
   - Home:
     - Overview: index.md
@@ -16,7 +18,7 @@ nav:
       - Download Answers: usage/reader_study/download_answers.md
     - Algorithms:
       - Start Jobs: usage/algorithm/start_algorithm_jobs.md
-      - Download Predictions: usage/algorithm/download_algorithm_predictions.md
+      - Download Outputs: usage/algorithm/download_algorithm_outputs.md
   - Python API Reference:
     - Client: api/client_methods.md
     - APIs:
