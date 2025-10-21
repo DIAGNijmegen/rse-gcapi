@@ -21,14 +21,6 @@ TESTDATA = Path(__file__).parent / "testdata"
 
 
 @recurse_call
-def get_upload_session(client, upload_pk):
-    upl = client.raw_image_upload_sessions.detail(upload_pk)
-    if upl.status != "Succeeded":
-        raise ValueError
-    return upl
-
-
-@recurse_call
 def get_image(client, image_url):
     return client.images.detail(api_url=image_url)
 
@@ -59,27 +51,6 @@ def get_complete_socket_value_set(get_func, complete_num_sv):
         ):
             raise ValueError(f"Null values: {sv}")
     return sv_set
-
-
-@pytest.mark.parametrize(
-    "files",
-    (
-        # Path based
-        [Path(__file__).parent / "testdata" / "image10x10x101.mha"],
-        # str based
-        [str(Path(__file__).parent / "testdata" / "image10x10x101.mha")],
-        # mixed str and Path
-        [
-            str(Path(__file__).parent / "testdata" / "image10x10x10.mhd"),
-            Path(__file__).parent / "testdata" / "image10x10x10.zraw",
-        ],
-    ),
-)
-def test_input_types_upload_cases(local_grand_challenge, files):
-    c = Client(
-        base_url=local_grand_challenge, verify=False, token=ARCHIVE_TOKEN
-    )
-    c.upload_cases(archive="archive", files=files)
 
 
 def test_raw_image_and_upload_session(local_grand_challenge):
@@ -164,75 +135,6 @@ def test_chunked_uploads(local_grand_challenge):
             c.uploads.upload_fileobj(fileobj=f, filename=file_to_upload.name)
 
 
-@pytest.mark.parametrize(
-    "files, interface",
-    (
-        (["image10x10x101.mha"], "generic-overlay"),
-        (["image10x10x101.mha"], None),
-        (["image10x10x10.mhd", "image10x10x10.zraw"], "generic-overlay"),
-        (["image10x10x10.mhd", "image10x10x10.zraw"], None),
-    ),
-)
-def test_upload_cases_to_archive(local_grand_challenge, files, interface):
-    c = Client(
-        base_url=local_grand_challenge, verify=False, token=ARCHIVE_TOKEN
-    )
-
-    us = c.upload_cases(
-        archive="archive",
-        interface=interface,
-        files=[Path(__file__).parent / "testdata" / f for f in files],
-    )
-
-    us = get_upload_session(c, us.pk)
-
-    # Check that only one image was created
-    assert len(us.image_set) == 1
-
-    image = get_image(c, image_url=us.image_set[0])
-
-    # And that it was added to the archive
-    archive = next(c.archives.iterate_all(params={"slug": "archive"}))
-    archive_images = c.images.iterate_all(params={"archive": archive.pk})
-    assert image.pk in [im.pk for im in archive_images]
-    archive_items = c.archive_items.iterate_all(params={"archive": archive.pk})
-    # with the correct interface
-    image_url_to_interface_slug_dict = {
-        value.image: value.interface.slug
-        for item in archive_items
-        for value in item.values
-        if value.image
-    }
-    if interface:
-        assert image_url_to_interface_slug_dict[image.api_url] == interface
-    else:
-        assert (
-            image_url_to_interface_slug_dict[image.api_url]
-            == "generic-medical-image"
-        )
-
-    # And that we can download it
-    response = c(url=image.files[0].file, follow_redirects=True)
-    assert response.status_code == 200
-
-
-def test_upload_cases_to_archive_item_without_interface(local_grand_challenge):
-    c = Client(
-        base_url=local_grand_challenge, verify=False, token=ARCHIVE_TOKEN
-    )
-    # retrieve existing archive item pk
-    archive = next(c.archives.iterate_all(params={"slug": "archive"}))
-    item = next(c.archive_items.iterate_all(params={"archive": archive.pk}))
-
-    # try upload without providing interface
-    with pytest.raises(ValueError) as e:
-        _ = c.upload_cases(
-            archive_item=item.pk,
-            files=[TESTDATA / "image10x10x101.mha"],
-        )
-    assert "You need to define an interface for archive item uploads" in str(e)
-
-
 def test_page_meta_info(local_grand_challenge):
     c = Client(
         base_url=local_grand_challenge, verify=False, token=ARCHIVE_TOKEN
@@ -245,90 +147,37 @@ def test_page_meta_info(local_grand_challenge):
     assert archives.total_count == 1
 
 
-def test_upload_cases_to_archive_item_with_existing_interface(
-    local_grand_challenge,
-):
-    c = Client(
-        base_url=local_grand_challenge, verify=False, token=ARCHIVE_TOKEN
-    )
-    # retrieve existing archive item pk
-    archive = next(c.archives.iterate_all(params={"slug": "archive"}))
-    item = next(c.archive_items.iterate_all(params={"archive": archive.pk}))
-
-    us = c.upload_cases(
-        archive_item=item.pk,
-        interface="generic-medical-image",
-        files=[TESTDATA / "image10x10x101.mha"],
-    )
-
-    us = get_upload_session(c, us.pk)
-
-    # Check that only one image was created
-    assert len(us.image_set) == 1
-
-    image = get_image(c, us.image_set[0])
-
-    # And that it was added to the archive item
-    item = c.archive_items.detail(pk=item.pk)
-    assert image.api_url in [civ.image for civ in item.values if civ.image]
-    # with the correct interface
-    im_to_interface = {civ.image: civ.interface.slug for civ in item.values}
-    assert im_to_interface[image.api_url] == "generic-medical-image"
-
-
-def test_upload_cases_to_archive_item_with_new_interface(
-    local_grand_challenge,
-):
-    c = Client(
-        base_url=local_grand_challenge, verify=False, token=ARCHIVE_TOKEN
-    )
-    # retrieve existing archive item pk
-    archive = next(c.archives.iterate_all(params={"slug": "archive"}))
-    item = next(c.archive_items.iterate_all(params={"archive": archive.pk}))
-
-    us = c.upload_cases(
-        archive_item=item.pk,
-        interface="generic-overlay",
-        files=[Path(__file__).parent / "testdata" / "image10x10x101.mha"],
-    )
-
-    us = get_upload_session(c, us.pk)
-    # Check that only one image was created
-    assert len(us.image_set) == 1
-
-    image = get_image(c, us.image_set[0])
-
-    # And that it was added to the archive item
-    item = c.archive_items.detail(pk=item.pk)
-    assert image.api_url in [civ.image for civ in item.values if civ.image]
-    # with the correct interface
-    im_to_interface = {civ.image: civ.interface.slug for civ in item.values}
-    assert im_to_interface[image.api_url] == "generic-overlay"
-
-
 @pytest.mark.parametrize("files", (["image10x10x101.mha"],))
 def test_download_cases(local_grand_challenge, files, tmpdir):
     c = Client(
         base_url=local_grand_challenge, verify=False, token=ARCHIVE_TOKEN
     )
 
-    us = c.upload_cases(
+    created_archive_items = c.add_cases_to_archive(
         archive="archive",
-        files=[Path(__file__).parent / "testdata" / f for f in files],
+        archive_items=[
+            {
+                "generic-medical-image": [
+                    Path(__file__).parent / "testdata" / f for f in files
+                ]
+            }
+        ],
     )
 
-    us = get_upload_session(c, us.pk)
+    # Wait for upload to complete
+    get_complete_socket_value_set(
+        get_func=lambda: c.archive_items.detail(created_archive_items[0]),
+        complete_num_sv=1,
+    )
+
+    archive_item = c.archive_items.detail(created_archive_items[0])
 
     # Check that we can download the uploaded image
     tmpdir = Path(tmpdir)
 
-    @recurse_call
-    def get_download():
-        return c.images.download(
-            filename=tmpdir / "image", url=us.image_set[0]
-        )
-
-    downloaded_files = get_download()
+    downloaded_files = c.images.download(
+        filename=tmpdir / "image", url=archive_item.values[0].image
+    )
 
     assert len(downloaded_files) == 1
 
