@@ -20,10 +20,10 @@ classifiers = [
 ]
 
 [project.urls]
-repository = "https://github.com/DIAGNijmegen/rse-gcapi"
-
-[project.scripts]
-gcapi = "gcapi.cli:main"
+GitHub = "https://github.com/DIAGNijmegen/rse-gcapi"
+repository = "https://github.com/DIAGNijmegen/rse-gcapi.git"
+documentation = "https://diagnijmegen.github.io/rse-gcapi/"
+issues = "https://github.com/DIAGNijmegen/rse-gcapi/issues"
 
 [dependency-groups]
 dev = [
