@@ -79,9 +79,9 @@ job_2 =  client.run_external_job(
     ```
 
 ## Inspect jobs
-After a job has ended with the status `'Succeeded'`, you can [download the predictions](../algorithm/download_algorithm_predictions.md).
+After a job has ended with the status `'Succeeded'`, you can [download the outputs](../algorithm/download_algorithm_outputs.md).
 
-Here is how to query their state:
+Here is how to query their status:
 
 ```python
 jobs = [client.algorithm_jobs.detail(job.pk) for job in jobs]
