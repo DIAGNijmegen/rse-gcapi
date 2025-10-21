@@ -66,7 +66,7 @@ job_2 =  client.run_external_job(
 
     ```python
     jobs = []
-    for ct_image in c_images:
+    for ct_image in ct_images:
         job = client.run_external_job(
             algorithm="your-algorithm-slug",
             inputs={"ct-image": ct_image}
@@ -79,7 +79,7 @@ job_2 =  client.run_external_job(
     ```
 
 ## Inspect jobs
-After all of your jobs have ended with the status `'Succeeded'`, you can [download the predictions](../algorithm/download_algorithm_predictions.md).
+After a job has ended with the status `'Succeeded'`, you can [download the predictions](../algorithm/download_algorithm_predictions.md).
 
 Here is how to query their state:
 
