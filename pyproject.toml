@@ -6,7 +6,6 @@ license = {text = "Apache-2.0"}
 requires-python = ">=3.9, <4.0"
 dependencies = [
     "httpx ~= 0.23.0",
-    "Click >= 6.0",
     "pydantic",
     "packaging",
 ]
