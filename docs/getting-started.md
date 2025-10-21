@@ -47,7 +47,7 @@ Any request made to Grand Challenge will have the token added for authentication
 
 ## On object identifiers
 
-To interact with an algorithm, reader study, archive or any other object on Grand Challenge, you must have the proper identifier of that object. Identifiers come in the shape of a primary key, a slug, or an API URL. For the most part, you can use these interchangeably.
+To interact with an algorithm, reader study, archive or any other object on Grand Challenge, you must have the proper identifier of that object. Identifiers come in the shape of a primary key, a slug, or an API URL.
 
 ### Primary keys
 Primary keys ('pk') are very common in databases and are used to identify specific rows in a table.
