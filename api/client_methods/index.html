@@ -9,7 +9,7 @@
       
       
       
-        <link rel="prev" href="../../usage/algorithm/download_algorithm_predictions/">
+        <link rel="prev" href="../../usage/algorithm/start_algorithm_jobs/">
       
       
         <link rel="next" href="../algorithm_images/">
@@ -852,7 +852,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../usage/algorithm/download_algorithm_predictions/" class="md-nav__link">
+      <a href="../../usage/algorithm/download_algorithm_predictions.md" class="md-nav__link">
         
   
   
@@ -1048,15 +1048,6 @@
   <a href="#gcapi.client.Client.update_display_set" class="md-nav__link">
     <span class="md-ellipsis">
       update_display_set
-    </span>
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#gcapi.client.Client.upload_cases" class="md-nav__link">
-    <span class="md-ellipsis">
-      upload_cases
     </span>
   </a>
   
@@ -1690,15 +1681,6 @@
   
 </li>
       
-        <li class="md-nav__item">
-  <a href="#gcapi.client.Client.upload_cases" class="md-nav__link">
-    <span class="md-ellipsis">
-      upload_cases
-    </span>
-  </a>
-  
-</li>
-      
     </ul>
   
 </nav>
@@ -1715,7 +1697,7 @@
 
 
   
-    <a href="https://github.com/DIAGNijmegen/rse-gcapi/edit/main/docs/api/client_methods.md" title="Edit this page" class="md-content__button md-icon" rel="edit">
+    <a href="https://github.com/DIAGNijmegen/rse-gcapi/docs/api/client_methods.md" title="Edit this page" class="md-content__button md-icon" rel="edit">
       
       <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M10 20H6V4h7v5h5v3.1l2-2V8l-6-6H6c-1.1 0-2 .9-2 2v16c0 1.1.9 2 2 2h4zm10.2-7c.1 0 .3.1.4.2l1.3 1.3c.2.2.2.6 0 .8l-1 1-2.1-2.1 1-1c.1-.1.2-.2.4-.2m0 3.9L14.1 23H12v-2.1l6.1-6.1z"/></svg>
     </a>
@@ -1724,7 +1706,7 @@
     
       
     
-    <a href="https://github.com/DIAGNijmegen/rse-gcapi/raw/main/docs/api/client_methods.md" title="View source of this page" class="md-content__button md-icon">
+    <a href="https://github.com/DIAGNijmegen/rse-gcapi/docs/api/client_methods.md" title="View source of this page" class="md-content__button md-icon">
       
       <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M17 18c.56 0 1 .44 1 1s-.44 1-1 1-1-.44-1-1 .44-1 1-1m0-3c-2.73 0-5.06 1.66-6 4 .94 2.34 3.27 4 6 4s5.06-1.66 6-4c-.94-2.34-3.27-4-6-4m0 6.5a2.5 2.5 0 0 1-2.5-2.5 2.5 2.5 0 0 1 2.5-2.5 2.5 2.5 0 0 1 2.5 2.5 2.5 2.5 0 0 1-2.5 2.5M9.27 20H6V4h7v5h5v4.07c.7.08 1.36.25 2 .49V8l-6-6H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h4.5a8.2 8.2 0 0 1-1.23-2"/></svg>
     </a>
@@ -2477,144 +2459,6 @@ with the respective value or file path as follows:</p>
           –
           <div class="doc-md-description">
             <p>The updated display set</p>
-          </div>
-        </li>
-    </ul>
-
-
-    </div>
-
-</div>
-
-<div class="doc doc-object doc-function">
-
-
-<h2 id="gcapi.client.Client.upload_cases" class="doc doc-heading">
-            <span class="doc doc-object-name doc-function-name">upload_cases</span>
-
-
-<a href="#gcapi.client.Client.upload_cases" class="headerlink" title="Permanent link">¤</a></h2>
-<div class="language-python doc-signature highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="nf">upload_cases</span><span class="p">(</span>
-</span><span id="__span-0-2"><a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a>    <span class="o">*</span><span class="p">,</span>
-</span><span id="__span-0-3"><a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a>    <span class="n">files</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="n">Union</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Path</span><span class="p">]],</span>
-</span><span id="__span-0-4"><a id="__codelineno-0-4" name="__codelineno-0-4" href="#__codelineno-0-4"></a>    <span class="n">archive</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
-</span><span id="__span-0-5"><a id="__codelineno-0-5" name="__codelineno-0-5" href="#__codelineno-0-5"></a>    <span class="n">answer</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
-</span><span id="__span-0-6"><a id="__codelineno-0-6" name="__codelineno-0-6" href="#__codelineno-0-6"></a>    <span class="n">archive_item</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
-</span><span id="__span-0-7"><a id="__codelineno-0-7" name="__codelineno-0-7" href="#__codelineno-0-7"></a>    <span class="n">display_set</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
-</span><span id="__span-0-8"><a id="__codelineno-0-8" name="__codelineno-0-8" href="#__codelineno-0-8"></a>    <span class="n">interface</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span>
-</span><span id="__span-0-9"><a id="__codelineno-0-9" name="__codelineno-0-9" href="#__codelineno-0-9"></a><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">gcapi</span><span class="o">.</span><span class="n">models</span><span class="o">.</span><span class="n">RawImageUploadSession</span>
-</span></code></pre></div>
-
-    <div class="doc doc-contents ">
-
-        <p>Uploads a set of files to an archive, archive item or display set.
-A new upload session will be created on grand challenge to import and
-standardise your file(s). This function will return this new upload
-session object, that you can query for the import status. If this
-import is successful, the new image(s) will then be added to the selected
-archive, archive item or reader study.
-You will need to provide the slugs of the archive or reader study or the
-pk of the archive item to pass the images along to.
-You can find the slug in the url of the object that you want
-to use. For instance, if you want to use the archive at
-    https://grand-challenge.org/archives/corads-ai/
-the slug for this is "corads-ai", so you would call this function with
-    upload_cases(files=[...], archive="corads-ai")
-For archive uploads, you can additionally specify the interface slug
-for the to be created archive items. For archive item uploads, the
-interface is mandatory. If you define an already existing interface,
-the old file associated with that interface will be replaced by the new file.
-You can find a list of interfaces here:
-https://grand-challenge.org/algorithms/interfaces/
-The interface slug corresponds to the lowercase hyphenated title of the
-interface, e.g. generic-medical-image for Generic Medical Image.</p>
-
-
-<p><span class="doc-section-title">Parameters:</span></p>
-    <ul>
-        <li class="doc-section-item field-body">
-            <b><code>files</code></b>
-              (<code><span title="list">list</span>[<span title="typing.Union">Union</span>[<span title="str">str</span>, <span title="pathlib.Path">Path</span>]]</code>)
-          –
-          <div class="doc-md-description">
-            <p>The list of files on disk that form 1 Image. These can be a set of
-.mha, .mhd, .raw, .zraw, .dcm, .nii, .nii.gz, .tiff, .png, .jpeg,
-.jpg, .svs, .vms, .vmu, .ndpi, .scn, .mrxs and/or .bif files.</p>
-          </div>
-        </li>
-        <li class="doc-section-item field-body">
-            <b><code>archive</code></b>
-              (<code><span title="typing.Optional">Optional</span>[<span title="str">str</span>]</code>, default:
-                  <code>None</code>
-)
-          –
-          <div class="doc-md-description">
-            <p>The slug of the archive to use.</p>
-          </div>
-        </li>
-        <li class="doc-section-item field-body">
-            <b><code>answer</code></b>
-              (<code><span title="typing.Optional">Optional</span>[<span title="str">str</span>]</code>, default:
-                  <code>None</code>
-)
-          –
-          <div class="doc-md-description">
-            <p>The pk of the reader study answer to use.</p>
-          </div>
-        </li>
-        <li class="doc-section-item field-body">
-            <b><code>archive_item</code></b>
-              (<code><span title="typing.Optional">Optional</span>[<span title="str">str</span>]</code>, default:
-                  <code>None</code>
-)
-          –
-          <div class="doc-md-description">
-            <p>The pk of the archive item to use.</p>
-          </div>
-        </li>
-        <li class="doc-section-item field-body">
-            <b><code>display_set</code></b>
-              (<code><span title="typing.Optional">Optional</span>[<span title="str">str</span>]</code>, default:
-                  <code>None</code>
-)
-          –
-          <div class="doc-md-description">
-            <p>The pk of the display set to use.</p>
-          </div>
-        </li>
-        <li class="doc-section-item field-body">
-            <b><code>interface</code></b>
-              (<code><span title="typing.Optional">Optional</span>[<span title="str">str</span>]</code>, default:
-                  <code>None</code>
-)
-          –
-          <div class="doc-md-description">
-            <p>The slug of the interface to use. Can only be defined for archive
-and archive item uploads.</p>
-          </div>
-        </li>
-    </ul>
-
-
-<p><span class="doc-section-title">Returns:</span></p>
-    <ul>
-        <li class="doc-section-item field-body">
-              <code><a class="autorefs autorefs-internal" title="RawImageUploadSession (gcapi.models.RawImageUploadSession)" href="../models/#gcapi.models.RawImageUploadSession">RawImageUploadSession</a></code>
-          –
-          <div class="doc-md-description">
-            <p>The created upload session.</p>
-          </div>
-        </li>
-    </ul>
-
-
-<p><span class="doc-section-title">Raises:</span></p>
-    <ul>
-        <li class="doc-section-item field-body">
-              <code><span title="ValueError">ValueError</span></code>
-            –
-          <div class="doc-md-description">
-            <p>If the input parameters are not valid.</p>
           </div>
         </li>
     </ul>
