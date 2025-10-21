@@ -26,7 +26,7 @@ with the respective value or file path as follows:
 client.update_display_set(
     display_set_pk=display_sets[0].pk,
     values={
-        "report": 'path/on/your/machine/to/the/report'],
+        "report": 'path/on/your/machine/to/the/report.pdf'],
         "lung-volume": 1.9,
     },
 )
@@ -58,7 +58,7 @@ To update the title of a display set (in the example to "Case 10"), you can do t
 
 ```Python
 display_set_pk = "41b79371-7bdc-45df-8e00-add3982f16b9"
-new_order = "Case 10"
+new_title = "Case 10"
 
 client.reader_studies.display_sets.partial_update(
     pk=display_set_pk,
