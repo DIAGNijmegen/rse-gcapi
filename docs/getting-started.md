@@ -74,4 +74,4 @@ Unless you are the **editor of the object**, you will first need to request acce
 Requesting access can be done by navigating to the respective object page on Grand Challenge, find and press the **Request access** button.
 
 !!! note
-    Responding to an access request is generally a manual step for the object owners and might take a couple of hours! Please be patient.
+    Responding to an access request is generally a manual step for the object owners and might take a couple of days! Please be patient.
