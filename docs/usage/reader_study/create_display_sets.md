@@ -24,7 +24,7 @@ mainfolder/
 │		├──file_for_a_single_series
 ```
 
-Lets now list the files in the upload directory to check whether they can be identified:
+Lets now list the files in the upload directory:
 ```python
 # Specify the directory path which you want to upload from.
 upload_from_dir = Path(r"path/on/your/machine/with/data/for/reader/study")
@@ -42,7 +42,7 @@ To create display sets for the readers to view, you need to provide a [socket](h
 !!! tip Custom Socket Creation
      If your desired socket does not yet exist, please email [support@grand-challenge.org](mailto:support@grand-challenge.org) with a title and description to add it to the [list](https://grand-challenge.org/components/interfaces/reader-studies/).
 
-In this example two sets are created and the display set contains three sockets: a `ct-image`, an `airway-segmentation` and `some-score`:
+In this example two display sets are created and each display set contains three sockets: a `ct-image`, an `airway-segmentation` and `some-score`:
 
 ```python
 display_sets = [

@@ -24,7 +24,7 @@ mainfolder/
 │		├──file_for_a_single_series
 ```
 
-Lets now list the files in the upload directory to check whether they can be identified:
+Lets now list the files in the upload directory:
 ```python
 # Specify the directory path which you want to upload from.
 upload_from_dir = Path(r"path/on/your/machine/with/data/for/archive")
@@ -37,9 +37,9 @@ print("Found", len(files), "cases for upload")
 
 ## Create archive items
 
-To create archive items for the algorithms to predict on, you need to provide a [socket](https://grand-challenge.org/documentation/interfaces/) for each image. Within an archive item, a socket needs to be unique. For example, one cannot have three `generic-medical-images` within a single archive item.
+An Archive contains Archive Items. An archive item consists of one or more socket values, which can be images, files or other data. To create archive items for the algorithms to predict on, you need to provide a [socket slug](https://grand-challenge.org/documentation/interfaces/) for each socket value. Within an archive item, a socket slug needs to be unique. For example, one cannot have three `generic-medical-images` within a single archive item.
 
-In this example two items are created and the archive item contains three sockets slugs: a `ct-image`, an `airway-segmentation` and `some-score`.
+In this example two archive items are created and each archive item contains three sockets, with slugs: a `ct-image`, an `airway-segmentation` and `some-score`.
 
 !!! tip "Challenge Sockets"
     For archives that are linked to challenges, the sockets will need to correspond to the sockets that have been configured as input for the challenge algorithms. For an overview of these sockets, visit the submit page(s) of your challenge.
