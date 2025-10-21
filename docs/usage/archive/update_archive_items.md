@@ -23,9 +23,9 @@ with the respective value or file path as follows:
 
 ```python
 client.update_archive_item(
-    display_set_pk=archive_items[0].pk,
+    archive_item_pk=archive_items[0].pk,
     values={
-        "report": 'path/on/your/machine/to/the/report'],
+        "report": 'path/on/your/machine/to/the/report.pdf'],
         "lung-volume": 1.9,
     },
 )
