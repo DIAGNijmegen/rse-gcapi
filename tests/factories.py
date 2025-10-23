@@ -67,6 +67,7 @@ def HyperlinkedImageFactory(**kwargs) -> HyperlinkedImage:  # noqa: N802
         pk=pk,
         name=f"a_filename_{pk}.mha",
         files=[],
+        dicom_image_set=None,
         width=10,
         height=10,
         depth=None,
