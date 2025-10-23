@@ -7,7 +7,7 @@ from io import BytesIO
 from pathlib import Path
 from random import randint
 from time import sleep
-from typing import IO, Any, Callable, Optional, Union
+from typing import IO, Any, Callable, Optional, Union, get_type_hints
 from urllib.parse import urljoin
 
 import httpx
@@ -566,7 +566,7 @@ class Client(httpx.Client, ApiDefinitions):
             raise RuntimeError("Base URL must be https")
 
         self._api_meta = ApiDefinitions()
-        for name, cls in self._api_meta.__annotations__.items():
+        for name, cls in get_type_hints(ApiDefinitions).items():
             setattr(self._api_meta, name, cls(client=self))
 
     def __getattr__(self, item):
