@@ -31,7 +31,7 @@ def local_httpbin():
             text=True,
         ).strip()
 
-        url = "https://gc.localhost:8008/"
+        url = "http://localhost:8008/"
         for _ in range(5):
             try:
                 response = httpx.get(url, timeout=5)
