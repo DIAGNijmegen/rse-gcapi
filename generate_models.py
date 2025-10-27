@@ -35,7 +35,7 @@ def main() -> int:
             strip_default_none=True,
             strict_nullable=True,
             output_model_type=DataModelType.DataclassesDataclass,
-            target_python_version=PythonVersion.PY_39,
+            target_python_version=PythonVersion.PY_310,
             input_file_type=InputFileType.OpenAPI,
             aliases={
                 # Prevent resolving 'json' fields to 'json_'.

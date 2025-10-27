@@ -3,7 +3,7 @@ from __future__ import annotations
 import json
 from io import BytesIO
 from pathlib import Path
-from typing import TYPE_CHECKING, Any, Optional
+from typing import TYPE_CHECKING, Any
 
 import httpx
 
@@ -30,7 +30,7 @@ Empty = object()
 
 
 def clean_file_source(
-    source: FileSource, *, maximum_number: Optional[int] = None
+    source: FileSource, *, maximum_number: int | None = None
 ) -> list[Path]:
     # Ensure we are handling a list
     sources = [source] if not isinstance(source, list) else source

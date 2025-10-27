@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import collections
 from collections.abc import Iterator, Sequence
-from typing import TYPE_CHECKING, Any, Generic, Optional, TypeVar, overload
+from typing import TYPE_CHECKING, Any, Generic, TypeVar, overload
 from urllib.parse import urljoin
 
 from httpx import HTTPStatusError
@@ -81,7 +81,7 @@ class APIBase(Generic[T]):
         for k, api in list(self.sub_apis.items()):
             setattr(self, k, api(self._client))
 
-    def list(self, params: Optional[dict[str, Any]] = None) -> list[T]:
+    def list(self, params: dict[str, Any] | None = None) -> list[T]:
         """
         Retrieve a raw list of resources from the API endpoint.
 
@@ -98,7 +98,7 @@ class APIBase(Generic[T]):
         self,
         offset: int = 0,
         limit: int = 100,
-        params: Optional[dict[str, Any]] = None,
+        params: dict[str, Any] | None = None,
     ) -> PageResult[T]:
         """
         Retrieve a paginated set of resources from the API endpoint.
@@ -130,9 +130,7 @@ class APIBase(Generic[T]):
             results=results,
         )
 
-    def iterate_all(
-        self, params: Optional[dict[str, Any]] = None
-    ) -> Iterator[T]:
+    def iterate_all(self, params: dict[str, Any] | None = None) -> Iterator[T]:
         """
         Iterate through all resources from the API endpoint across all pages.
 
@@ -160,8 +158,8 @@ class APIBase(Generic[T]):
 
     def detail(
         self,
-        pk: Optional[str] = None,
-        api_url: Optional[str] = None,
+        pk: str | None = None,
+        api_url: str | None = None,
         **params: Any,
     ) -> T:
         """

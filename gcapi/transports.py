@@ -1,6 +1,6 @@
 import logging
+from collections.abc import Callable
 from time import sleep
-from typing import Callable, Optional
 
 import httpx
 
@@ -14,7 +14,7 @@ Seconds = float
 class BaseRetryTransport:
     def __init__(
         self,
-        retry_strategy: Optional[Callable[..., BaseRetryStrategy]],
+        retry_strategy: Callable[..., BaseRetryStrategy] | None,
         *args,
         **kwargs,
     ):
@@ -33,7 +33,7 @@ class BaseRetryTransport:
         retry_strategy,
         response,
         request,
-    ) -> tuple[Optional[BaseRetryStrategy], Optional[Seconds]]:
+    ) -> tuple[BaseRetryStrategy | None, Seconds | None]:
         if self.retry_strategy is None:
             return None, None  # Noop
         elif retry_strategy is None:  # Initiate

@@ -27,7 +27,7 @@ NO_RETRIES = [None]
                     codes.NETWORK_AUTHENTICATION_REQUIRED,
                 )
             ],
-            NO_RETRIES,
+            NO_RETRIES * 7,
         ),
         *(  # Backoff responses
             (
@@ -48,7 +48,7 @@ NO_RETRIES = [None]
                 Response(codes.GATEWAY_TIMEOUT),
                 Response(codes.GATEWAY_TIMEOUT),
             ],
-            [0.1, 0.2] * 3,
+            [0.1, 0.2] * 2,
         ),
         # codes.TOO_MANY_REQUESTS without Retry-After header
         (
@@ -120,5 +120,5 @@ def test_selective_backoff_strategy(responses, delays):
             backoff_factor=0.1, maximum_number_of_retries=8
         )
         strategy = generator()
-        for response, expected_delay in zip(responses, delays):
+        for response, expected_delay in zip(responses, delays, strict=True):
             assert strategy.get_delay(response) == expected_delay

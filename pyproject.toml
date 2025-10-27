@@ -3,10 +3,9 @@ authors = [
     {name = "James Meakin"},
 ]
 license = {text = "Apache-2.0"}
-requires-python = ">=3.9, <4.0"
+requires-python = ">=3.10, <4.0"
 dependencies = [
     "httpx ~= 0.23.0",
-    "Click >= 6.0",
     "pydantic",
     "packaging",
 ]
@@ -20,10 +19,10 @@ classifiers = [
 ]
 
 [project.urls]
-repository = "https://github.com/DIAGNijmegen/rse-gcapi"
-
-[project.scripts]
-gcapi = "gcapi.cli:main"
+GitHub = "https://github.com/DIAGNijmegen/rse-gcapi"
+repository = "https://github.com/DIAGNijmegen/rse-gcapi.git"
+documentation = "https://diagnijmegen.github.io/rse-gcapi/"
+issues = "https://github.com/DIAGNijmegen/rse-gcapi/issues"
 
 [dependency-groups]
 dev = [
@@ -46,7 +45,7 @@ line_length = 79
 
 [tool.black]
 line-length = 79
-target-version = ['py39']
+target-version = ['py310']
 
 [tool.pytest.ini_options]
 minversion = "6.0"
@@ -58,7 +57,7 @@ addopts = "--strict-markers --showlocals"
 xfail_strict = true
 
 [tool.mypy]
-python_version = 3.9
+python_version = "3.10"
 plugins = "pydantic.mypy"
 warn_unused_configs = true
 warn_redundant_casts = true

@@ -682,7 +682,11 @@ def test_add_cases_to_reader_study(display_sets, local_grand_challenge):
         response = c(url=socket_value.file, follow_redirects=True)
         assert response.url.path.endswith(expected_name)
 
-    for display_set_pk, display_set in zip(added_display_sets, display_sets):
+    for display_set_pk, display_set in zip(
+        added_display_sets,
+        display_sets,
+        strict=True,
+    ):
 
         ds = get_complete_socket_value_set(
             get_func=partial(
