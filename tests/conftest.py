@@ -63,6 +63,7 @@ class GrandChallengeServerRuntimeError(RuntimeError):
 
 @pytest.fixture(scope="session")
 def local_grand_challenge(tmp_path_factory) -> Generator[str, None, None]:
+
     local_api_url = os.environ.get(
         "GCAPI_TESTS_LOCAL_API_URL",
         "https://gc.localhost:8000/api/v1/",
@@ -161,7 +162,7 @@ def local_grand_challenge(tmp_path_factory) -> Generator[str, None, None]:
                 stderr=STDOUT,
             )
 
-            # Start the celery worker with watchfiles
+            # Start the celery worker
             celery_worker_process = subprocess.Popen(
                 [
                     "uv",
@@ -169,13 +170,16 @@ def local_grand_challenge(tmp_path_factory) -> Generator[str, None, None]:
                     "--active",
                     "--directory",
                     "app",
-                    "--",
-                    "watchfiles",
-                    "--filter",
-                    "python",
-                    "celery --app config worker --loglevel DEBUG --concurrency 1 --pool prefork"
-                    " --queues workstations-eu-central-1,acks-late-2xlarge,acks-late-2xlarge-delay,"
-                    "acks-late-micro-short,acks-late-micro-short-delay",
+                    "celery",
+                    "--app",
+                    "config",
+                    "worker",
+                    "--concurrency",
+                    "1",
+                    "--pool",
+                    "prefork",
+                    "--queues",
+                    "workstations-eu-central-1,acks-late-2xlarge,acks-late-2xlarge-delay,acks-late-micro-short,acks-late-micro-short-delay",
                 ],
                 env=env,
                 cwd=tmp_path,
@@ -255,7 +259,8 @@ def local_grand_challenge(tmp_path_factory) -> Generator[str, None, None]:
             for process in background_processes:
                 process.terminate()
                 try:
-                    process.wait(timeout=10)
+                    # Join with a timeout so we don't hang forever
+                    process.wait(timeout=30)
                 except subprocess.TimeoutExpired:
                     process.kill()
 
@@ -317,7 +322,6 @@ def download_latest_sagemaker_shim(download_path: Path) -> str:
                 with open(download_path / name, "wb") as f:
                     for chunk in r.iter_bytes(chunk_size=8192):
                         f.write(chunk)
-            print("✅ Done.")
 
             # Extract the downloaded tar.gz file
             tar_path = download_path / name
