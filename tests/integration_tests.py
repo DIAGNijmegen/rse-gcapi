@@ -229,7 +229,7 @@ def test_create_job_with_upload(
     assert job.status == "Validating inputs"
 
     @recurse_call
-    async def check_job_status():
+    def check_job_status():
         j = c.algorithm_jobs.detail(job.pk)
         if j.status in {
             "Queued",
