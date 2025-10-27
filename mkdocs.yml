@@ -43,8 +43,8 @@ nav:
     - Retries: api/retries.md
 repo_url: https://github.com/DIAGNijmegen/rse-gcapi
 repo_name: gcapi
-edit_uri: docs/
 
+edit_uri: edit/main/docs/
 
 # Plugins
 plugins:
