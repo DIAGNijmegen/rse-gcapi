@@ -85,7 +85,7 @@ def local_grand_challenge(tmp_path_factory) -> Generator[str, None, None]:
     else:
         # Start our own version of grand challenge
         tmp_name = tmp_path_factory.mktemp("grand_challenge_repo")
-        tmp_path = Path(tmp_name)
+        gc_rep_path = Path(tmp_name)
 
         # Clone the repo
         check_output(
@@ -95,43 +95,34 @@ def local_grand_challenge(tmp_path_factory) -> Generator[str, None, None]:
                 "--depth",
                 "1",
                 "https://github.com/comic/grand-challenge.org.git",
-                tmp_path,
+                gc_rep_path,
             ],
             stderr=STDOUT,
         )
 
-        virtual_env_path = tmp_path_factory.mktemp("grand_challenge_venv")
-        check_output(
-            ["uv", "venv", str(virtual_env_path)],
-            cwd=tmp_path,
-            stderr=STDOUT,
-        )
+        # virtual_env_path = tmp_path_factory.mktemp("grand_challenge_venv")
+        # check_output(
+        #     ["uv", "venv", str(virtual_env_path)],
+        #     cwd=gc_rep_path,
+        #     stderr=STDOUT,
+        # )
 
         # Copy our test scripts
         for file in (Path(__file__).parent / "scripts").glob("*"):
             if file.is_file():
                 shutil.copy(
                     file,
-                    tmp_path / "scripts" / file.name,
+                    gc_rep_path / "scripts" / file.name,
                 )
 
         shim_location_path = tmp_path_factory.mktemp("grand_challenge_shim")
         shim_version = download_latest_sagemaker_shim(shim_location_path)
 
         env = build_env(
-            shim_location=shim_location_path,
-            shim_version=shim_version,
-            virtual_env_path=virtual_env_path,
+            shim_location=shim_location_path, shim_version=shim_version
         )
 
-        key_path, crt_path = build_ssl_certs(tmp_path)
-        check_output(  # Required for Django to serve HTTPS
-            ["uv", "pip", "install", "pyopenssl"],
-            cwd=tmp_path,
-            stderr=STDOUT,
-            env=env,
-        )
-
+        key_path, crt_path = build_ssl_certs(gc_rep_path)
         background_processes = []
 
         try:
@@ -139,7 +130,7 @@ def local_grand_challenge(tmp_path_factory) -> Generator[str, None, None]:
             deps_process = subprocess.Popen(
                 ["make", "rundeps"],
                 env=env,
-                cwd=tmp_path,
+                cwd=gc_rep_path,
                 stdout=subprocess.PIPE,
                 stderr=subprocess.PIPE,
             )
@@ -150,7 +141,6 @@ def local_grand_challenge(tmp_path_factory) -> Generator[str, None, None]:
                 [
                     "uv",
                     "run",
-                    "--active",
                     "--directory",
                     "app",
                     "python",
@@ -158,7 +148,7 @@ def local_grand_challenge(tmp_path_factory) -> Generator[str, None, None]:
                     "migrate",
                 ],
                 env=env,
-                cwd=tmp_path,
+                cwd=gc_rep_path,
                 stderr=STDOUT,
             )
 
@@ -167,7 +157,6 @@ def local_grand_challenge(tmp_path_factory) -> Generator[str, None, None]:
                 [
                     "uv",
                     "run",
-                    "--active",
                     "--directory",
                     "app",
                     "celery",
@@ -182,7 +171,7 @@ def local_grand_challenge(tmp_path_factory) -> Generator[str, None, None]:
                     "workstations-eu-central-1,acks-late-2xlarge,acks-late-2xlarge-delay,acks-late-micro-short,acks-late-micro-short-delay",
                 ],
                 env=env,
-                cwd=tmp_path,
+                cwd=gc_rep_path,
                 stdout=subprocess.PIPE,
                 stderr=subprocess.PIPE,
             )
@@ -192,7 +181,6 @@ def local_grand_challenge(tmp_path_factory) -> Generator[str, None, None]:
                 [
                     "uv",
                     "run",
-                    "--active",
                     "--directory",
                     "app",
                     "python",
@@ -203,7 +191,7 @@ def local_grand_challenge(tmp_path_factory) -> Generator[str, None, None]:
                     "create_test_fixtures",
                 ],
                 env=env,
-                cwd=tmp_path,
+                cwd=gc_rep_path,
                 stderr=STDOUT,
             )
 
@@ -211,7 +199,8 @@ def local_grand_challenge(tmp_path_factory) -> Generator[str, None, None]:
                 [
                     "uv",
                     "run",
-                    "--active",
+                    "--with",
+                    "pyopenssl",
                     "--directory",
                     "app",
                     "python",
@@ -223,7 +212,7 @@ def local_grand_challenge(tmp_path_factory) -> Generator[str, None, None]:
                     str(key_path.absolute()),
                 ],
                 env=env,
-                cwd=tmp_path,
+                cwd=gc_rep_path,
                 stdout=subprocess.PIPE,
                 stderr=subprocess.PIPE,
             )
@@ -253,7 +242,7 @@ def local_grand_challenge(tmp_path_factory) -> Generator[str, None, None]:
                     "--volumes",
                     "--remove-orphans",
                 ],
-                cwd=tmp_path,
+                cwd=gc_rep_path,
                 stderr=STDOUT,
             )
             for process in background_processes:
@@ -338,12 +327,9 @@ def download_latest_sagemaker_shim(download_path: Path) -> str:
         return str(match.group(1))  # Return the version string
 
 
-def build_env(
-    shim_location: Path, shim_version: str, virtual_env_path: Path
-) -> dict[str, Any]:
+def build_env(shim_location: Path, shim_version: str) -> dict[str, Any]:
     env = os.environ.copy()
 
-    env["VIRTUAL_ENV"] = str(virtual_env_path.absolute())
     env_vars = {
         # DOCKER_GID is only used for resolving the docker-compose.yml template
         # Actual service it is involved with does not matter for these tests
