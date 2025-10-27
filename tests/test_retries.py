@@ -120,5 +120,5 @@ def test_selective_backoff_strategy(responses, delays):
             backoff_factor=0.1, maximum_number_of_retries=8
         )
         strategy = generator()
-        for response, expected_delay in zip(responses, delays):
+        for response, expected_delay in zip(responses, delays, strict=True):
             assert strategy.get_delay(response) == expected_delay
