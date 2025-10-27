@@ -1,6 +1,5 @@
 import datetime
 from email.utils import parsedate_to_datetime
-from typing import Optional
 
 import httpx
 from httpx import codes
@@ -9,7 +8,7 @@ Seconds = float
 
 
 class BaseRetryStrategy:
-    def get_delay(self, latest_response: httpx.Response) -> Optional[Seconds]:
+    def get_delay(self, latest_response: httpx.Response) -> Seconds | None:
         """
         Returns the number of seconds to pause before the next retry,
         based on the latest response.
@@ -43,7 +42,7 @@ class SelectiveBackoffStrategy(BaseRetryStrategy):
             maximum_number_of_retries=self.maximum_number_of_retries,
         )
 
-    def get_delay(self, latest_response: httpx.Response) -> Optional[Seconds]:
+    def get_delay(self, latest_response: httpx.Response) -> Seconds | None:
         if latest_response.status_code in (
             codes.BAD_GATEWAY,
             codes.SERVICE_UNAVAILABLE,

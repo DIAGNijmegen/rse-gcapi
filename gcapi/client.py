@@ -2,12 +2,12 @@ import logging
 import os
 import re
 import uuid
-from collections.abc import Iterator
+from collections.abc import Callable, Iterator
 from io import BytesIO
 from pathlib import Path
 from random import randint
 from time import sleep
-from typing import IO, Any, Callable, Optional, Union, get_type_hints
+from typing import IO, Any, get_type_hints
 from urllib.parse import urljoin
 
 import httpx
@@ -54,11 +54,11 @@ class ImagesAPI(APIBase[gcapi.models.HyperlinkedImage]):
     def download(
         self,
         *,
-        filename: Union[str, Path],
-        image_type: Optional[str] = None,
-        pk: Optional[str] = None,
-        url: Optional[str] = None,
-        files: Optional[list] = None,
+        filename: str | Path,
+        image_type: str | None = None,
+        pk: str | None = None,
+        url: str | None = None,
+        files: list | None = None,
         **params: Any,
     ) -> list[Path]:
         """
@@ -276,7 +276,7 @@ class UploadsAPI(APIBase[gcapi.models.UserUpload]):
     n_presigned_urls = 5  # number of pre-signed urls to generate
     max_retries = 10
 
-    def create(self, *, filename: Union[str, Path]) -> gcapi.models.UserUpload:
+    def create(self, *, filename: str | Path) -> gcapi.models.UserUpload:
         """
         Create a new upload session.
 
@@ -530,7 +530,7 @@ class Client(httpx.Client, ApiDefinitions):
         base_url: str = "https://grand-challenge.org/api/v1/",
         verify: bool = True,
         timeout: float = 60.0,
-        retry_strategy: Optional[Callable[[], BaseRetryStrategy]] = None,
+        retry_strategy: Callable[[], BaseRetryStrategy] | None = None,
     ):
         """
         Args:
@@ -678,7 +678,7 @@ class Client(httpx.Client, ApiDefinitions):
     def run_external_job(
         self,
         *,
-        algorithm: Union[str, gcapi.models.Algorithm],
+        algorithm: str | gcapi.models.Algorithm,
         inputs: SocketValueSetDescription,
     ) -> gcapi.models.JobPost:
         """
@@ -829,7 +829,7 @@ class Client(httpx.Client, ApiDefinitions):
     def add_cases_to_reader_study(
         self,
         *,
-        reader_study: Union[str, gcapi.models.ReaderStudy],
+        reader_study: str | gcapi.models.ReaderStudy,
         display_sets: list[SocketValueSetDescription],
     ) -> list[str]:
         """
@@ -977,7 +977,7 @@ class Client(httpx.Client, ApiDefinitions):
     def add_cases_to_archive(
         self,
         *,
-        archive: Union[str, gcapi.models.Archive],
+        archive: str | gcapi.models.Archive,
         archive_items: list[SocketValueSetDescription],
     ) -> list[str]:
         """

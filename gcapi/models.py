@@ -6,7 +6,7 @@ from __future__ import annotations
 
 from decimal import Decimal
 from enum import Enum
-from typing import Any, Dict, List, Optional, Union
+from typing import Any
 
 from pydantic.dataclasses import dataclass
 
@@ -21,31 +21,31 @@ class AlgorithmImage(BaseModel):
     algorithm: str
     created: str
     import_status: str
-    image: Optional[str]
+    image: str | None
 
 
 @dataclass
 class Answer(BaseModel):
-    answer: Optional[Any]
+    answer: Any | None
     api_url: str
     created: str
     creator: str
-    display_set: Optional[str]
+    display_set: str | None
     pk: str
     question: str
     modified: str
-    answer_image: Optional[str]
-    last_edit_duration: Optional[str]
-    total_edit_duration: Optional[str]
+    answer_image: str | None
+    last_edit_duration: str | None
+    total_edit_duration: str | None
     is_ground_truth: bool
 
 
 @dataclass
 class AnswerRequest(BaseModel):
-    answer: Optional[Any]
-    display_set: Optional[str]
+    answer: Any | None
+    display_set: str | None
     question: str
-    last_edit_duration: Optional[str]
+    last_edit_duration: str | None
 
 
 @dataclass
@@ -53,7 +53,7 @@ class Archive(BaseModel):
     pk: str
     title: str
     logo: str
-    description: Optional[str]
+    description: str | None
     api_url: str
     url: str
 
@@ -66,18 +66,18 @@ class BlankEnum(Enum):
 class CategoricalOption(BaseModel):
     id: int
     title: str
-    default: Optional[bool]
+    default: bool | None
 
 
 @dataclass
 class Challenge(BaseModel):
-    title: Optional[str]
+    title: str | None
     short_name: str
 
 
 @dataclass
 class ChallengeRequest(BaseModel):
-    title: Optional[str]
+    title: str | None
     short_name: str
 
 
@@ -99,20 +99,20 @@ class ColorSpaceEnum(Enum):
 @dataclass
 class ComponentInterfaceValuePost(BaseModel):
     interface: str
-    value: Optional[Any]
-    file: Optional[str]
-    image: Optional[str]
+    value: Any | None
+    file: str | None
+    image: str | None
     pk: int
 
 
 @dataclass
 class ComponentInterfaceValuePostRequest(BaseModel):
     interface: str
-    value: Optional[Any]
-    file: Optional[bytes]
-    image: Optional[str]
-    upload_session: Optional[str]
-    user_upload: Optional[str]
+    value: Any | None
+    file: bytes | None
+    image: str | None
+    upload_session: str | None
+    user_upload: str | None
 
 
 @dataclass
@@ -122,9 +122,9 @@ class DICOMImageSet(BaseModel):
 
 @dataclass
 class DisplaySetPostRequest(BaseModel):
-    reader_study: Optional[str]
-    values: Optional[list[ComponentInterfaceValuePostRequest]]
-    order: Optional[int]
+    reader_study: str | None
+    values: list[ComponentInterfaceValuePostRequest] | None
+    order: int | None
     title: str = ""
 
 
@@ -138,17 +138,17 @@ class EyeChoiceEnum(Enum):
 @dataclass
 class Feedback(BaseModel):
     session: str
-    screenshot: Optional[str]
+    screenshot: str | None
     user_comment: str
-    context: Optional[Any]
+    context: Any | None
 
 
 @dataclass
 class FeedbackRequest(BaseModel):
     session: str
-    screenshot: Optional[bytes]
+    screenshot: bytes | None
     user_comment: str
-    context: Optional[Any]
+    context: Any | None
 
 
 class FieldOfViewEnum(Enum):
@@ -165,12 +165,12 @@ class FieldOfViewEnum(Enum):
 @dataclass
 class Follow(BaseModel):
     pk: int
-    flag: Optional[str]
+    flag: str | None
 
 
 @dataclass
 class FollowRequest(BaseModel):
-    flag: Optional[str]
+    flag: str | None
 
 
 @dataclass
@@ -474,26 +474,26 @@ class LookUpTable(BaseModel):
     pk: int
     slug: str
     title: str
-    description: Optional[str]
+    description: str | None
     color: str
     alpha: str
-    color_invert: Optional[str]
-    alpha_invert: Optional[str]
-    range_min: Optional[int]
-    range_max: Optional[int]
-    relative: Optional[bool]
-    color_interpolation: Optional[ColorInterpolationEnum]
-    color_interpolation_invert: Optional[ColorInterpolationEnum]
+    color_invert: str | None
+    alpha_invert: str | None
+    range_min: int | None
+    range_max: int | None
+    relative: bool | None
+    color_interpolation: ColorInterpolationEnum | None
+    color_interpolation_invert: ColorInterpolationEnum | None
 
 
 @dataclass
 class Notification(BaseModel):
-    read: Optional[bool]
+    read: bool | None
 
 
 @dataclass
 class NotificationRequest(BaseModel):
-    read: Optional[bool]
+    read: bool | None
 
 
 class NullEnum(Enum):
@@ -503,48 +503,48 @@ class NullEnum(Enum):
 @dataclass
 class PaginatedAlgorithmImageList(BaseModel):
     count: int
-    next: Optional[str]
-    previous: Optional[str]
+    next: str | None
+    previous: str | None
     results: list[AlgorithmImage]
 
 
 @dataclass
 class PaginatedAnswerList(BaseModel):
     count: int
-    next: Optional[str]
-    previous: Optional[str]
+    next: str | None
+    previous: str | None
     results: list[Answer]
 
 
 @dataclass
 class PaginatedArchiveList(BaseModel):
     count: int
-    next: Optional[str]
-    previous: Optional[str]
+    next: str | None
+    previous: str | None
     results: list[Archive]
 
 
 @dataclass
 class PaginatedFeedbackList(BaseModel):
     count: int
-    next: Optional[str]
-    previous: Optional[str]
+    next: str | None
+    previous: str | None
     results: list[Feedback]
 
 
 @dataclass
 class PaginatedFollowList(BaseModel):
     count: int
-    next: Optional[str]
-    previous: Optional[str]
+    next: str | None
+    previous: str | None
     results: list[Follow]
 
 
 @dataclass
 class PaginatedNotificationList(BaseModel):
     count: int
-    next: Optional[str]
-    previous: Optional[str]
+    next: str | None
+    previous: str | None
     results: list[Notification]
 
 
@@ -566,45 +566,45 @@ class PartRequest(BaseModel):
 
 @dataclass
 class PatchedAnswerRequest(BaseModel):
-    answer: Optional[Any]
-    display_set: Optional[str]
-    question: Optional[str]
-    last_edit_duration: Optional[str]
+    answer: Any | None
+    display_set: str | None
+    question: str | None
+    last_edit_duration: str | None
 
 
 @dataclass
 class PatchedArchiveItemPostRequest(BaseModel):
-    archive: Optional[str]
-    values: Optional[list[ComponentInterfaceValuePostRequest]]
+    archive: str | None
+    values: list[ComponentInterfaceValuePostRequest] | None
     title: str = ""
 
 
 @dataclass
 class PatchedDisplaySetPostRequest(BaseModel):
-    reader_study: Optional[str]
-    values: Optional[list[ComponentInterfaceValuePostRequest]]
-    order: Optional[int]
+    reader_study: str | None
+    values: list[ComponentInterfaceValuePostRequest] | None
+    order: int | None
     title: str = ""
 
 
 @dataclass
 class PatchedFollowRequest(BaseModel):
-    flag: Optional[str]
+    flag: str | None
 
 
 @dataclass
 class PatchedNotificationRequest(BaseModel):
-    read: Optional[bool]
+    read: bool | None
 
 
 @dataclass
 class PatchedUserUploadCompleteRequest(BaseModel):
-    parts: Optional[list[PartRequest]]
+    parts: list[PartRequest] | None
 
 
 @dataclass
 class PatchedUserUploadPresignedURLsRequest(BaseModel):
-    part_numbers: Optional[list[int]]
+    part_numbers: list[int] | None
 
 
 class PatientSexEnum(Enum):
@@ -631,14 +631,14 @@ class PublicChallenge(BaseModel):
     api_url: str
     url: str
     slug: str
-    title: Optional[str]
-    description: Optional[str]
+    title: str | None
+    description: str | None
     public: bool
     status: str
-    logo: Optional[str]
+    logo: str | None
     submission_types: list[str]
-    start_date: Optional[str]
-    end_date: Optional[str]
+    start_date: str | None
+    end_date: str | None
     publications: list[str]
     created: str
     modified: str
@@ -648,25 +648,25 @@ class PublicChallenge(BaseModel):
 @dataclass
 class RawImageUploadSession(BaseModel):
     pk: str
-    creator: Optional[int]
+    creator: int | None
     status: str
-    error_message: Optional[str]
+    error_message: str | None
     image_set: list[str]
     api_url: str
-    user_uploads: Optional[list[str]]
+    user_uploads: list[str] | None
     uploads: list[str]
 
 
 @dataclass
 class RawImageUploadSessionRequest(BaseModel):
-    creator: Optional[int]
-    error_message: Optional[str]
-    user_uploads: Optional[list[str]]
-    archive: Optional[str]
-    answer: Optional[str]
-    interface: Optional[str]
-    archive_item: Optional[str]
-    display_set: Optional[str]
+    creator: int | None
+    error_message: str | None
+    user_uploads: list[str] | None
+    archive: str | None
+    answer: str | None
+    interface: str | None
+    archive_item: str | None
+    display_set: str | None
     uploads: list[str]
 
 
@@ -1312,7 +1312,7 @@ class UserProfile(BaseModel):
     institution: str
     department: str
     location: LocationEnum
-    website: Optional[str]
+    website: str | None
 
 
 @dataclass
@@ -1387,11 +1387,11 @@ class WindowPreset(BaseModel):
     pk: int
     slug: str
     title: str
-    description: Optional[str]
-    center: Optional[int]
-    width: Optional[int]
-    lower_percentile: Optional[int]
-    upper_percentile: Optional[int]
+    description: str | None
+    center: int | None
+    width: int | None
+    lower_percentile: int | None
+    upper_percentile: int | None
 
 
 @dataclass
@@ -1407,7 +1407,7 @@ class WorkstationConfig(BaseModel):
     pk: str
     slug: str
     title: str
-    description: Optional[str]
+    description: str | None
     created: str
     modified: str
     creator: str
@@ -1422,47 +1422,47 @@ class WorkstationConfig(BaseModel):
     default_overlay_lut: LookUpTable
     default_overlay_interpolation: str
     default_image_interpolation: str
-    default_limit_view_area_to_image_volume: Optional[bool]
-    ghosting_slice_depth: Optional[int]
-    overlay_segments: Optional[Any]
-    key_bindings: Optional[Any]
+    default_limit_view_area_to_image_volume: bool | None
+    ghosting_slice_depth: int | None
+    overlay_segments: Any | None
+    key_bindings: Any | None
     default_zoom_scale: float
-    default_brush_size: Optional[Decimal]
-    default_annotation_color: Optional[str]
-    default_annotation_line_width: Optional[int]
-    show_image_info_plugin: Optional[bool]
-    show_display_plugin: Optional[bool]
-    show_image_switcher_plugin: Optional[bool]
-    show_algorithm_output_plugin: Optional[bool]
-    show_overlay_plugin: Optional[bool]
-    show_annotation_statistics_plugin: Optional[bool]
-    show_swivel_tool: Optional[bool]
-    show_invert_tool: Optional[bool]
-    show_flip_tool: Optional[bool]
-    show_window_level_tool: Optional[bool]
-    show_reset_tool: Optional[bool]
-    show_overlay_selection_tool: Optional[bool]
-    show_lut_selection_tool: Optional[bool]
-    show_annotation_counter_tool: Optional[bool]
+    default_brush_size: Decimal | None
+    default_annotation_color: str | None
+    default_annotation_line_width: int | None
+    show_image_info_plugin: bool | None
+    show_display_plugin: bool | None
+    show_image_switcher_plugin: bool | None
+    show_algorithm_output_plugin: bool | None
+    show_overlay_plugin: bool | None
+    show_annotation_statistics_plugin: bool | None
+    show_swivel_tool: bool | None
+    show_invert_tool: bool | None
+    show_flip_tool: bool | None
+    show_window_level_tool: bool | None
+    show_reset_tool: bool | None
+    show_overlay_selection_tool: bool | None
+    show_lut_selection_tool: bool | None
+    show_annotation_counter_tool: bool | None
     enabled_preprocessors: list[str]
-    auto_jump_center_of_gravity: Optional[bool]
-    link_images: Optional[bool]
-    link_panning: Optional[bool]
-    link_zooming: Optional[bool]
-    link_slicing: Optional[bool]
-    link_orienting: Optional[bool]
-    link_windowing: Optional[bool]
-    link_inverting: Optional[bool]
-    link_flipping: Optional[bool]
+    auto_jump_center_of_gravity: bool | None
+    link_images: bool | None
+    link_panning: bool | None
+    link_zooming: bool | None
+    link_slicing: bool | None
+    link_orienting: bool | None
+    link_windowing: bool | None
+    link_inverting: bool | None
+    link_flipping: bool | None
     point_bounding_box_size_mm: float
 
 
 @dataclass
 class ArchiveItemPost(BaseModel):
     pk: str
-    archive: Optional[str]
-    values: Optional[list[ComponentInterfaceValuePost]]
-    hanging_protocol: Optional[HangingProtocol]
+    archive: str | None
+    values: list[ComponentInterfaceValuePost] | None
+    hanging_protocol: HangingProtocol | None
     optional_hanging_protocols: list[HangingProtocol]
     view_content: Any
     title: str = ""
@@ -1470,31 +1470,31 @@ class ArchiveItemPost(BaseModel):
 
 @dataclass
 class ArchiveItemPostRequest(BaseModel):
-    archive: Optional[str]
-    values: Optional[list[ComponentInterfaceValuePostRequest]]
+    archive: str | None
+    values: list[ComponentInterfaceValuePostRequest] | None
     title: str = ""
 
 
 @dataclass
 class ComponentInterface(BaseModel):
     title: str
-    description: Optional[str]
+    description: str | None
     slug: str
     kind: str
     pk: int
-    default_value: Optional[Any]
+    default_value: Any | None
     super_kind: str
     relative_path: str
-    overlay_segments: Optional[Any]
-    look_up_table: Optional[LookUpTable]
+    overlay_segments: Any | None
+    look_up_table: LookUpTable | None
 
 
 @dataclass
 class ComponentInterfaceValue(BaseModel):
     interface: ComponentInterface
-    value: Optional[Any]
-    file: Optional[str]
-    image: Optional[SimpleImage]
+    value: Any | None
+    file: str | None
+    image: SimpleImage | None
     pk: int
 
 
@@ -1502,31 +1502,31 @@ class ComponentInterfaceValue(BaseModel):
 class DisplaySetPost(BaseModel):
     pk: str
     title_safe: str
-    reader_study: Optional[str]
-    values: Optional[list[ComponentInterfaceValuePost]]
-    order: Optional[int]
+    reader_study: str | None
+    values: list[ComponentInterfaceValuePost] | None
+    order: int | None
     api_url: str
-    hanging_protocol: Optional[HangingProtocol]
+    hanging_protocol: HangingProtocol | None
     optional_hanging_protocols: list[HangingProtocol]
     view_content: Any
     description: str
-    index: Optional[int]
+    index: int | None
     title: str = ""
 
 
 @dataclass
 class ExternalEvaluationUpdate(BaseModel):
-    metrics: Optional[Any]
+    metrics: Any | None
     status: StatusEnum
-    error_message: Optional[str]
+    error_message: str | None
 
 
 @dataclass
 class HyperlinkedComponentInterfaceValue(BaseModel):
     interface: ComponentInterface
-    value: Optional[Any]
-    file: Optional[str]
-    image: Optional[str]
+    value: Any | None
+    file: str | None
+    image: str | None
     pk: int
 
 
@@ -1539,7 +1539,7 @@ class HyperlinkedJob(BaseModel):
     inputs: list[HyperlinkedComponentInterfaceValue]
     outputs: list[HyperlinkedComponentInterfaceValue]
     status: str
-    hanging_protocol: Optional[HangingProtocol]
+    hanging_protocol: HangingProtocol | None
     optional_hanging_protocols: list[HangingProtocol]
     view_content: Any
     algorithm: str
@@ -1548,80 +1548,80 @@ class HyperlinkedJob(BaseModel):
 @dataclass
 class ImageFile(BaseModel):
     pk: str
-    image: Optional[str]
+    image: str | None
     file: str
-    image_type: Optional[ImageTypeEnum]
+    image_type: ImageTypeEnum | None
 
 
 @dataclass
 class PaginatedComponentInterfaceList(BaseModel):
     count: int
-    next: Optional[str]
-    previous: Optional[str]
+    next: str | None
+    previous: str | None
     results: list[ComponentInterface]
 
 
 @dataclass
 class PaginatedHyperlinkedJobList(BaseModel):
     count: int
-    next: Optional[str]
-    previous: Optional[str]
+    next: str | None
+    previous: str | None
     results: list[HyperlinkedJob]
 
 
 @dataclass
 class PaginatedPublicChallengeList(BaseModel):
     count: int
-    next: Optional[str]
-    previous: Optional[str]
+    next: str | None
+    previous: str | None
     results: list[PublicChallenge]
 
 
 @dataclass
 class PaginatedRawImageUploadSessionList(BaseModel):
     count: int
-    next: Optional[str]
-    previous: Optional[str]
+    next: str | None
+    previous: str | None
     results: list[RawImageUploadSession]
 
 
 @dataclass
 class PaginatedSessionList(BaseModel):
     count: int
-    next: Optional[str]
-    previous: Optional[str]
+    next: str | None
+    previous: str | None
     results: list[Session]
 
 
 @dataclass
 class PaginatedUserUploadList(BaseModel):
     count: int
-    next: Optional[str]
-    previous: Optional[str]
+    next: str | None
+    previous: str | None
     results: list[UserUpload]
 
 
 @dataclass
 class PaginatedWorkstationConfigList(BaseModel):
     count: int
-    next: Optional[str]
-    previous: Optional[str]
+    next: str | None
+    previous: str | None
     results: list[WorkstationConfig]
 
 
 @dataclass
 class PaginatedWorkstationList(BaseModel):
     count: int
-    next: Optional[str]
-    previous: Optional[str]
+    next: str | None
+    previous: str | None
     results: list[Workstation]
 
 
 @dataclass
 class PatchedExternalEvaluationUpdateRequest(BaseModel):
-    metrics: Optional[Any]
-    status: Optional[StatusEnum]
-    error_message: Optional[str]
+    metrics: Any | None
+    status: StatusEnum | None
+    error_message: str | None
 
 
 @dataclass
@@ -1632,24 +1632,24 @@ class Question(BaseModel):
     help_text: str
     help_text_safe: str
     image_port: str
-    default_annotation_color: Optional[str]
+    default_annotation_color: str | None
     pk: str
     question_text: str
     question_text_safe: str
     reader_study: str
-    required: Optional[bool]
+    required: bool | None
     options: list[CategoricalOption]
-    interface: Optional[ComponentInterface]
-    overlay_segments: Optional[Any]
-    look_up_table: Optional[LookUpTable]
+    interface: ComponentInterface | None
+    overlay_segments: Any | None
+    look_up_table: LookUpTable | None
     widget: str
-    answer_min_value: Optional[int]
-    answer_max_value: Optional[int]
-    answer_step_size: Optional[Decimal]
-    answer_min_length: Optional[int]
-    answer_max_length: Optional[int]
-    answer_match_pattern: Optional[str]
-    empty_answer_confirmation: Optional[bool]
+    answer_min_value: int | None
+    answer_max_value: int | None
+    answer_step_size: Decimal | None
+    answer_min_length: int | None
+    answer_max_length: int | None
+    answer_match_pattern: str | None
+    empty_answer_confirmation: bool | None
     empty_answer_confirmation_label: str
     empty_answer_confirmation_label_safe: str
     interactive_algorithms: list[str]
@@ -1661,21 +1661,21 @@ class ReaderStudy(BaseModel):
     url: str
     slug: str
     logo: str
-    description: Optional[str]
+    description: str | None
     help_text: str
     help_text_safe: str
     pk: str
     questions: list[Question]
     title: str
     title_safe: str
-    is_educational: Optional[bool]
-    instant_verification: Optional[bool]
+    is_educational: bool | None
+    instant_verification: bool | None
     has_ground_truth: bool
-    allow_answer_modification: Optional[bool]
-    enable_autosaving: Optional[bool]
-    allow_case_navigation: Optional[bool]
-    allow_show_all_annotations: Optional[bool]
-    roll_over_answers_for_n_cases: Optional[int]
+    allow_answer_modification: bool | None
+    enable_autosaving: bool | None
+    allow_case_navigation: bool | None
+    allow_show_all_annotations: bool | None
+    roll_over_answers_for_n_cases: int | None
     end_of_study_text_safe: str
 
 
@@ -1685,10 +1685,10 @@ class Submission(BaseModel):
     phase: Phase
     created: str
     creator: User
-    comment: Optional[str]
-    predictions_file: Optional[str]
-    supplementary_file: Optional[str]
-    supplementary_url: Optional[str]
+    comment: str | None
+    predictions_file: str | None
+    supplementary_file: str | None
+    supplementary_url: str | None
     algorithm_image: str
 
 
@@ -1696,10 +1696,10 @@ class Submission(BaseModel):
 class SubmissionRequest(BaseModel):
     phase: PhaseRequest
     creator: UserRequest
-    comment: Optional[str]
-    predictions_file: Optional[bytes]
-    supplementary_file: Optional[bytes]
-    supplementary_url: Optional[str]
+    comment: str | None
+    predictions_file: bytes | None
+    supplementary_file: bytes | None
+    supplementary_url: str | None
 
 
 @dataclass
@@ -1718,7 +1718,7 @@ class ArchiveItem(BaseModel):
     pk: str
     archive: str
     values: list[HyperlinkedComponentInterfaceValue]
-    hanging_protocol: Optional[HangingProtocol]
+    hanging_protocol: HangingProtocol | None
     optional_hanging_protocols: list[HangingProtocol]
     view_content: Any
     title: str = ""
@@ -1730,27 +1730,27 @@ class DisplaySet(BaseModel):
     title_safe: str
     reader_study: str
     values: list[HyperlinkedComponentInterfaceValue]
-    order: Optional[int]
+    order: int | None
     api_url: str
-    hanging_protocol: Optional[HangingProtocol]
+    hanging_protocol: HangingProtocol | None
     optional_hanging_protocols: list[HangingProtocol]
     view_content: Any
     description: str
-    index: Optional[int]
+    index: int | None
     title: str = ""
 
 
 @dataclass
 class Evaluation(BaseModel):
     pk: str
-    method: Optional[str]
+    method: str | None
     submission: Submission
     created: str
-    published: Optional[bool]
+    published: bool | None
     outputs: list[ComponentInterfaceValue]
-    rank: Optional[int]
-    rank_score: Optional[float]
-    rank_per_metric: Optional[Any]
+    rank: int | None
+    rank_score: float | None
+    rank_per_metric: Any | None
     status: str
     title: str
 
@@ -1758,19 +1758,19 @@ class Evaluation(BaseModel):
 @dataclass
 class ExternalEvaluation(BaseModel):
     pk: str
-    method: Optional[str]
+    method: str | None
     submission: Submission
     created: str
-    published: Optional[bool]
+    published: bool | None
     outputs: list[ComponentInterfaceValue]
-    rank: Optional[int]
-    rank_score: Optional[float]
-    rank_per_metric: Optional[Any]
+    rank: int | None
+    rank_score: float | None
+    rank_per_metric: Any | None
     status: str
     title: str
-    algorithm_model: Optional[dict[str, Any]]
+    algorithm_model: dict[str, Any] | None
     algorithm_image: dict[str, Any]
-    claimed_by: Optional[int]
+    claimed_by: int | None
     phase_pk: str
 
 
@@ -1779,114 +1779,112 @@ class HyperlinkedImage(BaseModel):
     pk: str
     name: str
     files: list[ImageFile]
-    dicom_image_set: Optional[DICOMImageSet]
-    width: Optional[int]
-    height: Optional[int]
-    depth: Optional[int]
-    color_space: Optional[Union[ColorSpaceEnum, BlankEnum]]
-    modality: Optional[ImagingModality]
-    eye_choice: Optional[EyeChoiceEnum]
-    stereoscopic_choice: Optional[
-        Union[StereoscopicChoiceEnum, BlankEnum, NullEnum]
-    ]
-    field_of_view: Optional[Union[FieldOfViewEnum, BlankEnum, NullEnum]]
+    dicom_image_set: DICOMImageSet | None
+    width: int | None
+    height: int | None
+    depth: int | None
+    color_space: ColorSpaceEnum | BlankEnum | None
+    modality: ImagingModality | None
+    eye_choice: EyeChoiceEnum | None
+    stereoscopic_choice: None | (StereoscopicChoiceEnum | BlankEnum | NullEnum)
+    field_of_view: FieldOfViewEnum | BlankEnum | NullEnum | None
     shape_without_color: list[int]
     shape: list[int]
-    voxel_width_mm: Optional[float]
-    voxel_height_mm: Optional[float]
-    voxel_depth_mm: Optional[float]
+    voxel_width_mm: float | None
+    voxel_height_mm: float | None
+    voxel_depth_mm: float | None
     api_url: str
-    patient_id: Optional[str]
-    patient_name: Optional[str]
-    patient_birth_date: Optional[str]
-    patient_age: Optional[str]
-    patient_sex: Optional[Union[PatientSexEnum, BlankEnum]]
-    study_date: Optional[str]
-    study_instance_uid: Optional[str]
-    series_instance_uid: Optional[str]
-    study_description: Optional[str]
-    series_description: Optional[str]
-    window_center: Optional[float]
-    window_width: Optional[float]
-    segments: Optional[Any]
+    patient_id: str | None
+    patient_name: str | None
+    patient_birth_date: str | None
+    patient_age: str | None
+    patient_sex: PatientSexEnum | BlankEnum | None
+    study_date: str | None
+    study_instance_uid: str | None
+    series_instance_uid: str | None
+    study_description: str | None
+    series_description: str | None
+    window_center: float | None
+    window_width: float | None
+    segments: Any | None
 
 
 @dataclass
 class PaginatedArchiveItemList(BaseModel):
     count: int
-    next: Optional[str]
-    previous: Optional[str]
+    next: str | None
+    previous: str | None
     results: list[ArchiveItem]
 
 
 @dataclass
 class PaginatedDisplaySetList(BaseModel):
     count: int
-    next: Optional[str]
-    previous: Optional[str]
+    next: str | None
+    previous: str | None
     results: list[DisplaySet]
 
 
 @dataclass
 class PaginatedEvaluationList(BaseModel):
     count: int
-    next: Optional[str]
-    previous: Optional[str]
+    next: str | None
+    previous: str | None
     results: list[Evaluation]
 
 
 @dataclass
 class PaginatedHyperlinkedImageList(BaseModel):
     count: int
-    next: Optional[str]
-    previous: Optional[str]
+    next: str | None
+    previous: str | None
     results: list[HyperlinkedImage]
 
 
 @dataclass
 class PaginatedQuestionList(BaseModel):
     count: int
-    next: Optional[str]
-    previous: Optional[str]
+    next: str | None
+    previous: str | None
     results: list[Question]
 
 
 @dataclass
 class PaginatedReaderStudyList(BaseModel):
     count: int
-    next: Optional[str]
-    previous: Optional[str]
+    next: str | None
+    previous: str | None
     results: list[ReaderStudy]
 
 
 @dataclass
 class PatchedExternalEvaluationRequest(BaseModel):
-    method: Optional[str]
-    submission: Optional[SubmissionRequest]
-    published: Optional[bool]
-    rank: Optional[int]
-    rank_score: Optional[float]
-    rank_per_metric: Optional[Any]
-    claimed_by: Optional[int]
-    phase_pk: Optional[str]
+    method: str | None
+    submission: SubmissionRequest | None
+    published: bool | None
+    rank: int | None
+    rank_score: float | None
+    rank_per_metric: Any | None
+    claimed_by: int | None
+    phase_pk: str | None
 
 
 @dataclass
 class Algorithm(BaseModel):
     api_url: str
     url: str
-    description: Optional[str]
+    description: str | None
     pk: str
     title: str
     logo: str
     slug: str
-    average_duration: Optional[float]
+    average_duration: float | None
     interfaces: list[AlgorithmInterface]
 
 
 @dataclass
 class PaginatedAlgorithmList(BaseModel):
     count: int
-    next: Optional[str]
-    previous: Optional[str]
+    next: str | None
+    previous: str | None
     results: list[Algorithm]
