@@ -94,7 +94,7 @@ def local_grand_challenge(tmp_path_factory) -> Generator[str, None, None]:
                 "clone",
                 "--depth",
                 "1",
-                "git@github.com:comic/grand-challenge.org.git",
+                "https://github.com/comic/grand-challenge.org.git",
                 tmp_path,
             ],
             stderr=STDOUT,
