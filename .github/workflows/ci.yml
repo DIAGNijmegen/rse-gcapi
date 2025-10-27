@@ -44,21 +44,16 @@ jobs:
         uses: astral-sh/setup-uv@v6
         with:
           python-version: ${{ matrix.python-version }}
-      - name: Configure AWS credentials
-        uses: aws-actions/configure-aws-credentials@v4
-        with:
-          role-to-assume: ${{ secrets.AWS_ROLE_ARN }}
-          aws-region: us-east-1
-      - name: Pull the grand-challenge container images
-        run: |
-          sudo apt-get update
-          sudo apt-get install -y retry
-          retry -t 5 -- /bin/bash -c 'aws ecr-public get-login-password --region us-east-1 | docker login --username AWS --password-stdin public.ecr.aws/diag-nijmegen/grand-challenge/web'
-          retry -t 5 -- docker pull public.ecr.aws/diag-nijmegen/grand-challenge/web:latest
-          retry -t 5 -- /bin/bash -c 'aws ecr-public get-login-password --region us-east-1 | docker login --username AWS --password-stdin public.ecr.aws/diag-nijmegen/grand-challenge/http'
-          retry -t 5 -- docker pull public.ecr.aws/diag-nijmegen/grand-challenge/http:latest
       - name: Add gc.localhost to /etc/hosts
         run: sudo echo "127.0.0.1 gc.localhost\n127.0.0.1 minio.localhost" | sudo tee -a /etc/hosts
+      - name: Install Minio Client binary (mc)
+        run: |
+          mkdir -p /opt/mc
+          wget https://dl.min.io/client/mc/release/linux-amd64/archive/mc.RELEASE.2025-07-16T15-35-03Z -O /opt/mc/mc
+          echo "a5c3695b6f76ed958c0f099795f32091fced0d748ddc749c8b24e07681bbfbb9  /opt/mc/mc" | shasum -c - || exit 1
+          chmod a+x /opt/mc/mc
+          sudo mv /opt/mc/mc /usr/local/bin/
+          rm -r /opt/mc
       - name: Run uv
         run: |
           uv run pytest --cov-branch --cov-report term-missing --cov=tests/ --cov=gcapi/
