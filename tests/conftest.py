@@ -100,13 +100,6 @@ def local_grand_challenge(tmp_path_factory) -> Generator[str, None, None]:
             stderr=STDOUT,
         )
 
-        # virtual_env_path = tmp_path_factory.mktemp("grand_challenge_venv")
-        # check_output(
-        #     ["uv", "venv", str(virtual_env_path)],
-        #     cwd=gc_rep_path,
-        #     stderr=STDOUT,
-        # )
-
         # Copy our test scripts
         for file in (Path(__file__).parent / "scripts").glob("*"):
             if file.is_file():
@@ -243,6 +236,7 @@ def local_grand_challenge(tmp_path_factory) -> Generator[str, None, None]:
                     "--remove-orphans",
                 ],
                 cwd=gc_rep_path,
+                env=env,
                 stderr=STDOUT,
             )
             for process in background_processes:
