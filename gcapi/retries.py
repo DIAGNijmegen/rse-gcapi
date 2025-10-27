@@ -76,11 +76,7 @@ class SelectiveBackoffStrategy(BaseRetryStrategy):
                     # Try to parse as HTTP-date
                     try:
                         retry_after_dt = parsedate_to_datetime(retry_after)
-                    except (
-                        ValueError,
-                        # Python 3.9 throws a TypeError when it cannot parse the date
-                        TypeError,
-                    ):
+                    except ValueError:
                         pass
                     else:
                         now = datetime.datetime.now(
