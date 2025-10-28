@@ -67,9 +67,7 @@ jobs:
         run: |
           sudo apt-get -qq update
           sudo apt-get -qq install -y --no-install-recommends \
-            # postgres packages for psycopg2
             libpq-dev \
-            # curl and ssl for pycurl
             libcurl4-openssl-dev \
             libssl-dev
       - name: Run uv
