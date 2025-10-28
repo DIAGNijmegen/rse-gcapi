@@ -80,9 +80,8 @@ jobs:
             git \
             postgresql-client
       - name: Run uv
-      # Todo, extend full test again
         run: |
-          uv run pytest --cov-branch --cov-report term-missing --cov=tests/ --cov=gcapi/ -vv -k test_local_response
+          uv run pytest --cov-branch --cov-report term-missing --cov=tests/ --cov=gcapi/
 
   deploy:
     if: github.event_name == 'release'
