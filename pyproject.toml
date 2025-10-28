@@ -8,6 +8,7 @@ dependencies = [
     "httpx ~= 0.23.0",
     "pydantic",
     "packaging",
+    "grand-challenge-dicom-de-identifier",
 ]
 name = "gcapi"
 version = "0.13.4"
