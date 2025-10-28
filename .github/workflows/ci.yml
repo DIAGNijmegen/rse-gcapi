@@ -63,6 +63,11 @@ jobs:
           chmod a+x /opt/crane/crane
           sudo mv /opt/crane/crane /usr/local/bin/
           rm -r /opt/crane
+      - name: Install system dependencies
+        run: |
+          sudo apt-get -qq update
+          sudo apt-get -qq install -y --no-install-recommends \
+            libssl-dev
       - name: Run uv
         run: |
           uv run pytest --cov-branch --cov-report term-missing --cov=tests/ --cov=gcapi/
