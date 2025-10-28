@@ -63,30 +63,6 @@ jobs:
           chmod a+x /opt/crane/crane
           sudo mv /opt/crane/crane /usr/local/bin/
           rm -r /opt/crane
-      - name: Install system dependencies
-        run: |
-          sudo apt-get -qq update
-          sudo apt-get -qq install -y --no-install-recommends \
-            libpng-dev \
-            libjpeg-dev \
-            libjpeg-turbo8-dev \
-            libfreetype6-dev \
-            libxft-dev \
-            libffi-dev \
-            wget \
-            gettext \
-            libpq-dev \
-            libcurl4-openssl-dev \
-            libssl-dev \
-            libmagic1 \
-            libopenslide-dev \
-            libvips-dev \
-            gcc \
-            ruby3.2 \
-            ruby-rugged \
-            ruby-nokogiri \
-            git \
-            postgresql-client
       - name: Run uv
         run: |
           uv run pytest --cov-branch --cov-report term-missing --cov=tests/ --cov=gcapi/
