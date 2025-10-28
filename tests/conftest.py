@@ -324,6 +324,12 @@ def download_latest_sagemaker_shim(download_path: Path) -> str:
 def build_env(shim_location: Path, shim_version: str) -> dict[str, Any]:
     env = os.environ.copy()
 
+    if "UV_PYTHON" in env:
+        # UV_PYTHON (i.e. uv run --python) interferes with our uv run commands
+        # as it forces the current gcapi testing python interpreter
+        # onto Grand Challenge's uv invocations
+        del env["UV_PYTHON"]
+
     env_vars = {
         # DOCKER_GID is only used for resolving the docker-compose.yml template
         # Actual service it is involved with does not matter for these tests
