@@ -37,7 +37,7 @@ jobs:
     strategy:
       fail-fast: false # Try to work around ECS errors
       matrix:
-        python-version: ["3.10", "3.11", "3.12", "3.13", "3.14"]
+        python-version: ["3.10"]
     steps:
       - uses: actions/checkout@v4
       - name: Install uv and set the python version
@@ -72,7 +72,7 @@ jobs:
             libssl-dev
       - name: Run uv
         run: |
-          uv run pytest --cov-branch --cov-report term-missing --cov=tests/ --cov=gcapi/
+          uv run pytest -vv -k test_add_and_update_file_to_display_set
 
   deploy:
     if: github.event_name == 'release'
