@@ -57,8 +57,8 @@ jobs:
 
       - name: Install system dependencies
         run: |
-          sudo apt-get update
-          sudo apt-get install -y --no-install-recommends \
+          sudo apt-get -qq update
+          sudo apt-get -qq install -y --no-install-recommends \
             libpng-dev \
             libjpeg-dev \
             libjpeg-turbo8-dev \
