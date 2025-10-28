@@ -330,6 +330,10 @@ def build_env(shim_location: Path, shim_version: str) -> dict[str, Any]:
         # onto Grand Challenge's uv invocations
         del env["UV_PYTHON"]
 
+    if "VIRTUAL_ENV" in env:
+        # Remove virtual env to prevent uv from inheriting it
+        del env["VIRTUAL_ENV"]
+
     env_vars = {
         # DOCKER_GID is only used for resolving the docker-compose.yml template
         # Actual service it is involved with does not matter for these tests
