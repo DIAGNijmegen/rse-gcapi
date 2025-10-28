@@ -241,6 +241,7 @@ def local_grand_challenge(tmp_path_factory) -> Generator[str, None, None]:
             )
             for process in background_processes:
                 process.terminate()
+            for process in background_processes:
                 try:
                     # Join with a timeout so we don't hang forever
                     process.wait(timeout=30)
