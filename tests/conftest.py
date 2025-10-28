@@ -239,6 +239,7 @@ def local_grand_challenge(tmp_path_factory) -> Generator[str, None, None]:
                 env=env,
                 stderr=STDOUT,
             )
+
             for process in background_processes:
                 process.terminate()
             for process in background_processes:
