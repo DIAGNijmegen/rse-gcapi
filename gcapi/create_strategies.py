@@ -10,6 +10,10 @@ import httpx
 if TYPE_CHECKING:
     from gcapi.client import Client
 
+from tempfile import SpooledTemporaryFile
+
+from grand_challenge_dicom_de_identifier.deidentifier import DicomDeidentifier
+
 from gcapi.exceptions import ObjectNotFound
 from gcapi.models import (
     Algorithm,
@@ -82,6 +86,7 @@ class BaseCreateStrategy:
 
 class SocketValueCreateStrategy(BaseCreateStrategy):
     supported_super_kind: str
+    supported_kind: str | None = None
     socket: ComponentInterface
 
     def __init__(
@@ -103,6 +108,14 @@ class SocketValueCreateStrategy(BaseCreateStrategy):
                 f"it has super_kind {self.socket.super_kind!r}, whereas we expected "
                 f"{self.supported_super_kind!r}"
             )
+
+        if self.supported_kind is not None:
+            if self.socket.kind.casefold() != self.supported_kind.casefold():
+                raise NotSupportedError(
+                    f"Socket {self.socket.title!r} is not supported by this strategy: "
+                    f"it has kind {self.socket.kind!r}, whereas we expected "
+                    f"{self.supported_kind!r}"
+                )
 
     def __call__(
         self: SocketValueCreateStrategy,
@@ -278,6 +291,72 @@ class FileFromSVCreateStrategy(SocketValueCreateStrategy):
             )
 
         post_request.user_upload = user_upload.api_url
+        return post_request
+
+
+@register_socket_value_strategy
+class DicomImageSetFileCreateStrategy(SocketValueCreateStrategy):
+
+    supported_super_kind = "image"
+    supported_kind = "dicom image set"
+
+    content: list[Any]
+
+    _deidentifier_instance: DicomDeidentifier | None = None
+
+    @classmethod
+    def get_deidentifier(cls) -> DicomDeidentifier:
+        if cls._deidentifier_instance is None:
+            cls._deidentifier_instance = DicomDeidentifier()
+        return cls._deidentifier_instance
+
+    @staticmethod
+    def _close_temp_content(func):
+        def wrapper(self, *args, **kwargs):
+            try:
+                return func(self, *args, **kwargs)
+            except Exception:
+                if hasattr(self, "content"):
+                    for temp in self.content:
+                        temp.close()
+                raise
+
+        return wrapper
+
+    @_close_temp_content
+    def __init__(self, source, **kwargs):
+        super().__init__(**kwargs)
+
+        try:
+            files = clean_file_source(source)
+        except FileNotFoundError as e:
+            raise NotSupportedError from e
+
+        # Use the singleton deidentifier
+        deidentifier = self.get_deidentifier()
+
+        self.content = []
+        for file in files:
+            temp = SpooledTemporaryFile()
+            self.content.append(temp)
+            deidentifier.deidentify_file(file=file, output=Path(temp.name))
+            temp.seek(0)
+
+    @_close_temp_content
+    def __call__(self):
+        post_request = super().__call__()
+
+        uploads: list[UserUpload] = []
+        for idx, temp in enumerate(self.content):
+            uploads.append(
+                self.client.uploads.upload_fileobj(
+                    fileobj=temp, filename=f"dicom_image_{idx}.dcm"
+                )
+            )
+            temp.close()
+
+        # post_request.file_uploads = uploads
+
         return post_request
 
 
