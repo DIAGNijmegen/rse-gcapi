@@ -339,7 +339,7 @@ class DicomImageSetFileCreateStrategy(SocketValueCreateStrategy):
         for file in files:
             temp = SpooledTemporaryFile()
             self.content.append(temp)
-            deidentifier.deidentify_file(file=file, output=Path(temp.name))
+            deidentifier.deidentify_file(file=file, output=temp)
             temp.seek(0)
 
     @_close_temp_content
