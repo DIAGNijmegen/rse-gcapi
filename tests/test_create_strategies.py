@@ -10,10 +10,9 @@ from gcapi.create_strategies import (
     FileFromSVCreateStrategy,
     FileJSONCreateStrategy,
     ImageCreateStrategy,
+    ImageFromImageCreateStrategy,
     ImageFromSVCreateStrategy,
     JobInputsCreateStrategy,
-    NotSupportedError,
-    SocketValueCreateStrategy,
     SocketValueSpec,
     TooManyFiles,
     ValueCreateStrategy,
@@ -85,85 +84,93 @@ def test_prep_file_source(source, maximum_number, context):
         clean_file_source(source, maximum_number=maximum_number)
 
 
-def test_supported_socket_value_create_strategies():
-    class TestStrategy(SocketValueCreateStrategy):
-        supported_super_kind = "Test"
-
-    TestStrategy(socket=SocketFactory(super_kind="Test"), client=MagicMock())
-
-    with pytest.raises(NotSupportedError):
-        TestStrategy(
-            socket=SocketFactory(super_kind="Not Test"), client=MagicMock()
-        )
-
-
 file_socket = SocketFactory(super_kind="File")
+file_string_socket = SocketFactory(super_kind="File", kind="String")
 image_socket = SocketFactory(super_kind="Image")
 value_socket = SocketFactory(super_kind="Value")
 
 
 @pytest.mark.parametrize(
-    "source, socket, context, expected_cls",
+    "spec, socket, context, expected_cls",
     (
         (
-            TESTDATA / "test.json",
+            SocketValueSpec(
+                socket_slug=file_socket.slug,
+                files=[TESTDATA / "test.json"],
+            ),
             file_socket,
             nullcontext(),
             FileCreateStrategy,
         ),
         (
-            [TESTDATA / "test.json", TESTDATA / "test.json"],
+            SocketValueSpec(
+                socket_slug=file_socket.slug,
+                files=[TESTDATA / "test.json", TESTDATA / "test.json"],
+            ),
             file_socket,
-            pytest.raises(ValueError),
+            pytest.raises(
+                ValueError,
+                match="You can only provide one file",
+            ),
             None,
         ),
         (
-            42,
+            SocketValueSpec(socket_slug=file_socket.slug, value=42),
             file_socket,
             nullcontext(),
             FileJSONCreateStrategy,
         ),
-        (  # A string could easily be a misspelled file-path: so we don't allow it
-            "A string which is not a file, yet it could be a misspelled file path",
-            SocketFactory(super_kind="File", kind="String"),
-            pytest.raises(ValueError),
-            None,
-        ),
         (  # An existing socket value
-            HyperlinkedComponentInterfaceValueFactory(
-                interface=file_socket,
-                file="https://grand-challenge.org/media/components/componentinterfacevalue/5d/57/1793367/file.json",
+            SocketValueSpec(
+                socket_slug=file_socket.slug,
+                existing_socket_value=HyperlinkedComponentInterfaceValueFactory(
+                    interface=file_socket,
+                    file="https://grand-challenge.org/media/components/componentinterfacevalue/5d/57/1793367/file.json",
+                ),
             ),
             file_socket,
             nullcontext(),
             FileFromSVCreateStrategy,
         ),
         (  # An existing socket value, but not with not the same socket
-            HyperlinkedComponentInterfaceValueFactory(
-                interface=file_socket,
-                file="https://grand-challenge.org/media/components/componentinterfacevalue/5d/57/1793367/file.json",
+            SocketValueSpec(
+                socket_slug=file_socket.slug,
+                existing_socket_value=HyperlinkedComponentInterfaceValueFactory(
+                    interface=value_socket,
+                    value=42,
+                ),
             ),
-            SocketFactory(super_kind="file"),
-            pytest.raises(ValueError),
+            file_socket,
+            pytest.raises(ValueError, match="does not match socket"),
             None,
         ),
         (  # An existing socket value, with a missing file (corrupt)
-            HyperlinkedComponentInterfaceValueFactory(
-                interface=file_socket,
-                file=None,
+            SocketValueSpec(
+                socket_slug=file_socket.slug,
+                existing_socket_value=HyperlinkedComponentInterfaceValueFactory(
+                    interface=file_socket,
+                    file=None,
+                ),
             ),
             file_socket,
-            pytest.raises(ValueError),
+            pytest.raises(ValueError, match="must have a file"),
+            None,
+        ),
+        (  # An existing socket value, with a missing file (corrupt)
+            SocketValueSpec(
+                socket_slug=file_socket.slug,
+                existing_socket_value="I am not a socket value",  # type: ignore
+            ),
+            file_socket,
+            pytest.raises(ValueError, match="existing_socket_value must be a"),
             None,
         ),
     ),
 )
-def test_file_socket_value_strategy_init(
-    source, socket, context, expected_cls
-):
+def test_file_socket_value_strategy_init(spec, socket, context, expected_cls):
     with context:
         strategy = select_socket_value_strategy(
-            source=source,
+            spec=spec,
             socket=socket,
             client=MagicMock(),
         )
@@ -172,101 +179,111 @@ def test_file_socket_value_strategy_init(
 
 
 @pytest.mark.parametrize(
-    "source, socket, context, expected_cls",
+    "spec, socket, context, expected_cls",
     (
         (
-            TESTDATA / "image10x10x101.mha",
+            SocketValueSpec(
+                socket_slug=image_socket.slug,
+                files=[TESTDATA / "image10x10x101.mha"],
+            ),
             image_socket,
             nullcontext(),
             ImageCreateStrategy,
         ),
         (
-            [TESTDATA / "image10x10x101.mha", TESTDATA / "image10x10x101.mha"],
+            SocketValueSpec(
+                socket_slug=image_socket.slug,
+                files=[
+                    TESTDATA / "image10x10x101.mha",
+                    TESTDATA / "image10x10x101.mha",
+                ],
+            ),
             image_socket,
             nullcontext(),
             ImageCreateStrategy,
         ),
-        (
-            [TESTDATA / "image10x10x101.mha", TESTDATA / "image10x10x101.mha"],
-            image_socket,
-            nullcontext(),
-            ImageCreateStrategy,
-        ),
-        (
-            HyperlinkedImageFactory(),
-            image_socket,
-            nullcontext(),
-            ImageFromSVCreateStrategy,
-        ),
-        (
-            HyperlinkedComponentInterfaceValueFactory(
-                interface=image_socket,
-                image="https://example.test/api/v1/cases/images/a-uuid/",
+        (  # An existing socket value
+            SocketValueSpec(
+                socket_slug=image_socket.slug,
+                existing_socket_value=HyperlinkedComponentInterfaceValueFactory(
+                    interface=image_socket,
+                    image="https://example.test/api/v1/cases/images/a-uuid/",
+                ),
             ),
             image_socket,
             nullcontext(),
             ImageFromSVCreateStrategy,
         ),
-        (
-            # An existing socket value, but not with not the same socket kind
-            HyperlinkedComponentInterfaceValueFactory(
-                interface=file_socket,
-                image="https://example.test/api/v1/cases/images/a-uuid/",
+        (  # An existing socket value, but not with the same socket kind
+            SocketValueSpec(
+                socket_slug=image_socket.slug,
+                existing_socket_value=HyperlinkedComponentInterfaceValueFactory(
+                    interface=value_socket,
+                    value=42,
+                ),
             ),
             image_socket,
-            pytest.raises(ValueError),
+            pytest.raises(ValueError, match="does not match socket"),
             None,
         ),
-        (
-            # Same super kind but not exactly the same
-            HyperlinkedComponentInterfaceValueFactory(
-                interface=SocketFactory(super_kind="Image"),
-                image="https://example.test/api/v1/cases/images/a-uuid/",
+        (  # Same super kind but not exactly the same
+            SocketValueSpec(
+                socket_slug=image_socket.slug,
+                existing_socket_value=HyperlinkedComponentInterfaceValueFactory(
+                    interface=SocketFactory(super_kind="Image"),
+                    image="https://example.test/api/v1/cases/images/a-uuid/",
+                ),
             ),
             image_socket,
-            pytest.raises(ValueError),
+            pytest.raises(ValueError, match="does not match socket"),
             None,
         ),
-        (
-            # Corrupt
-            HyperlinkedComponentInterfaceValueFactory(
-                interface=image_socket,
-                image=None,
+        (  # An existing socket value, with a missing image (corrupt)
+            SocketValueSpec(
+                socket_slug=image_socket.slug,
+                existing_socket_value=HyperlinkedComponentInterfaceValueFactory(
+                    interface=image_socket,
+                    image=None,
+                ),
             ),
             image_socket,
-            pytest.raises(ValueError),
+            pytest.raises(ValueError, match="must have an image"),
             None,
         ),
-        (
-            "a-uuid",
+        (  # An existing socket value, with a missing image (corrupt)
+            SocketValueSpec(
+                socket_slug=image_socket.slug,
+                existing_socket_value=None,  # type: ignore
+            ),
+            image_socket,
+            pytest.raises(ValueError, match="existing_socket_value must be a"),
+            None,
+        ),
+        (  # An existing image by API URL
+            SocketValueSpec(
+                socket_slug=image_socket.slug,
+                existing_image="https://example.test/api/v1/cases/images/a-uuid/",
+            ),
             image_socket,
             nullcontext(),
-            ImageFromSVCreateStrategy,
+            ImageFromImageCreateStrategy,
         ),
-        (
-            "https://example.test/api/v1/cases/images/a-uuid/",
+        (  # Non-existent image
+            SocketValueSpec(
+                socket_slug=image_socket.slug,
+                existing_image="I do not exist, search not",
+            ),
             image_socket,
-            nullcontext(),
-            ImageFromSVCreateStrategy,
-        ),
-        (
-            "I do not exist, search not",
-            image_socket,
-            pytest.raises(ValueError),
+            pytest.raises(ObjectNotFound),
             None,
         ),
     ),
 )
-def test_image_socket_value_strategy_init(
-    source, socket, context, expected_cls
-):
+def test_image_socket_value_strategy_init(spec, socket, context, expected_cls):
     client_mock = MagicMock()
 
-    def mock_images_detail(pk=None, api_url=None, **__):
-        if (
-            pk == "a-uuid"
-            or api_url == "https://example.test/api/v1/cases/images/a-uuid/"
-        ):
+    def mock_images_detail(api_url=None, **__):
+        if api_url == "https://example.test/api/v1/cases/images/a-uuid/":
             return HyperlinkedImageFactory()
         else:
             raise ObjectNotFound
@@ -275,7 +292,7 @@ def test_image_socket_value_strategy_init(
 
     with context:
         strategy = select_socket_value_strategy(
-            source=source,
+            spec=spec,
             socket=socket,
             client=client_mock,
         )
@@ -284,78 +301,113 @@ def test_image_socket_value_strategy_init(
 
 
 @pytest.mark.parametrize(
-    "source, socket, context, expected_cls",
+    "spec, socket, context, expected_cls",
     (
         (
-            TESTDATA / "test.json",
+            SocketValueSpec(
+                socket_slug=value_socket.slug,
+                files=[TESTDATA / "test.json"],
+            ),
             value_socket,
             nullcontext(),
             ValueFromFileCreateStrategy,
         ),
         (
-            [TESTDATA / "test.json", TESTDATA / "test.json"],
+            SocketValueSpec(
+                socket_slug=value_socket.slug,
+                files=[TESTDATA / "test.json", TESTDATA / "test.json"],
+            ),
             value_socket,
-            pytest.raises(ValueError),
+            pytest.raises(ValueError, match="You can only provide one file"),
             None,
         ),
         (
-            42,
-            value_socket,
-            nullcontext(),
-            ValueCreateStrategy,
-        ),
-        (
-            "String",
-            value_socket,
-            nullcontext(),
-            ValueCreateStrategy,
-        ),
-        (
-            ["String"],
-            value_socket,
-            nullcontext(),
-            ValueCreateStrategy,
-        ),
-        (
-            object(),  # Not JSON serializable
-            value_socket,
-            pytest.raises(ValueError),
-            None,
-        ),
-        (
-            HyperlinkedComponentInterfaceValueFactory(
-                interface=value_socket,
+            SocketValueSpec(
+                socket_slug=value_socket.slug,
                 value=42,
+            ),
+            value_socket,
+            nullcontext(),
+            ValueCreateStrategy,
+        ),
+        (
+            SocketValueSpec(
+                socket_slug=value_socket.slug,
+                value="String",
+            ),
+            value_socket,
+            nullcontext(),
+            ValueCreateStrategy,
+        ),
+        (
+            SocketValueSpec(
+                socket_slug=value_socket.slug,
+                value=["String"],
+            ),
+            value_socket,
+            nullcontext(),
+            ValueCreateStrategy,
+        ),
+        (
+            SocketValueSpec(
+                socket_slug=value_socket.slug,
+                value=object(),  # Not JSON serializable
+            ),
+            value_socket,
+            pytest.raises(ValueError, match="is not JSON serializable"),
+            None,
+        ),
+        (
+            SocketValueSpec(
+                socket_slug=value_socket.slug,
+                existing_socket_value=HyperlinkedComponentInterfaceValueFactory(
+                    interface=value_socket,
+                    value=42,
+                ),
             ),
             value_socket,
             nullcontext(),
             ValueFromSVStrategy,
         ),
         (  # Different socket
-            HyperlinkedComponentInterfaceValueFactory(
-                interface=SocketFactory(super_kind="Value"),
-                value=42,
+            SocketValueSpec(
+                socket_slug=value_socket.slug,
+                existing_socket_value=HyperlinkedComponentInterfaceValueFactory(
+                    interface=SocketFactory(super_kind="Value"),
+                    value=42,
+                ),
             ),
             value_socket,
-            pytest.raises(ValueError),
+            pytest.raises(ValueError, match="does not match socket"),
             None,
         ),
-        (  # Corrupt
-            HyperlinkedComponentInterfaceValueFactory(
-                interface=value_socket,
+        (  # Corrupt - missing value
+            SocketValueSpec(
+                socket_slug=value_socket.slug,
+                existing_socket_value=HyperlinkedComponentInterfaceValueFactory(
+                    interface=value_socket,
+                    value=None,
+                ),
             ),
             value_socket,
-            pytest.raises(ValueError),
+            pytest.raises(ValueError, match="must have a value"),
+            None,
+        ),
+        (  # Corrupt - missing value
+            SocketValueSpec(
+                socket_slug=value_socket.slug,
+                existing_socket_value="Not a socket value",  # type: ignore
+            ),
+            value_socket,
+            pytest.raises(ValueError, match="existing_socket_value must be a"),
             None,
         ),
     ),
 )
-def test_value_socket_value_strategy_init(
-    source, socket, context, expected_cls
-):
+def test_value_socket_value_strategy_init(spec, socket, context, expected_cls):
     with context:
         strategy = select_socket_value_strategy(
-            source=source,
+            spec=spec,
             socket=socket,
             client=MagicMock(),
         )
@@ -368,9 +420,12 @@ def test_value_socket_value_strategy_init(
     (
         (  # algo socket < input socket
             AlgorithmFactory(interfaces=[]),
-            {
-                "foo": TESTDATA / "image10x10x101.mha",
-            },
+            [
+                SocketValueSpec(
+                    socket_slug="foo",
+                    files=[TESTDATA / "image10x10x101.mha"],
+                )
+            ],
             pytest.raises(ValueError),
         ),
         (  # algo socket > input socket
@@ -384,7 +439,7 @@ def test_value_socket_value_strategy_init(
                     )
                 ]
             ),
-            {},
+            [],
             pytest.raises(ValueError),
         ),
         (
@@ -399,9 +454,12 @@ def test_value_socket_value_strategy_init(
                     )
                 ]
             ),
-            {
-                "a-slug": TESTDATA / "image10x10x101.mha",
-            },
+            [
+                SocketValueSpec(
+                    socket_slug="a-slug",
+                    files=[TESTDATA / "image10x10x101.mha"],
+                )
+            ],
             nullcontext(),
         ),
     ),
@@ -425,6 +483,7 @@ def test_ordering_strategy_registry():
         gcapi.create_strategies.FileFromSVCreateStrategy,
         # Image
         gcapi.create_strategies.ImageCreateStrategy,
+        gcapi.create_strategies.ImageFromImageCreateStrategy,
         gcapi.create_strategies.ImageFromSVCreateStrategy,
         # Value
         gcapi.create_strategies.ValueFromFileCreateStrategy,

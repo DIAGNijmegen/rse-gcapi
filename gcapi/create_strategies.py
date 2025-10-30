@@ -11,16 +11,13 @@ import httpx
 if TYPE_CHECKING:
     from gcapi.client import Client
 
-from gcapi.exceptions import ObjectNotFound
 from gcapi.models import (
     Algorithm,
     ComponentInterface,
     ComponentInterfaceValuePostRequest,
     HyperlinkedComponentInterfaceValue,
-    HyperlinkedImage,
     UserUpload,
 )
-from gcapi.typing import FileSource, SocketValueSetDescription
 
 
 class TooManyFiles(ValueError):
@@ -42,8 +39,9 @@ class SocketValueSpec:
 
     Args:
         socket_slug: The slug of the socket (required)
-        value: Direct value to set (can be None)
-        files: List of file paths for file/image uploads
+
+        value: Direct source value to set (can be None)
+        files: List of source file paths for file/image uploads
         existing_image_api_url: An API URL of an existing image
         existing_socket_value: Existing socket value to reuse
     """
@@ -66,7 +64,6 @@ class SocketValueSpec:
         for field_name, field_value in self.__dict__.items():
             if field_name == "socket_slug":
                 continue
-            # Check if field has a non-default value
             if field_value is not Unset:
                 sources.append(field_name)
 
@@ -82,9 +79,25 @@ class SocketValueSpec:
                 "Please provide one of the available source fields."
             )
 
+    def get_set_field_name(self) -> str:
+        for field_name, field_value in self.__dict__.items():
+            if field_name == "socket_slug":
+                continue
+            if field_value is not Unset:
+                return field_name
+        raise RuntimeError("No source field is set, this should not happen.")
+
+    def __repr__(self) -> str:
+        set_field_name = self.get_set_field_name()
+        set_field_value = getattr(self, set_field_name)
+        return (
+            f"{self.__class__.__name__}({self.socket_slug=}, "
+            f"{set_field_name}={set_field_value!r})"
+        )
+
 
 def clean_file_source(
-    source: FileSource, *, maximum_number: int | None = None
+    source: Any, *, maximum_number: int | None = None
 ) -> list[Path]:
     # Ensure we are handling a list
     sources = [source] if not isinstance(source, list) else source
@@ -138,15 +151,24 @@ class SocketValueCreateStrategy(BaseCreateStrategy):
     supported_super_kind: str
     socket: ComponentInterface
 
+    spec: SocketValueSpec
+    supported_spec_source_field: str
+
     def __init__(
         self,
         *,
         socket: ComponentInterface,
+        spec: SocketValueSpec,
         **kwargs,
     ) -> None:
         super().__init__(**kwargs)
 
         self.socket = socket
+        self.spec = spec
+
+        assert (
+            self.socket.slug == self.spec.socket_slug
+        ), "SocketValueSpec socket_slug does not match the provided socket"
 
         if (
             self.socket.super_kind.casefold()
@@ -156,6 +178,13 @@ class SocketValueCreateStrategy(BaseCreateStrategy):
                 f"Socket {self.socket.title!r} is not supported by this strategy: "
                 f"it has super_kind {self.socket.super_kind!r}, whereas we expected "
                 f"{self.supported_super_kind!r}"
+            )
+
+        if spec.get_set_field_name() != self.supported_spec_source_field:
+            raise NotSupportedError(
+                f"Socket {self.socket.title!r} is not supported by this strategy: "
+                f"it has source field {spec.get_set_field_name()!r}, whereas we expected "
+                f"{self.supported_spec_source_field!r}"
             )
 
     def __call__(
@@ -190,18 +219,18 @@ class NotSupportedError(Exception):
 
 def select_socket_value_strategy(
     *,
-    socket,
-    source,
-    client,
+    socket: ComponentInterface,
+    spec: SocketValueSpec,
+    client: Client,
 ) -> SocketValueCreateStrategy:
     for strategy_class in _strategy_registry:
         try:
-            return strategy_class(socket=socket, source=source, client=client)
+            return strategy_class(socket=socket, spec=spec, client=client)
         except NotSupportedError:
             continue
 
     raise NotImplementedError(
-        f"No strategy found that supports socket {socket.title} with source {source}"
+        f"No strategy found that supports socket {socket.title} with spec {spec}"
     )
 
 
@@ -210,21 +239,23 @@ class FileCreateStrategy(SocketValueCreateStrategy):
     """Direct file upload strategy"""
 
     supported_super_kind = "file"
+    supported_spec_source_field = "files"
 
     content: Path
     content_name: str
 
-    def __init__(self, source, **kwargs):
+    def __init__(self, **kwargs):
         super().__init__(**kwargs)
 
         try:
-            cleaned_sources = clean_file_source(source, maximum_number=1)
-        except FileNotFoundError as e:
-            raise NotSupportedError from e
+            cleaned_files: list[Path] = clean_file_source(
+                self.spec.files,
+                maximum_number=1,
+            )
         except TooManyFiles as e:
-            raise ValueError("Too many files provided") from e
+            raise ValueError("You can only provide one file") from e
 
-        self.content = cleaned_sources[0]
+        self.content = cleaned_files[0]
         self.content_name = self.content.name
 
     def __call__(self):
@@ -244,23 +275,16 @@ class FileJSONCreateStrategy(SocketValueCreateStrategy):
     """Some JSON serializable Python object upload strategy"""
 
     supported_super_kind = "file"
+    supported_spec_source_field = "value"
 
     content: bytes
     content_name: str
 
-    def __init__(self, source, **kwargs):
+    def __init__(self, **kwargs):
         super().__init__(**kwargs)
 
-        if self.socket.kind.casefold() == "string":
-            # Incorrect paths being uploaded as content to a String
-            # socket can easily bypass detection.
-            # We'll be overprotective and not allow via-value uploads.
-            raise ValueError(
-                f"Socket kind {self.socket.kind} requires to be uploaded "
-                "as a file, replace the value with an existing file path"
-            )
         try:
-            json_bytes = json.dumps(source).encode()
+            json_bytes = json.dumps(self.spec.value).encode()
         except TypeError:
             raise NotSupportedError(
                 "Source is not JSON serializable"
@@ -286,27 +310,37 @@ class FileFromSVCreateStrategy(SocketValueCreateStrategy):
     """Uses a SocketValue as source"""
 
     supported_super_kind = "file"
+    supported_spec_source_field = "existing_socket_value"
 
     content_api_url: str
     content_name: str
 
-    def __init__(self, source, **kwargs):
+    def __init__(self, **kwargs):
         super().__init__(**kwargs)
 
-        if not isinstance(source, HyperlinkedComponentInterfaceValue):
-            raise NotSupportedError("Source must be a SocketValue")
+        socket_value = self.spec.existing_socket_value
 
-        if source.interface.pk != self.socket.pk:
+        if not isinstance(
+            socket_value,
+            HyperlinkedComponentInterfaceValue,
+        ):
             raise ValueError(
-                f"Source {source.interface.title!r} does not "
+                f"existing_socket_value must be a {HyperlinkedComponentInterfaceValue.__name__}"
+            )
+
+        if socket_value.interface.pk != self.socket.pk:
+            raise ValueError(
+                f"Source {socket_value.interface.title!r} does not "
                 f"match socket {self.socket.title!r}"
             )
 
-        if source.file is None:
-            raise ValueError("SocketValue must have a file")
+        if socket_value.file is None:
+            raise ValueError(
+                f"{HyperlinkedComponentInterfaceValue.__name__} must have a file"
+            )
 
-        self.content_api_url = source.file
-        self.content_name = Path(source.file).name
+        self.content_api_url = socket_value.file
+        self.content_name = Path(socket_value.file).name
 
     def _download_from_socket(self) -> bytes:
         response_or_json = self.client(
@@ -340,21 +374,19 @@ class ImageCreateStrategy(SocketValueCreateStrategy):
     """Direct image-file upload strategy"""
 
     supported_super_kind = "image"
-    content: list[Path]
+    supported_spec_source_field = "files"
 
-    def __init__(self, source, **kwargs):
+    files: list[Path]
+
+    def __init__(self, **kwargs):
         super().__init__(**kwargs)
-
-        try:
-            self.content = clean_file_source(source)
-        except FileNotFoundError as e:
-            raise NotSupportedError from e
+        self.files = clean_file_source(self.spec.files)
 
     def __call__(self):
         post_request = super().__call__()
 
         uploads: list[UserUpload] = []
-        for file in self.content:
+        for file in self.files:
             with open(file, "rb") as f:
                 uploads.append(
                     self.client.uploads.upload_fileobj(
@@ -372,52 +404,71 @@ class ImageCreateStrategy(SocketValueCreateStrategy):
 
 
 @register_socket_value_strategy
-class ImageFromSVCreateStrategy(SocketValueCreateStrategy):
-    """Indirect via an HyperlinkedImage or SocketValue"""
+class ImageFromImageCreateStrategy(SocketValueCreateStrategy):
+    """Indirect via an existing image"""
 
     supported_super_kind = "image"
+    supported_spec_source_field = "existing_image"
+
     content_api_url: httpx.URL
 
-    def __init__(
-        self,
-        source: Any,
-        **kwargs,
-    ) -> None:
+    def __init__(self, **kwargs) -> None:
         super().__init__(**kwargs)
 
-        if isinstance(source, HyperlinkedImage):
-            url = source.api_url
-        elif isinstance(source, HyperlinkedComponentInterfaceValue):
-            if source.image is None:
-                raise ValueError(
-                    "HyperlinkedComponentInterfaceValue must have an image"
-                )
-            url = source.image
-            if self.socket.pk != source.interface.pk:
-                raise ValueError(
-                    f"Source {source.interface.title!r} does not "
-                    f"match socket {self.socket.title!r}"
-                )
-        elif isinstance(source, str):
-            # Possibly an identifier (i.e. uuid or API url)
-            try:
-                image = self.client.images.detail(api_url=source)
-            except ObjectNotFound:
-                try:
-                    image = self.client.images.detail(pk=source)
-                except ObjectNotFound:
-                    raise ValueError(
-                        f"Image with pk or api_url {source} does not exist"
-                    ) from None
+        api_url = str(self.spec.existing_image)
 
-            url = image.api_url
-        else:
-            raise NotSupportedError(
-                "Source must be a HyperlinkedImage, a pk/api_url pointing to one "
-                "or a HyperlinkedComponentInterfaceValue"
+        # assert it is a valid URL
+        self.content_api_url = httpx.URL(api_url)
+
+        # assert we have access to the image
+        self.client.images.detail(api_url=api_url)
+
+    def __call__(self):
+        post_request = super().__call__()
+        post_request.image = str(self.content_api_url)
+        return post_request
+
+
+@register_socket_value_strategy
+class ImageFromSVCreateStrategy(SocketValueCreateStrategy):
+    """Indirect via an existing SocketValue"""
+
+    supported_super_kind = "image"
+    supported_spec_source_field = "existing_socket_value"
+
+    content_api_url: httpx.URL
+
+    def __init__(self, **kwargs) -> None:
+        super().__init__(**kwargs)
+
+        socket_value = self.spec.existing_socket_value
+
+        if not isinstance(
+            socket_value,
+            HyperlinkedComponentInterfaceValue,
+        ):
+            raise ValueError(
+                f"existing_socket_value must be a {HyperlinkedComponentInterfaceValue.__name__}"
             )
 
-        self.content_api_url = httpx.URL(url)
+        if socket_value.interface.pk != self.socket.pk:
+            raise ValueError(
+                f"Source {socket_value.interface.title!r} does not "
+                f"match socket {self.socket.title!r}"
+            )
+
+        if socket_value.image is None:
+            raise ValueError(
+                f"{HyperlinkedComponentInterfaceValue.__name__} must have an image"
+            )
+
+        api_url = socket_value.image
+
+        # assert it is a valid URL
+        self.content_api_url = httpx.URL(api_url)
+
+        # assert we have access to the image
+        self.client.images.detail(api_url=api_url)
 
     def __call__(self):
         post_request = super().__call__()
@@ -430,23 +481,22 @@ class ValueFromFileCreateStrategy(SocketValueCreateStrategy):
     """Directly provided value"""
 
     supported_super_kind = "value"
+    supported_spec_source_field = "files"
+
     content: Path
 
-    def __init__(self, source: Any, **kwargs):
+    def __init__(self, **kwargs):
         super().__init__(**kwargs)
 
         try:
-            cleaned_sources = clean_file_source(source, maximum_number=1)
-        except FileNotFoundError as e:
-            raise NotSupportedError from e
+            files = clean_file_source(self.spec.files, maximum_number=1)
         except TooManyFiles as e:
-            raise ValueError("Too many files provided") from e
+            raise ValueError("You can only provide one file") from e
 
-        self.content = cleaned_sources[0]
+        self.content = files[0]
 
-        # Check parsable JSON, but for
-        # memory considerations do not load it yet
-
+        # Check parsable JSON, but for memory
+        # considerations do not load it here yet
         with open(self.content) as fp:
             try:
                 json.load(fp)
@@ -469,30 +519,35 @@ class ValueFromFileCreateStrategy(SocketValueCreateStrategy):
 class ValueFromSVStrategy(SocketValueCreateStrategy):
 
     supported_super_kind = "value"
+    supported_spec_source_field = "existing_socket_value"
+
     content: Any
 
-    def __init__(self, source: Any, **kwargs):
+    def __init__(self, **kwargs):
         super().__init__(**kwargs)
 
-        if not isinstance(source, HyperlinkedComponentInterfaceValue):
-            raise NotSupportedError("Source must be a SocketValue")
-
-        if source.interface.pk != self.socket.pk:
+        socket_value = self.spec.existing_socket_value
+        if not isinstance(socket_value, HyperlinkedComponentInterfaceValue):
             raise ValueError(
-                f"Source {source.interface.title!r} does not "
+                f"existing_socket_value must be a {HyperlinkedComponentInterfaceValue.__name__}"
+            )
+
+        if socket_value.interface.pk != self.socket.pk:
+            raise ValueError(
+                f"Source {socket_value.interface.title!r} does not "
                 f"match socket {self.socket.title!r}"
             )
 
-        if source.value is None:
-            raise ValueError("SocketValue must have a value")
+        if socket_value.value is None:
+            raise ValueError(
+                f"{HyperlinkedComponentInterfaceValue.__name__} must have a value"
+            )
 
-        self.content = source.value
+        self.content = socket_value.value
 
     def __call__(self):
         post_request = super().__call__()
-
         post_request.value = self.content
-
         return post_request
 
 
@@ -500,19 +555,21 @@ class ValueFromSVStrategy(SocketValueCreateStrategy):
 class ValueCreateStrategy(SocketValueCreateStrategy):
 
     supported_super_kind = "value"
+    supported_spec_source_field = "value"
+
     content: Any
 
-    def __init__(self, source: Any, **kwargs):
+    def __init__(self, **kwargs):
         super().__init__(**kwargs)
 
         try:
-            json.dumps(source)  # Check if it is JSON serializable
+            json.dumps(self.spec.value)  # Check if it is JSON serializable
         except TypeError as e:
             raise ValueError(
-                "Source is not JSON serializable. Nothing has been uploaded."
+                "Value is not JSON serializable. Nothing has been uploaded."
             ) from e
 
-        self.content = source
+        self.content = self.spec.value
 
     def __call__(self):
         post_request = super().__call__()
@@ -528,7 +585,7 @@ class JobInputsCreateStrategy(BaseCreateStrategy):
         self,
         *,
         algorithm: Algorithm,
-        inputs: SocketValueSetDescription,
+        inputs: list[SocketValueSpec],
         **kwargs,
     ):
         super().__init__(**kwargs)
@@ -544,27 +601,29 @@ class JobInputsCreateStrategy(BaseCreateStrategy):
             for socket in interface.inputs
         }
 
-        for socket_slug, source in inputs.items():
+        for spec in inputs:
             socket_value_strategy = select_socket_value_strategy(
-                source=source,
-                socket=socket_lookup[socket_slug],
+                spec=spec,
+                socket=socket_lookup[spec.socket_slug],
                 client=self.client,
             )
 
             self.input_strategies.append(socket_value_strategy)
 
-    def _assert_matching_interface(self, inputs) -> None:
+    def _assert_matching_interface(
+        self, inputs: list[SocketValueSpec]
+    ) -> None:
 
         # Find a matching interface
         matching_interface = None
 
-        input_keys = set(inputs.keys())
+        socket_slugs = {spec.socket_slug for spec in inputs}
 
         best_matching_sockets_count = 0
         best_matching_interface = None
         for interface in self.algorithm.interfaces:
             interface_keys = {socket.slug for socket in interface.inputs}
-            matching_count = len(input_keys & interface_keys)
+            matching_count = len(socket_slugs & interface_keys)
             if matching_count == len(interface_keys):
                 # All input keys are present in the interface
                 matching_interface = interface
@@ -577,7 +636,7 @@ class JobInputsCreateStrategy(BaseCreateStrategy):
                     }
 
         if matching_interface is None:
-            msg = f"No matching interface for sockets {input_keys} could be found."
+            msg = f"No matching interface for sockets {socket_slugs} could be found."
             if best_matching_interface is not None:
                 msg += f" The closest match is {best_matching_interface}."
             raise ValueError(msg)
