@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import json
+from dataclasses import dataclass
 from io import BytesIO
 from pathlib import Path
 from typing import TYPE_CHECKING, Any
@@ -26,7 +27,60 @@ class TooManyFiles(ValueError):
     pass
 
 
-Empty = object()
+class UnsetType:
+    pass
+
+
+Unset = UnsetType()
+
+
+@dataclass
+class SocketValueSpec:
+    """
+    Specification for a socket value which provides exactly one source
+    in order to create the SocketValue.
+
+    Args:
+        socket_slug: The slug of the socket (required)
+        value: Direct value to set (can be None)
+        files: List of file paths for file/image uploads
+        existing_image_api_url: An API URL of an existing image
+        existing_socket_value: Existing socket value to reuse
+    """
+
+    socket_slug: str
+
+    value: Any = Unset
+    files: list[str | Path] | UnsetType = Unset
+
+    existing_image: str | UnsetType = Unset
+    existing_socket_value: HyperlinkedComponentInterfaceValue | UnsetType = (
+        Unset
+    )
+
+    def __post_init__(self):
+        """Validate that the specification is correct."""
+        # Get all fields except socket_slug
+        sources = []
+
+        for field_name, field_value in self.__dict__.items():
+            if field_name == "socket_slug":
+                continue
+            # Check if field has a non-default value
+            if field_value is not Unset:
+                sources.append(field_name)
+
+        if len(sources) > 1:
+            raise ValueError(
+                f"Only one source can be specified, but got: {', '.join(sources)}. "
+                f"Please specify only one of the available source fields."
+            )
+
+        if len(sources) == 0:
+            raise ValueError(
+                "At least one source must be specified. "
+                "Please provide one of the available source fields."
+            )
 
 
 def clean_file_source(

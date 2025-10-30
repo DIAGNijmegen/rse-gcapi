@@ -14,6 +14,7 @@ from gcapi.create_strategies import (
     JobInputsCreateStrategy,
     NotSupportedError,
     SocketValueCreateStrategy,
+    SocketValueSpec,
     TooManyFiles,
     ValueCreateStrategy,
     ValueFromFileCreateStrategy,
@@ -430,3 +431,86 @@ def test_ordering_strategy_registry():
         gcapi.create_strategies.ValueFromSVStrategy,
         gcapi.create_strategies.ValueCreateStrategy,
     ]
+
+
+@pytest.mark.parametrize(
+    "spec_dict,context",
+    (
+        # Valid cases - exactly one value source
+        (
+            {"socket_slug": "test-socket", "value": 42},
+            nullcontext(),
+        ),
+        (  # Value can be set to None
+            {"socket_slug": "test-socket", "value": None},
+            nullcontext(),
+        ),
+        (
+            {"socket_slug": "test-socket", "files": [TESTDATA / "test.json"]},
+            nullcontext(),
+        ),
+        (
+            {
+                "socket_slug": "test-socket",
+                "existing_image": "https://example.com/api/v1/images/123/",
+            },
+            nullcontext(),
+        ),
+        (
+            {
+                "socket_slug": "test-socket",
+                "existing_socket_value": HyperlinkedComponentInterfaceValueFactory(),
+            },
+            nullcontext(),
+        ),
+        # Invalid cases - multiple value sources
+        (
+            {"socket_slug": "test-socket", "value": 42, "files": []},
+            pytest.raises(
+                ValueError, match="Only one source can be specified"
+            ),
+        ),
+        (
+            {
+                "socket_slug": "test-socket",
+                "value": 42,
+                "existing_image": "https://example.com/api/v1/images/123/",
+            },
+            pytest.raises(
+                ValueError, match="Only one source can be specified"
+            ),
+        ),
+        (
+            {
+                "socket_slug": "test-socket",
+                "value": 42,
+                "files": [],
+                "existing_image": "https://example.test/api/v1/images/123/",
+            },
+            pytest.raises(
+                ValueError, match="Only one source can be specified"
+            ),
+        ),
+        (
+            {
+                "socket_slug": "test-socket",
+                "files": [],
+                "existing_image": "https://example.test/api/v1/images/123/",
+                "existing_socket_value": HyperlinkedComponentInterfaceValueFactory(),
+            },
+            pytest.raises(
+                ValueError, match="Only one source can be specified"
+            ),
+        ),
+        # Invalid case - no value sources
+        (
+            {"socket_slug": "test-socket"},
+            pytest.raises(
+                ValueError, match="At least one source must be specified"
+            ),
+        ),
+    ),
+)
+def test_socket_value_spec_validation(spec_dict, context):
+    with context:
+        SocketValueSpec(**spec_dict)

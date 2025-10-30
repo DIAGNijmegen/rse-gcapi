@@ -10,7 +10,6 @@ FileSource = Union[
     list[str],
 ]
 
-
 SocketValueSetDescription = dict[str, Any]
 
 SocketValueSet = Union[
