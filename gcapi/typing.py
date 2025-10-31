@@ -1,5 +1,5 @@
 from pathlib import Path
-from typing import Any, Union
+from typing import Union
 
 import gcapi.models
 
@@ -10,11 +10,4 @@ FileSource = Union[
     list[str],
 ]
 
-SocketValueSetDescription = dict[str, Any]
-
-SocketValueSet = Union[
-    gcapi.models.DisplaySet,
-    gcapi.models.DisplaySetPost,
-    gcapi.models.ArchiveItem,
-    gcapi.models.ArchiveItemPost,
-]
+SocketValuePostSet = gcapi.models.DisplaySetPost | gcapi.models.ArchiveItemPost
