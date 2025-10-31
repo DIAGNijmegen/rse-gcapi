@@ -7,7 +7,7 @@ from io import BytesIO
 from pathlib import Path
 from random import randint
 from time import sleep
-from typing import IO, Any, get_type_hints
+from typing import IO, Any, cast, get_type_hints
 from urllib.parse import urljoin
 
 import httpx
@@ -19,12 +19,13 @@ from gcapi.check_version import check_version
 from gcapi.create_strategies import (
     JobInputsCreateStrategy,
     SocketValueCreateStrategy,
+    SocketValueSpec,
     select_socket_value_strategy,
 )
-from gcapi.exceptions import ObjectNotFound, SocketNotFound
+from gcapi.exceptions import SocketNotFound
 from gcapi.retries import BaseRetryStrategy, SelectiveBackoffStrategy
 from gcapi.transports import RetryTransport
-from gcapi.typing import SocketValueSet, SocketValueSetDescription
+from gcapi.typing import SocketValuePostSet
 
 logger = logging.getLogger(__name__)
 
@@ -534,12 +535,12 @@ class Client(httpx.Client, ApiDefinitions):
     ):
         """
         Args:
-            token (str, optional): Authorization token for API access. If not provided, will be read
+            token: Authorization token for API access. If not provided, will be read
                 from GRAND_CHALLENGE_AUTHORIZATION environment variable.
-            base_url (str, optional): Base URL for the API, by default "https://grand-challenge.org/api/v1/".
-            verify (bool, optional): Whether to verify SSL certificates, by default True.
-            timeout (float, optional): Request timeout in seconds, by default 60.0.
-            retry_strategy (callable, optional): Factory function that returns a retry strategy instance. If None,
+            base_url: Base URL for the API.
+            verify: Whether to verify SSL certificates.
+            timeout: Request timeout in seconds.
+            retry_strategy: Factory function that returns a retry strategy instance. If None,
                 uses SelectiveBackoffStrategy with default parameters.
         """
         check_version(base_url=base_url)
@@ -568,6 +569,10 @@ class Client(httpx.Client, ApiDefinitions):
         self._api_meta = ApiDefinitions()
         for name, cls in get_type_hints(ApiDefinitions).items():
             setattr(self._api_meta, name, cls(client=self))
+
+        self._socket_cache: dict[str, gcapi.models.ComponentInterface] = {}
+        self._algorithm_cache: dict[str, gcapi.models.Algorithm] = {}
+        self._archive_cache: dict[str, gcapi.models.Archive] = {}
 
     def __getattr__(self, item):
         api = getattr(self._api_meta, item, None)
@@ -610,7 +615,7 @@ class Client(httpx.Client, ApiDefinitions):
 
         Returns:
             Any: JSON response data if Content-Type is application/json,
-            otherwise the raw response object.
+                otherwise the raw response object.
 
         Raises:
             HTTPStatusError: If the HTTP request fails with a non-2xx status code.
@@ -675,11 +680,16 @@ class Client(httpx.Client, ApiDefinitions):
             )
         return upload
 
-    def run_external_job(
+    def _fetch_algorithm_detail(self, slug: str) -> gcapi.models.Algorithm:
+        if slug not in self._algorithm_cache:
+            self._algorithm_cache[slug] = self.algorithms.detail(slug=slug)
+        return self._algorithm_cache[slug]
+
+    def start_algorithm_job(
         self,
         *,
-        algorithm: str | gcapi.models.Algorithm,
-        inputs: SocketValueSetDescription,
+        algorithm_slug: str,
+        inputs: list[SocketValueSpec],
     ) -> gcapi.models.JobPost:
         """
         Starts an algorithm job with the provided inputs.
@@ -688,75 +698,60 @@ class Client(httpx.Client, ApiDefinitions):
             You can get the interfaces (i.e. all possible socket sets) of
             an algorithm by calling, and inspecting the .interface of the
             result of:
+
             ```Python
             client.algorithms.detail(slug="corads-ai")
             ```
 
         ??? tip "Re-using existing images"
             Existing images on Grand Challenge can be re-used by either
-            passing an API url, or a socket value:
+            passing an API url, or a socket value (from a display set):
 
             ```Python
+            from gcapi import SocketValueSpec
+
             image = client.images.detail(pk="ad5...")
-            # Alternatively, you can also use:
-            ai = client.archive_items.detail(pk="f5...")
-            socket_value = ai.values[0]
+            ds = client.reader_studies.display_sets.detail(pk="f5...")
+            socket_value = ds.values[0]
 
-            archive_items = [
-                {
-                    "slug_0": image.api_url,
-                    "slug_1": socket_value,
-                    "slug_2": socket_value.image.api_url,
-                }
+            inputs = [
+                SocketValueSpec(socket_slug="slug-0", existing_image_api_url=image.api_url),
+                SocketValueSpec(socket_slug="slug-2", existing_image_api_url=socket_value.image),
             ]
             ```
 
-            One can also provide a same-socket socket value:
+        ??? tip "Re-using existing socket values"
+            Existing socket values from other display sets can be re-used by
+            passing a socket value. The sockets must be the same.
+
+            For instance:
 
             ```Python
-            ai = client.archive_items.detail(pk="f5...")
-            archive_items = [
-                {
-                    "slug_0": ai.values[0],
-                    "slug_1": ai.values[1],
-                    "slug_2": "some_local_file",
-                },
+            from gcapi import SocketValueSpec
+
+            ds = client.reader_studies.display_sets.detail(pk="f5...")
+            inputs = [
+                SocketValueSpec(socket_slug="slug-0", existing_socket_value=ds.values[0]),
+                SocketValueSpec(socket_slug="slug-1", existing_socket_value=ds.values[1]),
             ]
             ```
-
 
         Args:
-            algorithm: You can find this in the
-                url of the algorithm that you want to use. For instance,
-                if you want to use the algorithm at: `https://grand-challenge.org/algorithms/corads-ai/`
-                the slug for this algorithm is `"corads-ai"`.
+            algorithm_slug: Slug for the algorithm (e.g. `"corads-ai"`).
+                You can find this readily in the URL you use to visit the algorithm page:
+                `https://grand-challenge.org/algorithms/corads-ai/`
 
-                inputs (SocketValueSetDescription): For each input socket defined on the algorithm you need to provide a
-                key-value pair, the key being the slug of the socket, the value being
-                the value for the socket::
-
-                ```Python
-                {
-                    "slug_0": ["filepath_0", ...],
-                    "slug_1": "filepath_0",
-                    "slug_2": pathlib.Path("filepath_0"),
-                    ...
-                    "slug_n": {"json": "value"},
-                }
-                ```
-
-                Where the file paths are local paths to the files making up a
-                single image. For file-kind sockets the file path can only
-                reference a single file. For json-kind sockets any value that
-                is valid for the sockets can directly be passed, or a filepath
-                to a file that contain the value can be provided.
+            inputs: A list of socket value specifications.
+                Each specification defines a socket slug and exactly one source
+                (value, files, existing_image_api_url, or existing_socket_value).
 
         Returns:
-            The created job
+            The newly created Job (post) object. Note that not all inputs will
+                be immediately available therein until the background processing has
+                completed.
         """
 
-        if isinstance(algorithm, str):
-            algorithm = self.algorithms.detail(slug=algorithm)
+        algorithm = self._fetch_algorithm_detail(slug=algorithm_slug)
 
         input_strategy = JobInputsCreateStrategy(
             algorithm=algorithm,
@@ -764,29 +759,28 @@ class Client(httpx.Client, ApiDefinitions):
             client=self,
         )
 
-        inputs = input_strategy()
+        created_inputs = input_strategy()
 
         return self.algorithm_jobs.create(
             algorithm=algorithm.api_url,
-            inputs=inputs,
+            inputs=created_inputs,
         )
 
     def update_display_set(
-        self, *, display_set_pk: str, values: SocketValueSetDescription
+        self, *, display_set_pk: str, values: list[SocketValueSpec]
     ) -> gcapi.models.DisplaySetPost:
         """
-        This function updates an existing display set with the provided values
-        and returns the updated display set.
+        This function patches an existing display set with the provided values.
 
         You can use this function, for example, to add metadata to a display set.
 
-        If you provide a value or file for an existing interface of the display
+        If you provide a value or file for an existing socket of the display
         set, the old value will be overwritten by the new one, hence allowing you
         to update existing display-set values.
 
         ??? example
 
-            First, retrieve the display_set from your archive:
+            First, retrieve the display sets from your reader study:
 
             ```Python
             reader_study = client.reader_studies.detail(slug="...")
@@ -798,134 +792,117 @@ class Client(httpx.Client, ApiDefinitions):
             ```
 
             To then add, for example, a PDF report and a lung volume
-            value to the first display set , provide the interface slugs together
+            value to the first display set , provide the socket slugs together
             with the respective value or file path as follows:
 
             ```Python
+            from gcapi import SocketValueSpec
+
             client.update_display_set(
-                display_set_pk=items[0].id,
-                values={
-                    "report": [...],
-                    "lung-volume": 1.9,
-                },
+                display_set_pk=items[0].pk,
+                values=[
+                    SocketValueSpec(socket_slug="report", files=["report.pdf"]),
+                    SocketValueSpec(socket_slug="lung-volume", value=1.9),
+                ],
             )
             ```
 
         Args:
-            display_set_pk (str): The primary key of the display set to update.
-
-            values (SocketValueSetDescription): The values to update the display set with.
+            display_set_pk: The primary key of the display set to update.
+            values: The values to update the display set with.
 
         Returns:
-            The updated display set
+            The updated display item (post) object. Note that not all values will
+                be immediately available until the background processing has completed.
         """
-        ds = self.reader_studies.display_sets.detail(pk=display_set_pk)
-        return self._update_socket_value_set(
-            target=ds,
-            description=values,
+        display_set = self._update_socket_value_set(
+            target_pk=display_set_pk,
+            values=values,
             api=self.reader_studies.display_sets,
         )
+        return cast(gcapi.models.DisplaySetPost, display_set)
 
-    def add_cases_to_reader_study(
+    def add_case_to_reader_study(
         self,
         *,
-        reader_study: str | gcapi.models.ReaderStudy,
-        display_sets: list[SocketValueSetDescription],
-    ) -> list[str]:
+        reader_study_slug: str,
+        values: list[SocketValueSpec],
+    ) -> gcapi.models.DisplaySetPost:
         """
-        This function takes an reader-study slug or model and a list of display-set
-        descriptions. It then creates the display-sets for the reader study.
+        This function takes a reader-study slug and a list of socket value specs.
+        It then creates a single display set for the reader study.
 
         ??? tip "Re-using existing images"
             Existing images on Grand Challenge can be re-used by either
-            passing an API url, or a socket value (display set):
+            passing an API url, or a socket value (from a display set):
 
             ```Python
-                image = client.images.detail(pk="ad5...")
-                ds = client.reader_studies.display_sets.detail(pk="f5...")
-                socket_value = ds.values[0]
+            from gcapi import SocketValueSpec
 
-                display_sets = [
-                    {
-                        "slug_0": image.api_url,
-                        "slug_1": socket_value,
-                        "slug_2": socket_value.image,
-                    }
-                ]
+
+            image = client.images.detail(pk="ad5...")
+            ds = client.reader_studies.display_sets.detail(pk="f5...")
+            socket_value = ds.values[0]
+
+            values = [
+                SocketValueSpec(socket_slug="slug-0", existing_image_api_url=image.api_url),
+                SocketValueSpec(socket_slug="slug-2", existing_image_api_url=socket_value.image),
+            ]
             ```
 
-            One can also provide a same-socket socket value:
+        ??? tip "Re-using existing socket values"
+            Existing socket values from other display sets can be re-used by
+            passing a socket value. The sockets must be the same.
+
+            For instance:
 
             ```Python
+            from gcapi import SocketValueSpec
+
+
             ds = client.reader_studies.display_sets.detail(pk="f5...")
-            display_sets = [
-                {
-                    "slug_0": ds.values[0],
-                    "slug_1": ds.values[1],
-                    "slug_2": "some_local_file",
-                },
+            values = [
+                SocketValueSpec(socket_slug="slug-0", existing_socket_value=ds.values[0]),
+                SocketValueSpec(socket_slug="slug-1", existing_socket_value=ds.values[1]),
             ]
             ```
 
         Args:
-            reader_study (Union[str, gcapi.models.ReaderStudy]): slug for the reader
-                study (e.g. `"i-am-a-reader-study"`). You can find this readily in the
-                URL you use to visit the reader-study page:
+            reader_study_slug: slug for the reader study (e.g. `"i-am-a-reader-study"`).
+                You can find this readily in the URL you use to visit the reader-study page:
                 `https://grand-challenge.org/reader-studies/i-am-a-reader-study/`
 
-            display_sets (list[SocketValueSetDescription]): The format for the
-                descriptions of display sets are as follows:
-
-                ```Python
-                [
-                    {
-                        "slug_0": ["filepath_0", ...],
-                        "slug_1": "filepath_0",
-                        "slug_2": pathlib.Path("filepath_0"),
-                        ...
-                        "slug_n": {"json": "value"}
-
-                    },
-                    ...
-                ]
-                ```
-
-                Where the file paths are local paths to the files making up a
-                single image. For file-kind sockets the file path can only
-                reference a single file. For json-kind sockets any value that
-                is valid for the sockets can directly be passed, or a filepath
-                to a file that contain the value can be provided.
+            values: A list of socket value specifications.
+                Each specification defines a socket slug and exactly one source
+                (value, files, existing_image_api_url, or existing_socket_value).
 
         Returns:
-            The pks of the newly created display sets.
+            The newly created display set (post) object. Note that not all values will
+                be immediately available until the background processing has completed.
         """
-
-        if isinstance(reader_study, gcapi.models.ReaderStudy):
-            reader_study = reader_study.slug
         try:
-            created_display_sets = self._create_socket_value_sets(
-                creation_kwargs={"reader_study": reader_study},
-                descriptions=display_sets,
+            created_display_set = self._create_socket_value_set(
+                creation_kwargs={"reader_study": reader_study_slug},
+                values=values,
                 api=self.reader_studies.display_sets,
             )
         except SocketNotFound as e:
             raise ValueError(
-                f"{e.slug} is not an existing interface. "
+                f"{e.slug} is not an existing socket. "
                 f"Please provide one from this list: "
                 f"https://grand-challenge.org/components/interfaces/reader-studies/"
             ) from e
 
-        return [ds.pk for ds in created_display_sets]
+        return cast(gcapi.models.DisplaySetPost, created_display_set)
 
     def update_archive_item(
         self,
         *,
         archive_item_pk: str,
-        values: SocketValueSetDescription,
+        values: list[SocketValueSpec],
     ) -> gcapi.models.ArchiveItemPost:
         """
-        This function updates an existing archive item with the provided values
-        and returns the updated archive item.
+        This function patches an existing archive item with the provided values.
 
         You can use this function, for example, to add metadata to an archive item.
 
@@ -948,206 +925,193 @@ class Client(httpx.Client, ApiDefinitions):
             with the respective value or file path as follows:
 
             ```Python
+            from gcapi import SocketValueSpec
+
             client.update_archive_item(
-                archive_item_pk=items[0].id,
-                values={
-                    "report": [...],
-                    "lung-volume": 1.9,
-                },
+                archive_item_pk=items[0].pk,
+                values=[
+                    SocketValueSpec(socket_slug="report", files=["report.pdf"]),
+                    SocketValueSpec(socket_slug="lung-volume", value=1.9),
+                ],
             )
             ```
 
-
-
         Args:
-            archive_item_pk (str): The primary key of the archive item to update.
-            values (SocketValueSetDescription): The values to update the archive
-                item with.
+            archive_item_pk: The primary key of the archive item to update.
+            values: The values to update the archive item with.
 
         Returns:
-            The updated archive item
+            The updated archive item (post) object. Note that not all values will
+                be immediately available until the background processing has completed.
         """
-        item = self.archive_items.detail(pk=archive_item_pk)
-        return self._update_socket_value_set(
-            target=item,
-            description=values,
+        archive_item = self._update_socket_value_set(
+            target_pk=archive_item_pk,
+            values=values,
             api=self.archive_items,
         )
+        return cast(gcapi.models.ArchiveItemPost, archive_item)
 
-    def add_cases_to_archive(
+    def _fetch_archive_api_url(self, slug: str) -> str:
+        if slug not in self._archive_cache:
+            self._archive_cache[slug] = self.archives.detail(slug=slug)
+        return self._archive_cache[slug].api_url
+
+    def add_case_to_archive(
         self,
         *,
-        archive: str | gcapi.models.Archive,
-        archive_items: list[SocketValueSetDescription],
-    ) -> list[str]:
+        archive_slug: str,
+        values: list[SocketValueSpec],
+    ) -> gcapi.models.ArchiveItemPost:
         """
-        This function takes an archive slug or model and a list of archive item
-        descriptions and creates the archive item to be used on the platform.
+        This function takes an archive slug and a list of socket value specs.
+        It then creates a single archive item for the archive.
 
         ??? tip "Re-using existing images"
             Existing images on Grand Challenge can be re-used by either
             passing an API url, or a socket value (archive item):
 
             ```Python
+            from gcapi import SocketValueSpec
+
             image = client.images.detail(pk="ad5...")
             ai = client.archive_items.detail(pk="f5...")
             socket_value = ai.values[0]
 
-            archive_items = [
-                {
-                    "slug_0": image.api_url,
-                    "slug_1": socket_value,
-                    "slug_2": socket_value.image,
-                }
+            values = [
+                SocketValueSpec(socket_slug="slug-0", existing_image_api_url=image.api_url),
+                SocketValueSpec(socket_slug="slug-2", existing_image_api_url=socket_value.image),
             ]
             ```
+        ??? tip "Re-using existing socket values"
+            Existing socket values from other archive items can be re-used by
+            passing a socket value. The sockets must be the same.
 
-            One can also provide a same-socket socket value:
+            For instance:
 
             ```Python
+            from gcapi import SocketValueSpec
+
             ai = client.archive_items.detail(pk="f5...")
-            archive_items = [
-                {
-                    "slug_0": ai.values[0],
-                    "slug_1": ai.values[1],
-                    "slug_2": "some_local_file",
-                },
+            values = [
+                SocketValueSpec(socket_slug="slug-0", existing_socket_value=ai.values[0]),
+                SocketValueSpec(socket_slug="slug-1", existing_socket_value=ai.values[1]),
+                SocketValueSpec(socket_slug="slug-2", files=["some_local_file"]),
             ]
             ```
 
         Args:
-            archive (Union[str, gcapi.models.Archive]): slug for the archive (e.g. `"i-am-an-archive"`).
+            archive_slug: slug for the archive (e.g. `"i-am-an-archive"`).
                 You can find this readily in the URL you use to visit the archive page:
                 `https://grand-challenge.org/archives/i-am-an-archive/`
 
-            archive_items (list[SocketValueSetDescription]): The format for the descriptions of
-                archive items are as follows:
-
-                ```Python
-                [
-                    {
-                        "slug_0": ["filepath_0", ...],
-                        "slug_1": "filepath_0",
-                        "slug_2": pathlib.Path("filepath_0"),
-                        ...
-                        "slug_n": {"json": "value"}
-
-                    },
-                    ...
-                ]
-                ```
-
-                Where the file paths are local paths to the files making up a
-                single image. For file-kind sockets the file path can only
-                reference a single file. For json-kind sockets any value that
-                is valid for the sockets can directly be passed, or a filepath
-                to a file that contain the value can be provided.
+            values: A list of socket value specifications.
+                Each specification defines a socket slug and exactly one source
+                (value, files, existing_image_api_url, or existing_socket_value).
 
         Returns:
-            The pks of the newly created archive items.
+            The new archive item (post) object. Note that not all values will
+                be immediately available until the background processing has completed.
         """
-
-        if isinstance(archive, str):
-            archive = self.archives.detail(slug=archive)
+        archive_api_url = self._fetch_archive_api_url(archive_slug)
 
         try:
-            created_archive_items = self._create_socket_value_sets(
-                creation_kwargs={"archive": archive.api_url},
-                descriptions=archive_items,
+            created_archive_item = self._create_socket_value_set(
+                creation_kwargs={"archive": archive_api_url},
+                values=values,
                 api=self.archive_items,
             )
         except SocketNotFound as e:
             raise ValueError(
-                f"{e.slug} is not an existing interface. "
+                f"{e.slug} is not an existing socket. "
                 f"Please provide one from this list: "
                 f"https://grand-challenge.org/components/interfaces/inputs/"
             ) from e
 
-        return [ai.pk for ai in created_archive_items]
+        return cast(gcapi.models.ArchiveItemPost, created_archive_item)
+
+    # Deprecated methods
+    def add_cases_to_reader_study(self, *_, **__) -> Any:
+        """
+        !!! failure Deprecated
+            Use `add_case_to_reader_study` instead. This method will be removed in a future version.
+        """
+        raise NotImplementedError(
+            "add_cases_to_reader_study is no longer supported. Use the singular add_case_to_reader_study instead."
+        )
+
+    def add_cases_to_archive(self, *_, **__) -> Any:
+        """
+        !!! failure Deprecated
+            Use `add_case_to_archive` instead. This method will be removed in a future version.
+        """
+        raise NotImplementedError(
+            "add_cases_to_archive is no longer supported. Use the singular add_case_to_archive instead."
+        )
+
+    def run_external_job(self, *_, **__) -> Any:
+        """
+        !!! failure Deprecated
+            Use `start_algorithm_job` instead. This method will be removed in a future version.
+        """
+        raise NotImplementedError(
+            "run_external_job is no longer supported. Use start_algorithm_job instead."
+        )
 
     def _fetch_socket_detail(
-        self,
-        slug_or_socket,
-        cache=None,
+        self, slug: str
     ) -> gcapi.models.ComponentInterface:
-        if isinstance(slug_or_socket, gcapi.models.ComponentInterface):
-            return slug_or_socket
-        else:
-            slug = slug_or_socket
+        if slug not in self._socket_cache:
+            self._socket_cache[slug] = self.sockets.detail(slug=slug)
+        return self._socket_cache[slug]
 
-        if cache and slug in cache:
-            return cache[slug]
-        try:
-            interface = self.interfaces.detail(slug=slug)
-        except ObjectNotFound as e:
-            raise SocketNotFound(slug=slug) from e
-        else:
-            if cache:
-                cache[slug] = interface
-
-            return interface
-
-    def _create_socket_value_sets(
+    def _create_socket_value_set(
         self,
         *,
         creation_kwargs: dict,
-        descriptions: list[SocketValueSetDescription],
+        values: list[SocketValueSpec],
         api: ModifiableMixin,
-    ):
-        interface_cache: dict[str, gcapi.models.ComponentInterface] = {}
+    ) -> SocketValuePostSet:
 
-        # Firstly, prepare ALL the strategies
-        strategies_per_value_set: list[list[SocketValueCreateStrategy]] = []
-        for description in descriptions:
-            strategy_per_value = []
-
-            for socket_slug, source in description.items():
-                socket = self._fetch_socket_detail(
-                    slug_or_socket=socket_slug,
-                    cache=interface_cache,
-                )
-                strategy = select_socket_value_strategy(
-                    client=self,
-                    socket=socket,
-                    source=source,
-                )
-                strategy_per_value.append(strategy)
-
-            strategies_per_value_set.append(strategy_per_value)
-
-        # Secondly, create + update socket-value sets
-        socket_value_sets: list[SocketValueSet] = []
-        for strategies in strategies_per_value_set:
-            socket_value_set = api.create(**creation_kwargs)
-            values = [s() for s in strategies]
-            update_socket_value_set = api.partial_update(
-                pk=socket_value_set.pk, values=values
-            )
-            socket_value_sets.append(update_socket_value_set)
-
-        return socket_value_sets
-
-    def _update_socket_value_set(
-        self,
-        *,
-        target: SocketValueSet,
-        description: SocketValueSetDescription,
-        api: ModifiableMixin,
-    ):
-        strategies = []
-
-        for socket_slug, source in description.items():
-            socket: gcapi.models.ComponentInterface = (
-                self._fetch_socket_detail(socket_slug)
-            )
-
+        # Prepare the strategies
+        strategies: list[SocketValueCreateStrategy] = []
+        for spec in values:
             strategy = select_socket_value_strategy(
-                source=source,
-                socket=socket,
+                socket=self._fetch_socket_detail(slug=spec.socket_slug),
+                spec=spec,
                 client=self,
             )
             strategies.append(strategy)
 
-        values = [s() for s in strategies]
+        # Create the socket-value set
+        socket_value_set = api.create(**creation_kwargs)
 
-        return api.partial_update(pk=target.pk, values=values)
+        # Update the socket-value set with the prepared values
+        updated_socket_value_set = api.partial_update(
+            pk=socket_value_set.pk,
+            values=[s() for s in strategies],
+        )
+
+        return updated_socket_value_set
+
+    def _update_socket_value_set(
+        self,
+        *,
+        target_pk: str,
+        values: list[SocketValueSpec],
+        api: ModifiableMixin,
+    ) -> SocketValuePostSet:
+        # Prepare the strategies
+        strategies: list[SocketValueCreateStrategy] = []
+        for spec in values:
+            strategy = select_socket_value_strategy(
+                socket=self._fetch_socket_detail(slug=spec.socket_slug),
+                spec=spec,
+                client=self,
+            )
+            strategies.append(strategy)
+
+        # Update the socket-value set with the prepared values
+        return api.partial_update(
+            pk=target_pk,
+            values=[s() for s in strategies],
+        )
