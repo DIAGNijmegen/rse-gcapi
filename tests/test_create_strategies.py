@@ -268,10 +268,22 @@ def test_file_socket_value_strategy_init(spec, socket, context, expected_cls):
             nullcontext(),
             ImageFromImageCreateStrategy,
         ),
-        (  # Non-existent image
+        (  # Non-existent or non-accessible image
             SocketValueSpec(
                 socket_slug=image_socket.slug,
-                existing_image="I do not exist, search not",
+                existing_image="I do not exist or you may not access me, search not",
+            ),
+            image_socket,
+            pytest.raises(ObjectNotFound),
+            None,
+        ),
+        (  # Non-existent or non-accessible image (via socket value)
+            SocketValueSpec(
+                socket_slug=image_socket.slug,
+                existing_socket_value=HyperlinkedComponentInterfaceValueFactory(
+                    interface=image_socket,
+                    image="I do not exist or you may not access me, search not",
+                ),
             ),
             image_socket,
             pytest.raises(ObjectNotFound),
@@ -286,7 +298,7 @@ def test_image_socket_value_strategy_init(spec, socket, context, expected_cls):
         if api_url == "https://example.test/api/v1/cases/images/a-uuid/":
             return HyperlinkedImageFactory()
         else:
-            raise ObjectNotFound
+            raise ObjectNotFound  # Also covers non accessible images
 
     client_mock.images.detail = mock_images_detail
 

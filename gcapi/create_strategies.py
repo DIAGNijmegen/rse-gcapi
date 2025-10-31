@@ -42,8 +42,8 @@ class SocketValueSpec:
 
         value: Direct source value to set (can be None)
         files: List of source file paths for file/image uploads
-        existing_image_api_url: An API URL of an existing image
-        existing_socket_value: Existing socket value to reuse
+        existing_image_api_url: An API URL of an existing image to reuse
+        existing_socket_value: Existing socket value that can be reused
     """
 
     socket_slug: str
@@ -307,7 +307,7 @@ class FileJSONCreateStrategy(SocketValueCreateStrategy):
 
 @register_socket_value_strategy
 class FileFromSVCreateStrategy(SocketValueCreateStrategy):
-    """Uses a SocketValue as source"""
+    """Uses an existing SocketValue as source"""
 
     supported_super_kind = "file"
     supported_spec_source_field = "existing_socket_value"
@@ -342,17 +342,6 @@ class FileFromSVCreateStrategy(SocketValueCreateStrategy):
         self.content_api_url = socket_value.file
         self.content_name = Path(socket_value.file).name
 
-    def _download_from_socket(self) -> bytes:
-        response_or_json = self.client(
-            url=self.content_api_url,
-            follow_redirects=True,
-        )
-        if isinstance(response_or_json, httpx.Response):
-            return response_or_json.content
-        else:
-            # Else, the response is actually the JSON already
-            return json.dumps(response_or_json).encode()
-
     def __call__(self):
         post_request = super().__call__()
 
@@ -367,6 +356,17 @@ class FileFromSVCreateStrategy(SocketValueCreateStrategy):
 
         post_request.user_upload = user_upload.api_url
         return post_request
+
+    def _download_from_socket(self) -> bytes:
+        response_or_json = self.client(
+            url=self.content_api_url,
+            follow_redirects=True,
+        )
+        if isinstance(response_or_json, httpx.Response):
+            return response_or_json.content
+        else:
+            # Else, the response is actually the JSON already
+            return json.dumps(response_or_json).encode()
 
 
 @register_socket_value_strategy
