@@ -51,7 +51,7 @@ class SocketValueSpec:
     value: Any = Unset
     files: list[str | Path] | UnsetType = Unset
 
-    existing_image: str | UnsetType = Unset
+    existing_image_api_url: str | UnsetType = Unset
     existing_socket_value: HyperlinkedComponentInterfaceValue | UnsetType = (
         Unset
     )
@@ -408,14 +408,14 @@ class ImageFromImageCreateStrategy(SocketValueCreateStrategy):
     """Indirect via an existing image"""
 
     supported_super_kind = "image"
-    supported_spec_source_field = "existing_image"
+    supported_spec_source_field = "existing_image_api_url"
 
     content_api_url: httpx.URL
 
     def __init__(self, **kwargs) -> None:
         super().__init__(**kwargs)
 
-        api_url = str(self.spec.existing_image)
+        api_url = str(self.spec.existing_image_api_url)
 
         # assert it is a valid URL
         self.content_api_url = httpx.URL(api_url)

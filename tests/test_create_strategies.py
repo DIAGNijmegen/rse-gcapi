@@ -262,7 +262,7 @@ def test_file_socket_value_strategy_init(spec, socket, context, expected_cls):
         (  # An existing image by API URL
             SocketValueSpec(
                 socket_slug=image_socket.slug,
-                existing_image="https://example.test/api/v1/cases/images/a-uuid/",
+                existing_image_api_url="https://example.test/api/v1/cases/images/a-uuid/",
             ),
             image_socket,
             nullcontext(),
@@ -271,7 +271,7 @@ def test_file_socket_value_strategy_init(spec, socket, context, expected_cls):
         (  # Non-existent or non-accessible image
             SocketValueSpec(
                 socket_slug=image_socket.slug,
-                existing_image="I do not exist or you may not access me, search not",
+                existing_image_api_url="I do not exist or you may not access me, search not",
             ),
             image_socket,
             pytest.raises(ObjectNotFound),
@@ -523,7 +523,7 @@ def test_ordering_strategy_registry():
         (
             {
                 "socket_slug": "test-socket",
-                "existing_image": "https://example.com/api/v1/images/123/",
+                "existing_image_api_url": "https://example.com/api/v1/images/123/",
             },
             nullcontext(),
         ),
@@ -545,7 +545,7 @@ def test_ordering_strategy_registry():
             {
                 "socket_slug": "test-socket",
                 "value": 42,
-                "existing_image": "https://example.com/api/v1/images/123/",
+                "existing_image_api_url": "https://example.com/api/v1/images/123/",
             },
             pytest.raises(
                 ValueError, match="Only one source can be specified"
@@ -556,7 +556,7 @@ def test_ordering_strategy_registry():
                 "socket_slug": "test-socket",
                 "value": 42,
                 "files": [],
-                "existing_image": "https://example.test/api/v1/images/123/",
+                "existing_image_api_url": "https://example.test/api/v1/images/123/",
             },
             pytest.raises(
                 ValueError, match="Only one source can be specified"
@@ -566,7 +566,7 @@ def test_ordering_strategy_registry():
             {
                 "socket_slug": "test-socket",
                 "files": [],
-                "existing_image": "https://example.test/api/v1/images/123/",
+                "existing_image_api_url": "https://example.test/api/v1/images/123/",
                 "existing_socket_value": HyperlinkedComponentInterfaceValueFactory(),
             },
             pytest.raises(
