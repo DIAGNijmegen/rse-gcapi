@@ -97,32 +97,27 @@ class SocketValueSpec:
 
 
 def clean_file_source(
-    source: list[Path | str] | UnsetType, *, maximum_number: int | None = None
+    files: list[Path | str], *, maximum_number: int | None = None
 ) -> list[Path]:
+    if not isinstance(files, list):
+        raise TypeError("files must be a list of file paths")
 
-    if isinstance(source, UnsetType):
-        raise ValueError("No files provided")
-
-    # Ensure we are handling a list
-    sources = [source] if not isinstance(source, list) else source
+    # Ensure no more than can be handled
+    if maximum_number is not None and len(files) > maximum_number:
+        raise TooManyFiles(
+            f"The maximum is {maximum_number}, "
+            f"you provided {maximum_number}: {files}"
+        )
 
     # Ensure items exist
     cleaned = []
-    for s in sources:
-        path = Path(s) if isinstance(s, (str, Path)) else None
-        if path and path.exists():
-            cleaned.append(path)
+    for p in [Path(f) for f in files]:
+        if p.exists():
+            cleaned.append(p)
         else:
-            raise FileNotFoundError(s)
+            raise FileNotFoundError(p)
     if not cleaned:
         raise FileNotFoundError("No files provided")
-
-    # Ensure no more than can be handled
-    if maximum_number is not None and len(sources) > maximum_number:
-        raise TooManyFiles(
-            f"The maximum is {maximum_number}, "
-            f"you provided {maximum_number}: {sources}"
-        )
 
     return cleaned
 
@@ -152,44 +147,15 @@ class BaseCreateStrategy:
 
 
 class SocketValueCreateStrategy(BaseCreateStrategy):
-    supported_super_kind: str
-    socket: ComponentInterface
-
-    spec: SocketValueSpec
-    supported_spec_source_field: str
-
     def __init__(
         self,
         *,
         socket: ComponentInterface,
-        spec: SocketValueSpec,
-        **kwargs,
+        client: Client,
     ) -> None:
-        super().__init__(**kwargs)
+        super().__init__(client=client)
 
         self.socket = socket
-        self.spec = spec
-
-        assert (
-            self.socket.slug == self.spec.socket_slug
-        ), "SocketValueSpec socket_slug does not match the provided socket"
-
-        if (
-            self.socket.super_kind.casefold()
-            != self.supported_super_kind.casefold()
-        ):
-            raise NotSupportedError(
-                f"Socket {self.socket.title!r} is not supported by this strategy: "
-                f"it has super_kind {self.socket.super_kind!r}, whereas we expected "
-                f"{self.supported_super_kind!r}"
-            )
-
-        if spec.get_set_field_name() != self.supported_spec_source_field:
-            raise NotSupportedError(
-                f"Socket {self.socket.title!r} is not supported by this strategy: "
-                f"it has source field {spec.get_set_field_name()!r}, whereas we expected "
-                f"{self.supported_spec_source_field!r}"
-            )
 
     def __call__(
         self: SocketValueCreateStrategy,
@@ -205,55 +171,86 @@ class SocketValueCreateStrategy(BaseCreateStrategy):
         )
 
 
-_strategy_registry = []
-
-
-def register_socket_value_strategy(strategy_class):
-    _strategy_registry.append(strategy_class)
-    return strategy_class
-
-
-class NotSupportedError(Exception):
-    """
-    Exception raised when a strategy is not supported for a given socket / source
-    """
-
-    pass
-
-
-def select_socket_value_strategy(
+def select_socket_value_strategy(  # noqa: C901
     *,
-    socket: ComponentInterface,
     spec: SocketValueSpec,
     client: Client,
 ) -> SocketValueCreateStrategy:
-    for strategy_class in _strategy_registry:
-        try:
-            return strategy_class(socket=socket, spec=spec, client=client)
-        except NotSupportedError:
-            continue
+
+    socket = client._fetch_socket_detail(spec.socket_slug)
+    kwargs = dict(
+        socket=socket,
+        client=client,
+    )
+
+    if socket.super_kind.casefold() == "file":
+        if not isinstance(spec.files, UnsetType):
+            return FileCreateStrategy(
+                files=spec.files,
+                **kwargs,
+            )
+        elif not isinstance(spec.value, UnsetType):
+            return FileJSONCreateStrategy(
+                value=spec.value,
+                **kwargs,
+            )
+        elif not isinstance(spec.existing_socket_value, UnsetType):
+            return FileFromSVCreateStrategy(
+                socket_value=spec.existing_socket_value,
+                **kwargs,
+            )
+    elif socket.super_kind.casefold() == "image":
+        if not isinstance(spec.files, UnsetType):
+            return ImageCreateStrategy(
+                files=spec.files,
+                **kwargs,
+            )
+        elif not isinstance(spec.existing_image_api_url, UnsetType):
+            return ImageFromImageCreateStrategy(
+                existing_image_api_url=spec.existing_image_api_url,
+                **kwargs,
+            )
+        elif not isinstance(spec.existing_socket_value, UnsetType):
+            return ImageFromSVCreateStrategy(
+                existing_socket_value=spec.existing_socket_value,
+                **kwargs,
+            )
+    elif socket.super_kind.casefold() == "value":
+        if not isinstance(spec.files, UnsetType):
+            return ValueFromFileCreateStrategy(
+                files=spec.files,
+                **kwargs,
+            )
+        elif not isinstance(spec.existing_socket_value, UnsetType):
+            return ValueFromSVStrategy(
+                existing_socket_value=spec.existing_socket_value,
+                **kwargs,
+            )
+        elif not isinstance(spec.value, UnsetType):
+            return ValueCreateStrategy(
+                value=spec.value,
+                **kwargs,
+            )
 
     raise NotImplementedError(
         f"No strategy found that supports socket {socket.title} with spec {spec}"
     )
 
 
-@register_socket_value_strategy
 class FileCreateStrategy(SocketValueCreateStrategy):
     """Direct file upload strategy"""
 
-    supported_super_kind = "file"
-    supported_spec_source_field = "files"
-
-    content: Path
-    content_name: str
-
-    def __init__(self, **kwargs):
+    def __init__(
+        self,
+        *,
+        files: list[str | Path],
+        **kwargs,
+    ):
         super().__init__(**kwargs)
 
         try:
             cleaned_files: list[Path] = clean_file_source(
-                self.spec.files,
+                files,
                 maximum_number=1,
             )
         except TooManyFiles as e:
@@ -274,25 +271,16 @@ class FileCreateStrategy(SocketValueCreateStrategy):
         return post_request
 
 
-@register_socket_value_strategy
 class FileJSONCreateStrategy(SocketValueCreateStrategy):
     """Some JSON serializable Python object upload strategy"""
 
-    supported_super_kind = "file"
-    supported_spec_source_field = "value"
-
-    content: bytes
-    content_name: str
-
-    def __init__(self, **kwargs):
+    def __init__(self, *, value: Any, **kwargs):
         super().__init__(**kwargs)
 
         try:
-            json_bytes = json.dumps(self.spec.value).encode()
+            json_bytes = json.dumps(value).encode()
         except TypeError:
-            raise NotSupportedError(
-                "Source is not JSON serializable"
-            ) from None
+            raise ValueError("Source is not JSON serializable") from None
         else:
             self.content = json_bytes
             self.content_name = self.socket.relative_path
@@ -309,20 +297,16 @@ class FileJSONCreateStrategy(SocketValueCreateStrategy):
         return post_request
 
 
-@register_socket_value_strategy
 class FileFromSVCreateStrategy(SocketValueCreateStrategy):
     """Uses an existing SocketValue as source"""
 
-    supported_super_kind = "file"
-    supported_spec_source_field = "existing_socket_value"
-
-    content_api_url: str
-    content_name: str
-
-    def __init__(self, **kwargs):
+    def __init__(
+        self,
+        *,
+        socket_value: HyperlinkedComponentInterfaceValue,
+        **kwargs,
+    ):
         super().__init__(**kwargs)
-
-        socket_value = self.spec.existing_socket_value
 
         if not isinstance(
             socket_value,
@@ -373,18 +357,17 @@ class FileFromSVCreateStrategy(SocketValueCreateStrategy):
             return json.dumps(response_or_json).encode()
 
 
-@register_socket_value_strategy
 class ImageCreateStrategy(SocketValueCreateStrategy):
     """Direct image-file upload strategy"""
 
-    supported_super_kind = "image"
-    supported_spec_source_field = "files"
-
-    files: list[Path]
-
-    def __init__(self, **kwargs):
+    def __init__(
+        self,
+        *,
+        files: list[str | Path],
+        **kwargs,
+    ):
         super().__init__(**kwargs)
-        self.files = clean_file_source(self.spec.files)
+        self.files = clean_file_source(files)
 
     def __call__(self):
         post_request = super().__call__()
@@ -407,19 +390,18 @@ class ImageCreateStrategy(SocketValueCreateStrategy):
         return post_request
 
 
-@register_socket_value_strategy
 class ImageFromImageCreateStrategy(SocketValueCreateStrategy):
     """Indirect via an existing image"""
 
-    supported_super_kind = "image"
-    supported_spec_source_field = "existing_image_api_url"
-
-    content_api_url: httpx.URL
-
-    def __init__(self, **kwargs) -> None:
+    def __init__(
+        self,
+        *,
+        existing_image_api_url: str,
+        **kwargs,
+    ) -> None:
         super().__init__(**kwargs)
 
-        api_url = str(self.spec.existing_image_api_url)
+        api_url = str(existing_image_api_url)
 
         # assert it is a valid URL
         self.content_api_url = httpx.URL(api_url)
@@ -433,19 +415,18 @@ class ImageFromImageCreateStrategy(SocketValueCreateStrategy):
         return post_request
 
 
-@register_socket_value_strategy
 class ImageFromSVCreateStrategy(SocketValueCreateStrategy):
     """Indirect via an existing SocketValue"""
 
-    supported_super_kind = "image"
-    supported_spec_source_field = "existing_socket_value"
-
-    content_api_url: httpx.URL
-
-    def __init__(self, **kwargs) -> None:
+    def __init__(
+        self,
+        *,
+        existing_socket_value: HyperlinkedComponentInterfaceValue,
+        **kwargs,
+    ) -> None:
         super().__init__(**kwargs)
 
-        socket_value = self.spec.existing_socket_value
+        socket_value = existing_socket_value
 
         if not isinstance(
             socket_value,
@@ -480,24 +461,23 @@ class ImageFromSVCreateStrategy(SocketValueCreateStrategy):
         return post_request
 
 
-@register_socket_value_strategy
 class ValueFromFileCreateStrategy(SocketValueCreateStrategy):
     """Directly provided value"""
 
-    supported_super_kind = "value"
-    supported_spec_source_field = "files"
-
-    content: Path
-
-    def __init__(self, **kwargs):
+    def __init__(
+        self,
+        *,
+        files: list[str | Path],
+        **kwargs,
+    ):
         super().__init__(**kwargs)
 
         try:
-            files = clean_file_source(self.spec.files, maximum_number=1)
+            cleaned_files = clean_file_source(files, maximum_number=1)
         except TooManyFiles as e:
             raise ValueError("You can only provide one file") from e
 
-        self.content = files[0]
+        self.content = cleaned_files[0]
 
         # Check parsable JSON, but for memory
         # considerations do not load it here yet
@@ -519,18 +499,17 @@ class ValueFromFileCreateStrategy(SocketValueCreateStrategy):
         return post_request
 
 
-@register_socket_value_strategy
 class ValueFromSVStrategy(SocketValueCreateStrategy):
 
-    supported_super_kind = "value"
-    supported_spec_source_field = "existing_socket_value"
-
-    content: Any
-
-    def __init__(self, **kwargs):
+    def __init__(
+        self,
+        *,
+        existing_socket_value: HyperlinkedComponentInterfaceValue,
+        **kwargs,
+    ):
         super().__init__(**kwargs)
 
-        socket_value = self.spec.existing_socket_value
+        socket_value = existing_socket_value
         if not isinstance(socket_value, HyperlinkedComponentInterfaceValue):
             raise ValueError(
                 f"existing_socket_value must be a {HyperlinkedComponentInterfaceValue.__name__}"
@@ -555,25 +534,19 @@ class ValueFromSVStrategy(SocketValueCreateStrategy):
         return post_request
 
 
-@register_socket_value_strategy
 class ValueCreateStrategy(SocketValueCreateStrategy):
 
-    supported_super_kind = "value"
-    supported_spec_source_field = "value"
-
-    content: Any
-
-    def __init__(self, **kwargs):
+    def __init__(self, *, value: Any, **kwargs):
         super().__init__(**kwargs)
 
         try:
-            json.dumps(self.spec.value)  # Check if it is JSON serializable
+            json.dumps(value)  # Check if it is JSON serializable
         except TypeError as e:
             raise ValueError(
                 "Value is not JSON serializable. Nothing has been uploaded."
             ) from e
 
-        self.content = self.spec.value
+        self.content = value
 
     def __call__(self):
         post_request = super().__call__()
@@ -582,9 +555,6 @@ class ValueCreateStrategy(SocketValueCreateStrategy):
 
 
 class JobInputsCreateStrategy(BaseCreateStrategy):
-    input_strategies: list[SocketValueCreateStrategy]
-    algorithm: Algorithm
-
     def __init__(
         self,
         *,
@@ -594,21 +564,14 @@ class JobInputsCreateStrategy(BaseCreateStrategy):
     ):
         super().__init__(**kwargs)
 
-        self.algorithm = algorithm
-        self.input_strategies = []
+        self.algorithm: Algorithm = algorithm
+        self.input_strategies: list[SocketValueCreateStrategy] = []
 
         self._assert_matching_interface(inputs)
-
-        socket_lookup: dict[str, ComponentInterface] = {
-            socket.slug: socket
-            for interface in self.algorithm.interfaces
-            for socket in interface.inputs
-        }
 
         for spec in inputs:
             socket_value_strategy = select_socket_value_strategy(
                 spec=spec,
-                socket=socket_lookup[spec.socket_slug],
                 client=self.client,
             )
 

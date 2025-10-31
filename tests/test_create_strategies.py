@@ -4,7 +4,6 @@ from unittest.mock import MagicMock
 
 import pytest
 
-import gcapi.create_strategies
 from gcapi.create_strategies import (
     FileCreateStrategy,
     FileFromSVCreateStrategy,
@@ -18,7 +17,6 @@ from gcapi.create_strategies import (
     ValueCreateStrategy,
     ValueFromFileCreateStrategy,
     ValueFromSVStrategy,
-    _strategy_registry,
     clean_file_source,
     select_socket_value_strategy,
 )
@@ -35,20 +33,10 @@ TESTDATA = Path(__file__).parent / "testdata"
 
 
 @pytest.mark.parametrize(
-    "source,maximum_number,context",
+    "files,maximum_number,context",
     (
         (
-            TESTDATA / "test.json",
-            None,
-            nullcontext(),
-        ),
-        (
             [TESTDATA / "test.json"],
-            None,
-            nullcontext(),
-        ),
-        (
-            str(TESTDATA / "test.json"),
             None,
             nullcontext(),
         ),
@@ -63,14 +51,16 @@ TESTDATA = Path(__file__).parent / "testdata"
             pytest.raises(TooManyFiles),
         ),
         (
-            "I DO NOT EXIST",
+            ["I DO NOT EXIST"],
             None,
             pytest.raises(FileNotFoundError),
         ),
         (
-            ["I DO NOT EXIST"],
+            object(),
             None,
-            pytest.raises(FileNotFoundError),
+            pytest.raises(
+                TypeError, match="files must be a list of file paths"
+            ),
         ),
         (
             [],
@@ -79,13 +69,12 @@ TESTDATA = Path(__file__).parent / "testdata"
         ),
     ),
 )
-def test_prep_file_source(source, maximum_number, context):
+def test_prep_file_source(files, maximum_number, context):
     with context:
-        clean_file_source(source, maximum_number=maximum_number)
+        clean_file_source(files, maximum_number=maximum_number)
 
 
 file_socket = SocketFactory(super_kind="File")
-file_string_socket = SocketFactory(super_kind="File", kind="String")
 image_socket = SocketFactory(super_kind="Image")
 value_socket = SocketFactory(super_kind="Value")
 
@@ -168,11 +157,20 @@ value_socket = SocketFactory(super_kind="Value")
     ),
 )
 def test_file_socket_value_strategy_init(spec, socket, context, expected_cls):
+    client_mock = MagicMock()
+
+    def mock_socket_detail(slug=None, **__):
+        if slug == socket.slug:
+            return socket
+        else:
+            return SocketFactory(slug=slug)
+
+    client_mock._fetch_socket_detail = mock_socket_detail
+
     with context:
         strategy = select_socket_value_strategy(
             spec=spec,
-            socket=socket,
-            client=MagicMock(),
+            client=client_mock,
         )
     if expected_cls:
         assert type(strategy) is expected_cls
@@ -294,6 +292,14 @@ def test_file_socket_value_strategy_init(spec, socket, context, expected_cls):
 def test_image_socket_value_strategy_init(spec, socket, context, expected_cls):
     client_mock = MagicMock()
 
+    def mock_socket_detail(slug=None, **__):
+        if slug == socket.slug:
+            return socket
+        else:
+            return SocketFactory(slug=slug)
+
+    client_mock._fetch_socket_detail = mock_socket_detail
+
     def mock_images_detail(api_url=None, **__):
         if api_url == "https://example.test/api/v1/cases/images/a-uuid/":
             return HyperlinkedImageFactory()
@@ -305,7 +311,6 @@ def test_image_socket_value_strategy_init(spec, socket, context, expected_cls):
     with context:
         strategy = select_socket_value_strategy(
             spec=spec,
-            socket=socket,
             client=client_mock,
         )
     if expected_cls:
@@ -417,12 +422,19 @@ def test_image_socket_value_strategy_init(spec, socket, context, expected_cls):
     ),
 )
 def test_value_socket_value_strategy_init(spec, socket, context, expected_cls):
+    client_mock = MagicMock()
+
+    def mock_socket_detail(slug=None, **__):
+        if slug == socket.slug:
+            return socket
+        else:
+            return SocketFactory(slug=slug)
+
+    client_mock._fetch_socket_detail = mock_socket_detail
+
     with context:
-        strategy = select_socket_value_strategy(
-            spec=spec,
-            socket=socket,
-            client=MagicMock(),
-        )
+        strategy = select_socket_value_strategy(spec=spec, client=client_mock)
+
     if expected_cls:
         assert type(strategy) is expected_cls
 
@@ -438,7 +450,9 @@ def test_value_socket_value_strategy_init(spec, socket, context, expected_cls):
                     files=[TESTDATA / "image10x10x101.mha"],
                 )
             ],
-            pytest.raises(ValueError),
+            pytest.raises(
+                ValueError, match="No matching interface for sockets"
+            ),
         ),
         (  # algo socket > input socket
             AlgorithmFactory(
@@ -452,7 +466,9 @@ def test_value_socket_value_strategy_init(spec, socket, context, expected_cls):
                 ]
             ),
             [],
-            pytest.raises(ValueError),
+            pytest.raises(
+                ValueError, match="No matching interface for sockets"
+            ),
         ),
         (
             # algo ci = input ci
@@ -460,7 +476,7 @@ def test_value_socket_value_strategy_init(spec, socket, context, expected_cls):
                 interfaces=[
                     AlgorithmInterface(
                         inputs=[
-                            SocketFactory(slug="a-slug"),
+                            file_socket,
                         ],
                         outputs=[],
                     )
@@ -468,7 +484,7 @@ def test_value_socket_value_strategy_init(spec, socket, context, expected_cls):
             ),
             [
                 SocketValueSpec(
-                    socket_slug="a-slug",
+                    socket_slug=file_socket.slug,
                     files=[TESTDATA / "image10x10x101.mha"],
                 )
             ],
@@ -477,31 +493,16 @@ def test_value_socket_value_strategy_init(spec, socket, context, expected_cls):
     ),
 )
 def test_job_inputs_create_prep(algorithm, inputs, context):
+    client_mock = MagicMock()
+
+    client_mock._fetch_socket_detail = MagicMock(return_value=file_socket)
+
     with context:
         JobInputsCreateStrategy(
             algorithm=algorithm,
             inputs=inputs,
-            client=MagicMock(),
+            client=client_mock,
         )
-
-
-def test_ordering_strategy_registry():
-    """Ensure that the strategy registry is ordered correctly."""
-
-    assert _strategy_registry == [
-        # File
-        gcapi.create_strategies.FileCreateStrategy,
-        gcapi.create_strategies.FileJSONCreateStrategy,
-        gcapi.create_strategies.FileFromSVCreateStrategy,
-        # Image
-        gcapi.create_strategies.ImageCreateStrategy,
-        gcapi.create_strategies.ImageFromImageCreateStrategy,
-        gcapi.create_strategies.ImageFromSVCreateStrategy,
-        # Value
-        gcapi.create_strategies.ValueFromFileCreateStrategy,
-        gcapi.create_strategies.ValueFromSVStrategy,
-        gcapi.create_strategies.ValueCreateStrategy,
-    ]
 
 
 @pytest.mark.parametrize(
