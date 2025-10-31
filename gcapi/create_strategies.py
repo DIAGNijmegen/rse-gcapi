@@ -91,7 +91,7 @@ class SocketValueSpec:
         set_field_name = self.get_set_field_name()
         set_field_value = getattr(self, set_field_name)
         return (
-            f"{self.__class__.__name__}({self.socket_slug=}, "
+            f"{self.__class__.__name__}(socket_slug={self.socket_slug}, "
             f"{set_field_name}={set_field_value!r})"
         )
 
