@@ -97,8 +97,12 @@ class SocketValueSpec:
 
 
 def clean_file_source(
-    source: Any, *, maximum_number: int | None = None
+    source: list[Path | str] | UnsetType, *, maximum_number: int | None = None
 ) -> list[Path]:
+
+    if isinstance(source, UnsetType):
+        raise ValueError("No files provided")
+
     # Ensure we are handling a list
     sources = [source] if not isinstance(source, list) else source
 
