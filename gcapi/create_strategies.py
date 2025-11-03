@@ -598,15 +598,17 @@ class JobInputsCreateStrategy(BaseCreateStrategy):
         # Find a matching interface
         matching_interface = None
 
-        input_keys = {spec.socket_slug for spec in inputs}
+        input_socket_slugs = {spec.socket_slug for spec in inputs}
 
         best_matching_sockets_count = 0
         best_matching_interface = None
         for interface in self.algorithm.interfaces:
-            interface_keys = {socket.slug for socket in interface.inputs}
-            matching_count = len(input_keys & interface_keys)
-            if matching_count == len(interface_keys):
-                # All input keys are present in the interface
+            interface_socket_slugs = {
+                socket.slug for socket in interface.inputs
+            }
+            matching_count = len(input_socket_slugs & interface_socket_slugs)
+            if matching_count == len(interface_socket_slugs):
+                # All input sockets are present in the interface
                 matching_interface = interface
                 break
             else:
@@ -617,7 +619,7 @@ class JobInputsCreateStrategy(BaseCreateStrategy):
                     }
 
         if matching_interface is None:
-            msg = f"No matching interface for sockets {input_keys} could be found."
+            msg = f"No matching interface for sockets {input_socket_slugs} could be found."
             if best_matching_interface is not None:
                 msg += f" The closest match is {best_matching_interface}."
             raise ValueError(msg)
