@@ -67,16 +67,18 @@ class SocketValueSpec:
             if field_value is not Unset:
                 sources.append(field_name)
 
+        potential_source_fields = sorted(set(self.__dict__keys()).difference({"socket_slug"}))
+
         if len(sources) > 1:
             raise ValueError(
                 f"Only one source can be specified, but got: {', '.join(sources)}. "
-                f"Please specify only one of the available source fields."
+                f"Please specify only one of the available source fields ({', '.join(potential_source_fields)})."
             )
 
         if len(sources) == 0:
             raise ValueError(
                 "At least one source must be specified. "
-                "Please provide one of the available source fields."
+                "Please provide one of the available source fields ({', '.join(potential_source_fields)})."
             )
 
     def get_set_field_name(self) -> str:
