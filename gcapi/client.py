@@ -1076,7 +1076,6 @@ class Client(httpx.Client, ApiDefinitions):
         strategies: list[SocketValueCreateStrategy] = []
         for spec in values:
             strategy = select_socket_value_strategy(
-                socket=self._fetch_socket_detail(slug=spec.socket_slug),
                 spec=spec,
                 client=self,
             )
@@ -1104,7 +1103,6 @@ class Client(httpx.Client, ApiDefinitions):
         strategies: list[SocketValueCreateStrategy] = []
         for spec in values:
             strategy = select_socket_value_strategy(
-                socket=self._fetch_socket_detail(slug=spec.socket_slug),
                 spec=spec,
                 client=self,
             )
