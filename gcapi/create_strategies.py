@@ -590,7 +590,7 @@ class JobInputsCreateStrategy(BaseCreateStrategy):
         best_matching_interface = None
         for interface in self.algorithm.interfaces:
             interface_keys = {socket.slug for socket in interface.inputs}
-            matching_count = len(socket_slugs & interface_keys)
+            matching_count = len(socket_slugs & interface_socket_slugs)
             if matching_count == len(interface_keys):
                 # All input keys are present in the interface
                 matching_interface = interface
