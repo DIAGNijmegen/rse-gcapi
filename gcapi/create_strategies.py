@@ -578,7 +578,7 @@ class JobInputsCreateStrategy(BaseCreateStrategy):
             self.input_strategies.append(socket_value_strategy)
 
     def _assert_matching_interface(
-        self, inputs: list[SocketValueSpec]
+        self, *, inputs: list[SocketValueSpec]
     ) -> None:
 
         # Find a matching interface
