@@ -248,7 +248,7 @@ def test_file_socket_value_strategy_init(spec, socket, context, expected_cls):
             pytest.raises(ValueError, match="must have an image"),
             None,
         ),
-        (  # An existing socket value, with a missing image (corrupt)
+        (  # An existing socket value, with an invalid value (corrupt)
             SocketValueSpec(
                 socket_slug=image_socket.slug,
                 existing_socket_value=None,  # type: ignore
