@@ -94,6 +94,24 @@ value_socket = SocketFactory(super_kind="Value")
         (
             SocketValueSpec(
                 socket_slug=file_socket.slug,
+                file=TESTDATA / "test.json",
+            ),
+            file_socket,
+            nullcontext(),
+            FileCreateStrategy,
+        ),
+        (
+            SocketValueSpec(
+                socket_slug=file_socket.slug,
+                file=[TESTDATA / "test.json"],  # type: ignore
+            ),
+            file_socket,
+            pytest.raises(TypeError),
+            None,
+        ),
+        (
+            SocketValueSpec(
+                socket_slug=file_socket.slug,
                 files=[TESTDATA / "test.json", TESTDATA / "test.json"],
             ),
             file_socket,
@@ -183,6 +201,15 @@ def test_file_socket_value_strategy_init(spec, socket, context, expected_cls):
             SocketValueSpec(
                 socket_slug=image_socket.slug,
                 files=[TESTDATA / "image10x10x101.mha"],
+            ),
+            image_socket,
+            nullcontext(),
+            ImageCreateStrategy,
+        ),
+        (
+            SocketValueSpec(
+                socket_slug=image_socket.slug,
+                file=TESTDATA / "image10x10x101.mha",
             ),
             image_socket,
             nullcontext(),
@@ -324,6 +351,15 @@ def test_image_socket_value_strategy_init(spec, socket, context, expected_cls):
             SocketValueSpec(
                 socket_slug=value_socket.slug,
                 files=[TESTDATA / "test.json"],
+            ),
+            value_socket,
+            nullcontext(),
+            ValueFromFileCreateStrategy,
+        ),
+        (
+            SocketValueSpec(
+                socket_slug=value_socket.slug,
+                file=TESTDATA / "test.json",
             ),
             value_socket,
             nullcontext(),

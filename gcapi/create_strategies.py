@@ -41,7 +41,11 @@ class SocketValueSpec:
         socket_slug: The slug of the socket (required)
 
         value: Direct source value to set (can be None)
-        files: List of source file paths for file/image uploads
+        file: Single source file path for file/image upload
+            (e.g. `file="annotation.json"`)
+        files: List of source file paths that constitute a single value/image
+            (e.g. `files=["1.dcm", "2.dcm", "3.dcm"]`)
+
         existing_image_api_url: An API URL of an existing image to reuse
         existing_socket_value: Existing socket value that can be reused
     """
@@ -49,6 +53,7 @@ class SocketValueSpec:
     socket_slug: str
 
     value: Any = Unset
+    file: str | Path | UnsetType = Unset
     files: list[str | Path] | UnsetType = Unset
 
     existing_image_api_url: str | UnsetType = Unset
@@ -82,6 +87,11 @@ class SocketValueSpec:
                 "At least one source must be specified. "
                 "Please provide one of the available source fields ({', '.join(potential_source_fields)})."
             )
+
+        # Wrap file
+        if not isinstance(self.file, UnsetType):
+            self.files = [self.file]
+            del self.file
 
     def get_set_field_name(self) -> str:
         for field_name, field_value in self.__dict__.items():
