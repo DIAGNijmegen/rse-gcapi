@@ -67,7 +67,9 @@ class SocketValueSpec:
             if field_value is not Unset:
                 sources.append(field_name)
 
-        potential_source_fields = sorted(set(self.__dict__keys()).difference({"socket_slug"}))
+        potential_source_fields = sorted(
+            set(self.__dict__.keys()).difference({"socket_slug"})
+        )
 
         if len(sources) > 1:
             raise ValueError(
@@ -569,7 +571,7 @@ class JobInputsCreateStrategy(BaseCreateStrategy):
         self.algorithm: Algorithm = algorithm
         self.input_strategies: list[SocketValueCreateStrategy] = []
 
-        self._assert_matching_interface(inputs)
+        self._assert_matching_interface(inputs=inputs)
 
         for spec in inputs:
             socket_value_strategy = select_socket_value_strategy(
@@ -592,7 +594,7 @@ class JobInputsCreateStrategy(BaseCreateStrategy):
         best_matching_interface = None
         for interface in self.algorithm.interfaces:
             interface_keys = {socket.slug for socket in interface.inputs}
-            matching_count = len(socket_slugs & interface_socket_slugs)
+            matching_count = len(socket_slugs & interface_keys)
             if matching_count == len(interface_keys):
                 # All input keys are present in the interface
                 matching_interface = interface

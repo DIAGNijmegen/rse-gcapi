@@ -145,7 +145,7 @@ value_socket = SocketFactory(super_kind="Value")
             pytest.raises(ValueError, match="must have a file"),
             None,
         ),
-        (  # An existing socket value, with a missing file (corrupt)
+        (  # An invalid socket value
             SocketValueSpec(
                 socket_slug=file_socket.slug,
                 existing_socket_value="I am not a socket value",  # type: ignore
