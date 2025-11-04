@@ -266,6 +266,11 @@ def _create_reader_studies(users):
     )
     answer.save()
 
+    DisplaySet.objects.create(  # Display set that can be directly updated
+        pk="1f8c7dae-9bf8-431b-8b7b-59238985961f",
+        reader_study=reader_study,
+    )
+
 
 def _create_archive(users):
     archive = Archive.objects.create(

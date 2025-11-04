@@ -305,7 +305,7 @@ def test_update_display_set(local_grand_challenge):
 
     # Update the structured value
     updated_display_set = c.update_display_set(
-        display_set_pk="14909328-7a62-4745-8d2a-81a5d936f34b",
+        display_set_pk="1f8c7dae-9bf8-431b-8b7b-59238985961f",
         values=[
             SocketValueSpec(
                 "generic-medical-image", file=TESTDATA / "image10x10x101.mha"
@@ -441,7 +441,6 @@ def test_reuse_existing_socket_values(local_grand_challenge):
     )
 
     assert len(display_set.values) == 4, "Sanity check"
-
     assert display_set.values[0].interface.super_kind.casefold() == "file"
     assert display_set.values[1].interface.super_kind.casefold() == "value"
     assert display_set.values[2].interface.super_kind.casefold() == "file"
