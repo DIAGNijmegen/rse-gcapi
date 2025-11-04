@@ -35,7 +35,24 @@ Unset = UnsetType()
 class SocketValueSpec:
     """
     Specification for a socket value which provides exactly one source
-    in order to create the SocketValue.
+    that will be used to create a socket value.
+
+    Socket value are the items that constitute cases in job inputs, archive items,
+    and display sets.
+
+    Example:
+        ```python
+        from gcapi import SocketValueSpec
+
+        # Directly from a value
+        SocketValueSpec(socket_slug="my_socket", value=42)
+
+        # Indirectly from a file
+        SocketValueSpec(socket_slug="my_socket", file="/path/to/file.json")
+
+        # Indirectly from multiple files
+        SocketValueSpec(socket_slug="my_socket", files=["1.dcm", "2.dcm"])
+        ```
 
     Args:
         socket_slug: The slug of the socket (required)
@@ -62,7 +79,6 @@ class SocketValueSpec:
     )
 
     def __post_init__(self):
-        """Validate that the specification is correct."""
         # Get all fields except socket_slug
         sources = []
 

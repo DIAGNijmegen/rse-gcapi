@@ -809,7 +809,10 @@ class Client(httpx.Client, ApiDefinitions):
 
         Args:
             display_set_pk: The primary key of the display set to update.
-            values: The values to update the display set with.
+            values: A list of socket value specifications.
+                Each specification defines a socket slug and exactly one source
+                (`value`, `file`, `files`, `existing_image_api_url`, or
+                `existing_socket_value`).
 
         Returns:
             The updated display item (post) object. Note that not all values will
@@ -831,6 +834,19 @@ class Client(httpx.Client, ApiDefinitions):
         """
         This function takes a reader-study slug and a list of socket value specs.
         It then creates a single display set for the reader study.
+
+        Example:
+            ```Python
+            from gcapi import SocketValueSpec
+
+            client.add_case_to_reader_study(
+                reader_study_slug="i-am-a-reader-study",
+                values=[
+                    SocketValueSpec(socket_slug="report", files=["report.pdf"]),
+                    SocketValueSpec(socket_slug="lung-volume", value=1.9),
+                ],
+            )
+            ```
 
         ??? tip "Re-using existing images"
             Existing images on Grand Challenge can be re-used by either
@@ -874,7 +890,8 @@ class Client(httpx.Client, ApiDefinitions):
 
             values: A list of socket value specifications.
                 Each specification defines a socket slug and exactly one source
-                (value, files, existing_image_api_url, or existing_socket_value).
+                (`value`, `file`, `files`, `existing_image_api_url`, or
+                `existing_socket_value`).
 
         Returns:
             The newly created display set (post) object. Note that not all values will
@@ -938,7 +955,10 @@ class Client(httpx.Client, ApiDefinitions):
 
         Args:
             archive_item_pk: The primary key of the archive item to update.
-            values: The values to update the archive item with.
+            values: A list of socket value specifications.
+                Each specification defines a socket slug and exactly one source
+                (`value`, `file`, `files`, `existing_image_api_url`, or
+                `existing_socket_value`).
 
         Returns:
             The updated archive item (post) object. Note that not all values will
@@ -965,6 +985,19 @@ class Client(httpx.Client, ApiDefinitions):
         """
         This function takes an archive slug and a list of socket value specs.
         It then creates a single archive item for the archive.
+
+        Example:
+            ```Python
+            from gcapi import SocketValueSpec
+
+            client.add_case_to_archive(
+                archive_slug="i-am-an-archive",
+                values=[
+                    SocketValueSpec(socket_slug="report", files=["report.pdf"]),
+                    SocketValueSpec(socket_slug="lung-volume", value=1.9),
+                ],
+            )
+            ```
 
         ??? tip "Re-using existing images"
             Existing images on Grand Challenge can be re-used by either
@@ -1006,7 +1039,8 @@ class Client(httpx.Client, ApiDefinitions):
 
             values: A list of socket value specifications.
                 Each specification defines a socket slug and exactly one source
-                (value, files, existing_image_api_url, or existing_socket_value).
+                (`value`, `file`, `files`, `existing_image_api_url`, or
+                `existing_socket_value`).
 
         Returns:
             The new archive item (post) object. Note that not all values will

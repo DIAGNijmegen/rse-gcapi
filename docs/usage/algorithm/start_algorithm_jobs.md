@@ -1,4 +1,4 @@
-If you are working on an algorithm, you most likely want to automatically upload cases to an algorithm on the platform. This can be done via the API and most easily using the convienence method: [Client.run_external_job][gcapi.client.Client.run_external_job].
+If you are working on an algorithm, you most likely want to automatically upload cases to an algorithm on the platform. This can be done via the API and most easily using the convienence method: [Client.start_algorithm_job][gcapi.client.Client.start_algorithm_job].
 
 First things first, we need to [get started](../../getting-started.md) and initiate the client:
 
@@ -27,12 +27,14 @@ Explore the inputs that the algorithm expects by visiting the Try-Out page on Gr
 Next, we will submit the inputs to the algorithm case-by-case. For this example we'll assume the algorithm requires an `ct-image` and a `lung-volume` as inputs.
 
 ```python
-job_1 = client.run_external_job(
-    algorithm="your-algorithm-slug",
-    inputs={
-        "ct-image": [ "0.dcm", "1.dcm"],
-        "lung-volume": 42,
-    }
+from gcapi import SocketValueSpec
+
+job_1 = client.start_algorithm_job(
+    algorithm_slug="your-algorithm-slug",
+    inputs=[
+        SocketValueSpec(socket_slug="ct-image", files=["0.dcm", "1.dcm"]),
+        SocketValueSpec(socket_slug="lung-volume", value=42),
+    ]
 )
 ```
 
@@ -42,12 +44,12 @@ As an alternative, let us source the `ct-image` from an archive and the `lung-vo
 archive_item_pk = "09e38ccd..."
 archive_item = client.archive_items.details(pk=archive_item_pk)
 
-job_2 =  client.run_external_job(
-    algorithm="your-algorithm-slug",
-    inputs={
-        "ct-image": archive_item.values[0],
-        "lung-volume": "path/to/lung-volume.json",
-    }
+job_2 =  client.start_algorithm_job(
+    algorithm_slug="your-algorithm-slug",
+    inputs=[
+        SocketValueSpec(socket_slug="ct-image", existing_socket_value=archive_item.values[0]),
+        SocketValueSpec(socket_slug="lung-volume", file="path/to/lung-volume.json"),
+    ]
 )
 ```
 
@@ -67,9 +69,9 @@ job_2 =  client.run_external_job(
     ```python
     jobs = []
     for ct_image in ct_images:
-        job = client.run_external_job(
+        job = client.start_algorithm_job(
             algorithm="your-algorithm-slug",
-            inputs={"ct-image": ct_image}
+            inputs=[SocketValueSpec(socket_slug="ct-image", files=["0.dcm", "1.dcm"])],
         )
         jobs.append(job.pk)
 

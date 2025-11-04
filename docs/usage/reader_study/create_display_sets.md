@@ -1,4 +1,4 @@
-If you are working on a reader study, you most likely need to upload the cases to the platform. This can be done via the API and most easily using the convienence method: [Client.add_cases_to_reader_study][gcapi.client.Client.add_cases_to_reader_study].
+If you are working on a reader study, you most likely need to upload the cases to the platform. This can be done via the API and most easily using the convienence method: [Client.add_case_to_reader_study][gcapi.client.Client.add_case_to_reader_study], together with one or more [SocketValueSpec][gcapi.SocketValueSpec]s.
 
 First things first, we need to [get started](../../getting-started.md) and initiate the client:
 
@@ -45,17 +45,19 @@ To create display sets for the readers to view, you need to provide a [socket](h
 In this example two display sets are created and each display set contains three sockets: a `ct-image`, an `airway-segmentation` and `some-score`:
 
 ```python
-display_sets = [
-    {
-        "ct-image": files[0],
-        "airway-segmentation": files[1],
-        "some-score": 2.1,
-    },
-    {
-        "ct-image": files[2],
-        "airway-segmentation": files[3],
-        "some-score": 7.9,
-    },
+from gcapi import SocketValueSpec
+
+cases = [
+    [
+        SocketValueSpec(socket_slug="ct-image", files=files[0]),
+        SocketValueSpec(socket_slug= "airway-segmentation", files=files[1]),
+        SocketValueSpec(socket_slug="some-score", value=2.1),
+    ],
+    [
+        SocketValueSpec(socket_slug="ct-image", files=files[2]),
+        SocketValueSpec(socket_slug= "airway-segmentation", files=files[3]),
+        SocketValueSpec(socket_slug="some-score", value=7.9),
+    ],
     ...
 ]
 ```
@@ -66,11 +68,14 @@ To upload cases and create the display sets, you will need to know the [slug](..
 # Specify the "slug" of the study you want to upload your data to.
 upload_reader_study_slug = "my-reader-study-slug"
 
-display_set_pks = client.add_cases_to_reader_study(
-  reader_study=upload_reader_study_slug,
-  display_sets=display_sets
-)
-print("Uploaded cases and created display sets: " + display_set_pks)
+display_sets = []
+for case in cases:
+    display_set = client.add_case_to_reader_study(
+        reader_study_slug=upload_reader_study_slug,
+        values=case
+    )
+    display_sets.append(display_set)
+print("Uploaded cases and created display sets: " + display_sets)
 ```
 
 ## Setting title and order

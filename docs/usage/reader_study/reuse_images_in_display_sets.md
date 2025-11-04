@@ -11,16 +11,20 @@ Archives, Job results and other display sets have references to already uploaded
 [Create a display set](../reader_study/create_display_sets.md) roughly as follows:
 
 ```Python
+from gcapi import SocketValueSpec
 reader_study_slug = "my-reader-study-slug"
 
-case = {
-    "ct-image": "/path/to/image/file/00.mhd"
-}
+case = [
+    SocketValueSpec(
+        socket_slug="ct-image",
+        file="/path/to/image/file/00.mhd"
+    )
+]
 
 # Create a simple display set with one MHD image
-display_sets = client.add_cases_to_reader_study(
+display_set = client.add_case_to_reader_study(
     reader_study=reader_study_slug,
-    values=[case]
+    values=case
 )
 ```
 
@@ -60,11 +64,16 @@ for value in display_sets[0].values:
 
 assert image_reference
 
-new_case = {
-    "ct-image": image_reference,
-}
-new_display_sets = client.add_cases_to_reader_study(
+# Create a new case, but instead of a file we'll use the image reference
+new_case = [
+    SocketValueSpec(
+        socket_slug="ct-image",
+        existing_image_api_url=image_reference,
+    )
+]
+
+new_display_set = client.add_case_to_reader_study(
     reader_study=reader_study_slug,
-    values=[new_case]
+    values=new_case
 )
 ```
