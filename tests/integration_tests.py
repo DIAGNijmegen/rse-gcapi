@@ -440,11 +440,21 @@ def test_reuse_existing_socket_values(local_grand_challenge):
         pk="14909328-7a62-4745-8d2a-81a5d936f34b"
     )
 
-    assert len(display_set.values) == 4, "Sanity check"
-    assert display_set.values[0].interface.super_kind.casefold() == "file"
-    assert display_set.values[1].interface.super_kind.casefold() == "value"
-    assert display_set.values[2].interface.super_kind.casefold() == "file"
-    assert display_set.values[3].interface.super_kind.casefold() == "image"
+    # Sanity: double check the source socket value has the expected sockets
+    values = display_set.values
+    assert len(values) == 4, "Sanity check"
+
+    assert values[0].interface.slug == "a-file-socket"
+    assert values[0].interface.super_kind == "File"
+
+    assert values[1].interface.slug == "annotation"
+    assert values[1].interface.super_kind == "Value"
+
+    assert values[2].interface.slug == "a-pdf-file-socket"
+    assert values[2].interface.super_kind == "File"
+
+    assert values[3].interface.slug == "generic-medical-image"
+    assert values[3].interface.super_kind == "Image"
 
     new_ds = c.add_case_to_reader_study(
         reader_study_slug="reader-study",
