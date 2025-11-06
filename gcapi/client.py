@@ -930,7 +930,7 @@ class Client(httpx.Client, ApiDefinitions):
             client.update_archive_item(
                 archive_item_pk=items[0].pk,
                 values=[
-                    SocketValueSpec(socket_slug="report", files=["report.pdf"]),
+                    SocketValueSpec(socket_slug="report", file="report.pdf"),
                     SocketValueSpec(socket_slug="lung-volume", value=1.9),
                 ],
             )
