@@ -848,7 +848,7 @@ class Client(httpx.Client, ApiDefinitions):
 
         ??? tip "Re-using existing images"
             Existing images on Grand Challenge can be re-used by either
-            passing an API url, or an existing socket value (from a display set):
+            passing an API url, or an existing socket value:
 
             ```Python
             from gcapi import SocketValueSpec
@@ -1000,7 +1000,7 @@ class Client(httpx.Client, ApiDefinitions):
 
         ??? tip "Re-using existing images"
             Existing images on Grand Challenge can be re-used by either
-            passing an API url, or an existing socket value (archive item):
+            passing an API url, or an existing socket value:
 
             ```Python
             from gcapi import SocketValueSpec
