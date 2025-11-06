@@ -22,7 +22,7 @@ from gcapi.create_strategies import (
     SocketValueSpec,
     select_socket_value_strategy,
 )
-from gcapi.exceptions import SocketNotFound
+from gcapi.exceptions import ObjectNotFound, SocketNotFound
 from gcapi.retries import BaseRetryStrategy, SelectiveBackoffStrategy
 from gcapi.transports import RetryTransport
 from gcapi.typing import SocketValuePostSet
