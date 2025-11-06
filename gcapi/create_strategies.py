@@ -214,6 +214,8 @@ class SocketValueCreateStrategy(BaseCreateStrategy):
             image=None,
             upload_session=None,
             user_upload=None,
+            user_uploads=None,
+            image_name=None,
         )
 
 
