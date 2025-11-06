@@ -705,7 +705,7 @@ class Client(httpx.Client, ApiDefinitions):
 
         ??? tip "Re-using existing images"
             Existing images on Grand Challenge can be re-used by either
-            passing an API url, or a socket value (from a display set):
+            passing an API url, or an existing socket value (from a display set):
 
             ```Python
             from gcapi import SocketValueSpec
@@ -716,6 +716,7 @@ class Client(httpx.Client, ApiDefinitions):
 
             inputs = [
                 SocketValueSpec(socket_slug="slug-0", existing_image_api_url=image.api_url),
+                SocketValueSpec(socket_slug="slug-0", existing_socket_value=socket_value),
                 SocketValueSpec(socket_slug="slug-2", existing_image_api_url=socket_value.image),
             ]
             ```
@@ -747,7 +748,7 @@ class Client(httpx.Client, ApiDefinitions):
 
         Returns:
             The newly created Job (post) object. Note that not all inputs will
-                be immediately available therein until the background processing has
+                be immediately available until the background processing has
                 completed.
         """
 
@@ -801,7 +802,7 @@ class Client(httpx.Client, ApiDefinitions):
             client.update_display_set(
                 display_set_pk=items[0].pk,
                 values=[
-                    SocketValueSpec(socket_slug="report", files=["report.pdf"]),
+                    SocketValueSpec(socket_slug="report", file="report.pdf"),
                     SocketValueSpec(socket_slug="lung-volume", value=1.9),
                 ],
             )
@@ -834,7 +835,7 @@ class Client(httpx.Client, ApiDefinitions):
 
         ??? tip "Re-using existing images"
             Existing images on Grand Challenge can be re-used by either
-            passing an API url, or a socket value (from a display set):
+            passing an API url, or an existingsocket value (from a display set):
 
             ```Python
             from gcapi import SocketValueSpec
@@ -846,6 +847,7 @@ class Client(httpx.Client, ApiDefinitions):
 
             values = [
                 SocketValueSpec(socket_slug="slug-0", existing_image_api_url=image.api_url),
+                SocketValueSpec(socket_slug="slug-0", existing_socket_value=socket_value),
                 SocketValueSpec(socket_slug="slug-2", existing_image_api_url=socket_value.image),
             ]
             ```
@@ -968,7 +970,7 @@ class Client(httpx.Client, ApiDefinitions):
 
         ??? tip "Re-using existing images"
             Existing images on Grand Challenge can be re-used by either
-            passing an API url, or a socket value (archive item):
+            passing an API url, or an existing socket value (archive item):
 
             ```Python
             from gcapi import SocketValueSpec
@@ -979,6 +981,7 @@ class Client(httpx.Client, ApiDefinitions):
 
             values = [
                 SocketValueSpec(socket_slug="slug-0", existing_image_api_url=image.api_url),
+                SocketValueSpec(socket_slug="slug-0", existing_socket_value=socket_value),
                 SocketValueSpec(socket_slug="slug-2", existing_image_api_url=socket_value.image),
             ]
             ```
@@ -995,7 +998,7 @@ class Client(httpx.Client, ApiDefinitions):
             values = [
                 SocketValueSpec(socket_slug="slug-0", existing_socket_value=ai.values[0]),
                 SocketValueSpec(socket_slug="slug-1", existing_socket_value=ai.values[1]),
-                SocketValueSpec(socket_slug="slug-2", files=["some_local_file"]),
+                SocketValueSpec(socket_slug="slug-2", file="some_local_file"),
             ]
             ```
 
