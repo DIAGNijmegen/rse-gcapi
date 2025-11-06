@@ -22,7 +22,7 @@ from gcapi.create_strategies import (
     SocketValueSpec,
     select_socket_value_strategy,
 )
-from gcapi.exceptions import SocketNotFound
+from gcapi.exceptions import ObjectNotFound, SocketNotFound
 from gcapi.retries import BaseRetryStrategy, SelectiveBackoffStrategy
 from gcapi.transports import RetryTransport
 from gcapi.typing import SocketValuePostSet
@@ -1064,7 +1064,10 @@ class Client(httpx.Client, ApiDefinitions):
         self, slug: str
     ) -> gcapi.models.ComponentInterface:
         if slug not in self._socket_cache:
-            self._socket_cache[slug] = self.sockets.detail(slug=slug)
+            try:
+                self._socket_cache[slug] = self.interfaces.detail(slug=slug)
+            except ObjectNotFound as e:
+                raise SocketNotFound(slug=slug) from e
         return self._socket_cache[slug]
 
     def _create_socket_value_set(
