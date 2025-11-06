@@ -50,13 +50,13 @@ from gcapi import SocketValueSpec
 
 cases = [
     [
-        SocketValueSpec(socket_slug="ct-image", files=files[0]),
-        SocketValueSpec(socket_slug= "airway-segmentation", files=files[1]),
+        SocketValueSpec(socket_slug="ct-image", files=files[0:2]),
+        SocketValueSpec(socket_slug="airway-segmentation", file=files[2]),
         SocketValueSpec(socket_slug="some-score", value=2.1),
     ],
     [
-        SocketValueSpec(socket_slug="ct-image", files=files[2]),
-        SocketValueSpec(socket_slug= "airway-segmentation", files=files[3]),
+        SocketValueSpec(socket_slug="ct-image", files=files[3:5]),
+        SocketValueSpec(socket_slug="airway-segmentation", file=files[5]),
         SocketValueSpec(socket_slug="some-score", value=7.9),
     ],
     ...

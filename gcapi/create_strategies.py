@@ -37,7 +37,7 @@ class SocketValueSpec:
     Specification for a socket value which provides exactly one source
     that will be used to create a socket value.
 
-    Socket value are the items that constitute cases in job inputs, archive items,
+    Socket values are the items that constitute cases in job inputs, archive items,
     and display sets.
 
     Example:
@@ -45,13 +45,29 @@ class SocketValueSpec:
         from gcapi import SocketValueSpec
 
         # Directly from a value
-        SocketValueSpec(socket_slug="my_socket", value=42)
+        SocketValueSpec(socket_slug="my_value_socket", value=42)
 
         # Indirectly from a file
-        SocketValueSpec(socket_slug="my_socket", file="/path/to/file.json")
+        SocketValueSpec(socket_slug="my_value_socket", file="/path/to/number.json")
 
-        # Indirectly from multiple files
-        SocketValueSpec(socket_slug="my_socket", files=["1.dcm", "2.dcm"])
+        # Directly from a file
+        SocketValueSpec(socket_slug="my_pdf_socket", file="/path/to/report.pdf")
+
+        # Directly from multiple files
+        SocketValueSpec(socket_slug="my_image_socket", files=["1.dcm", "2.dcm"])
+
+        # Indirectly from an existing image
+        SocketValueSpec(
+            socket_slug="my_image_socket",
+            existing_image_api_url="https://grand-challenge.org/api/v1/images/123/"
+        )
+
+        # Indirectly from an existing socket value
+        display_set = client.display_sets.detail(pk="...")
+        SocketValueSpec(
+            socket_slug="my_value_socket",
+            existing_socket_value=display_set.values[0]
+        )
         ```
 
     Args:
