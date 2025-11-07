@@ -12,6 +12,7 @@ from django.contrib.auth import get_user_model
 from django.contrib.auth.models import Group, Permission
 from django.core.files.base import ContentFile
 from django.db import IntegrityError
+from django.test import override_settings
 from django.utils.timezone import now
 from grandchallenge.algorithms.models import (
     Algorithm,
@@ -56,9 +57,10 @@ DEFAULT_USERS = [
 ]
 
 
+@override_settings(task_eager_propagates=True, task_always_eager=True)
 def run():
     """Creates the main project, demo user and demo challenge."""
-    print("🔨 Creating development fixtures 🔨")
+    print("🔨 Creating test fixtures 🔨")
 
     if not settings.DEBUG:
         raise RuntimeError(
@@ -180,6 +182,7 @@ def _create_reader_studies(users):
     )
 
     display_set = DisplaySet.objects.create(
+        pk="14909328-7a62-4745-8d2a-81a5d936f34b",
         reader_study=reader_study,
     )
     image = _create_image(
@@ -188,6 +191,43 @@ def _create_reader_studies(users):
         height=128,
         color_space="RGB",
     )
+    image_civ = ComponentInterfaceValue.objects.create(
+        interface=ComponentInterface.objects.get(slug="generic-medical-image"),
+        image=image,
+    )
+
+    # Create two type of files: one JSON, one csv
+    json_file_interface = ComponentInterface(
+        store_in_database=False,
+        relative_path="file.json",
+        slug="file-socket",
+        title="A file socket",
+        kind=ComponentInterface.Kind.ANY,
+    )
+    json_file_interface.save()
+
+    json_file_civ = ComponentInterfaceValue.objects.create(
+        interface=json_file_interface,
+    )
+    with ContentFile(b"42") as content:
+        json_file_civ.file.save("file.json", content)
+        json_file_civ.save()
+
+    pdf_file_interface = ComponentInterface(
+        store_in_database=False,
+        relative_path="file.pdf",
+        slug="pdf-file-socket",
+        title="A pdf file socket",
+        kind=ComponentInterface.Kind.PDF,
+    )
+    pdf_file_interface.save()
+
+    pdf_file_civ = ComponentInterfaceValue.objects.create(
+        interface=pdf_file_interface,
+    )
+    with ContentFile(b"42") as content:
+        pdf_file_civ.file.save("file.pdf", content)
+        pdf_file_civ.save()
 
     annotation_interface = ComponentInterface(
         store_in_database=True,
@@ -197,19 +237,39 @@ def _create_reader_studies(users):
         kind=ComponentInterface.Kind.TWO_D_BOUNDING_BOX,
     )
     annotation_interface.save()
-    civ = ComponentInterfaceValue.objects.create(
-        interface=ComponentInterface.objects.get(slug="generic-medical-image"),
-        image=image,
+    value_civ = ComponentInterfaceValue.objects.create(
+        interface=annotation_interface,
+        value={
+            "name": "forearm",
+            "type": "2D bounding box",
+            "corners": [
+                [20, 88, 0.5],
+                [83, 88, 0.5],
+                [83, 175, 0.5],
+                [20, 175, 0.5],
+            ],
+            "version": {"major": 1, "minor": 0},
+        },
     )
-    display_set.values.set([civ])
 
+    # Note: ordering is based on the slug here
+    display_set.values.set([image_civ, json_file_civ, pdf_file_civ, value_civ])
+
+    display_set_with_answer = DisplaySet.objects.create(
+        reader_study=reader_study,
+    )
     answer = Answer.objects.create(
         creator=users["readerstudy"],
         question=question,
         answer="foo",
-        display_set=display_set,
+        display_set=display_set_with_answer,
     )
     answer.save()
+
+    DisplaySet.objects.create(  # Display set that can be directly updated
+        pk="1f8c7dae-9bf8-431b-8b7b-59238985961f",
+        reader_study=reader_study,
+    )
 
 
 def _create_archive(users):
@@ -224,7 +284,10 @@ def _create_archive(users):
     archive.editors_group.user_set.add(users["archive"])
     archive.uploaders_group.user_set.add(users["demo"])
 
-    item = ArchiveItem.objects.create(archive=archive)
+    item = ArchiveItem.objects.create(
+        pk="3dfa7e7d-8895-4f1f-80c2-4172e00e63ea",
+        archive=archive,
+    )
     civ = ComponentInterfaceValue.objects.create(
         interface=ComponentInterface.objects.get(slug="generic-medical-image"),
         image=_create_image(
@@ -373,7 +436,11 @@ def _create_algorithm(*, creator, inputs, outputs, suffix):
 
     algorithm.add_editor(creator)
 
-    algorithm_image = AlgorithmImage(creator=creator, algorithm=algorithm)
+    algorithm_image = AlgorithmImage(
+        pk="27e09e53-9fe2-4852-9945-32e063393d11",
+        creator=creator,
+        algorithm=algorithm,
+    )
 
     with _gc_demo_algorithm() as container:
         algorithm_image.image.save("algorithm_io.tar", container)

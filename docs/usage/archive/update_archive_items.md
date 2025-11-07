@@ -2,7 +2,7 @@
 
 ## Update the **content** of archive items
 
-To update the contents of a archive items you can use the convenience function: [Client.update_archive_item][gcapi.client.Client.update_archive_item].
+To update the contents of a archive items you can use the convenience function: [Client.update_archive_item][gcapi.client.Client.update_archive_item], together with one or more [SocketValueSpec][gcapi.SocketValueSpec]s.
 
 ### Example
 
@@ -22,12 +22,14 @@ value to the first archive item, provide the socket slugs together
 with the respective value or file path as follows:
 
 ```python
+from gcapi import SocketValueSpec
+
 client.update_archive_item(
     archive_item_pk=archive_items[0].pk,
-    values={
-        "report": 'path/on/your/machine/to/the/report.pdf'],
-        "lung-volume": 1.9,
-    },
+    values=[
+        SocketValueSpec(socket_slug="report", file="path/on/your/machine/to/the/report.pdf"),
+        SocketValueSpec(socket_slug="lung-volume", value=1.9),
+    ]
 )
 ```
 
