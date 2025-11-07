@@ -329,6 +329,13 @@ TEST_VALUES = (
                 TESTDATA / "image10x10x10.zraw",
             ],
         ),
+        SocketValueSpec(
+            "a-dicom-image-set-socket",
+            files=[
+                TESTDATA / "basic.dcm",
+            ],
+            image_name="foo",
+        ),
     ],
     # Value kind
     [

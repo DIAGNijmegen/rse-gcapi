@@ -3,8 +3,12 @@ from pathlib import Path
 from unittest.mock import MagicMock
 
 import pytest
+from grand_challenge_dicom_de_identifier.exceptions import (
+    RejectedDICOMFileError,
+)
 
 from gcapi.create_strategies import (
+    DICOMImageSetFileCreateStrategy,
     FileCreateStrategy,
     FileFromSVCreateStrategy,
     FileJSONCreateStrategy,
@@ -20,7 +24,7 @@ from gcapi.create_strategies import (
     clean_file_source,
     select_socket_value_strategy,
 )
-from gcapi.exceptions import ObjectNotFound
+from gcapi.exceptions import ObjectNotFound, SocketNotFound
 from gcapi.models import AlgorithmInterface
 from tests.factories import (
     AlgorithmFactory,
@@ -76,6 +80,10 @@ def test_prep_file_source(files, maximum_number, context):
 
 file_socket = SocketFactory(super_kind="File")
 image_socket = SocketFactory(super_kind="Image")
+dicom_image_set_socket = SocketFactory(
+    super_kind="Image",
+    kind="DICOM Image Set",
+)
 value_socket = SocketFactory(super_kind="Value")
 
 
@@ -215,6 +223,26 @@ def test_file_socket_value_strategy_init(spec, socket, context, expected_cls):
             nullcontext(),
             ImageCreateStrategy,
         ),
+        (  # DICOM Image Set, single file
+            SocketValueSpec(
+                socket_slug=dicom_image_set_socket.slug,
+                file=TESTDATA / "basic.dcm",
+                image_name="foo",
+            ),
+            dicom_image_set_socket,
+            nullcontext(),
+            DICOMImageSetFileCreateStrategy,
+        ),
+        (  # DICOM Image Set, multiple files
+            SocketValueSpec(
+                socket_slug=dicom_image_set_socket.slug,
+                files=[TESTDATA / "basic.dcm"],
+                image_name="foo",
+            ),
+            dicom_image_set_socket,
+            nullcontext(),
+            DICOMImageSetFileCreateStrategy,
+        ),
         (
             SocketValueSpec(
                 socket_slug=image_socket.slug,
@@ -236,6 +264,18 @@ def test_file_socket_value_strategy_init(spec, socket, context, expected_cls):
                 ),
             ),
             image_socket,
+            nullcontext(),
+            ImageFromSVCreateStrategy,
+        ),
+        (  # An existing socket value (DICOM Image Set)
+            SocketValueSpec(
+                socket_slug=dicom_image_set_socket.slug,
+                existing_socket_value=HyperlinkedComponentInterfaceValueFactory(
+                    interface=dicom_image_set_socket,
+                    image="https://example.test/api/v1/cases/images/a-uuid/",
+                ),
+            ),
+            dicom_image_set_socket,
             nullcontext(),
             ImageFromSVCreateStrategy,
         ),
@@ -314,6 +354,30 @@ def test_file_socket_value_strategy_init(spec, socket, context, expected_cls):
             pytest.raises(ObjectNotFound),
             None,
         ),
+        (  # DICOM Image Set, missing image name
+            SocketValueSpec(
+                socket_slug=dicom_image_set_socket.slug,
+                file=TESTDATA / "basic.dcm",
+            ),
+            dicom_image_set_socket,
+            pytest.raises(
+                ValueError, match="you must also specify an image_name"
+            ),
+            None,
+        ),
+        (  # DICOM Image Set, missing image name
+            SocketValueSpec(
+                socket_slug=dicom_image_set_socket.slug,
+                file=TESTDATA / "unsupported.dcm",
+                image_name="foo",
+            ),
+            dicom_image_set_socket,
+            pytest.raises(
+                RejectedDICOMFileError,
+                match="Unsupported SOP Class",
+            ),
+            None,
+        ),
     ),
 )
 def test_image_socket_value_strategy_init(spec, socket, context, expected_cls):
@@ -323,7 +387,7 @@ def test_image_socket_value_strategy_init(spec, socket, context, expected_cls):
         if slug == socket.slug:
             return socket
         else:
-            return SocketFactory(slug=slug)
+            raise SocketNotFound(slug=slug)
 
     client_mock._fetch_socket_detail = mock_socket_detail
 
@@ -555,6 +619,14 @@ def test_job_inputs_create_prep(algorithm, inputs, context):
         ),
         (
             {"socket_slug": "test-socket", "files": [TESTDATA / "test.json"]},
+            nullcontext(),
+        ),
+        (
+            {
+                "socket_slug": "test-socket",
+                "files": [TESTDATA / "test.json"],
+                "image_name": "a_image_name",
+            },
             nullcontext(),
         ),
         (

@@ -4,12 +4,15 @@ import json
 from dataclasses import dataclass
 from io import BytesIO
 from pathlib import Path
+from tempfile import SpooledTemporaryFile
 from typing import TYPE_CHECKING, Any
 
 import httpx
 
 if TYPE_CHECKING:
     from gcapi.client import Client
+
+from grand_challenge_dicom_de_identifier.deidentifier import DicomDeidentifier
 
 from gcapi.models import (
     Algorithm,
@@ -78,6 +81,7 @@ class SocketValueSpec:
             (e.g. `file="annotation.json"`)
         files: List of source file paths that constitute a single value/image
             (e.g. `files=["1.dcm", "2.dcm", "3.dcm"]`)
+        image_name: Name for the image when uploading a DICOM image
 
         existing_image_api_url: An API URL of an existing image to reuse
         existing_socket_value: Existing socket value that can be reused
@@ -88,6 +92,7 @@ class SocketValueSpec:
     value: Any = Unset
     file: str | Path | UnsetType = Unset
     files: list[str | Path] | UnsetType = Unset
+    image_name: str | UnsetType = Unset
 
     existing_image_api_url: str | UnsetType = Unset
     existing_socket_value: HyperlinkedComponentInterfaceValue | UnsetType = (
@@ -99,13 +104,13 @@ class SocketValueSpec:
         sources = []
 
         for field_name, field_value in self.__dict__.items():
-            if field_name == "socket_slug":
+            if field_name in ("socket_slug", "image_name"):
                 continue
             if field_value is not Unset:
                 sources.append(field_name)
 
         potential_source_fields = sorted(
-            set(self.__dict__.keys()).difference({"socket_slug"})
+            set(self.__dict__.keys()).difference({"socket_slug", "image_name"})
         )
 
         if len(sources) > 1:
@@ -249,10 +254,17 @@ def select_socket_value_strategy(  # noqa: C901
             )
     elif socket.super_kind.casefold() == "image":
         if not isinstance(spec.files, UnsetType):
-            return ImageCreateStrategy(
-                files=spec.files,
-                **kwargs,
-            )
+            if socket.kind.casefold() == "dicom image set":
+                return DICOMImageSetFileCreateStrategy(
+                    files=spec.files,
+                    image_name=spec.image_name,
+                    **kwargs,
+                )
+            else:
+                return ImageCreateStrategy(
+                    files=spec.files,
+                    **kwargs,
+                )
         elif not isinstance(spec.existing_image_api_url, UnsetType):
             return ImageFromImageCreateStrategy(
                 existing_image_api_url=spec.existing_image_api_url,
@@ -435,6 +447,79 @@ class ImageCreateStrategy(SocketValueCreateStrategy):
         )
 
         post_request.upload_session = raw_image_upload_session.api_url
+        return post_request
+
+
+class DICOMImageSetFileCreateStrategy(SocketValueCreateStrategy):
+
+    _deidentifier_instance: DicomDeidentifier | None = None
+
+    @staticmethod
+    def _close_temp_content(func):
+        def wrapper(self, *args, **kwargs):
+            try:
+                return func(self, *args, **kwargs)
+            except Exception:
+                if hasattr(self, "content"):
+                    for temp in self.content:
+                        temp.close()
+                raise
+
+        return wrapper
+
+    @_close_temp_content
+    def __init__(
+        self,
+        *,
+        files: list[str | Path],
+        image_name: str | UnsetType,
+        **kwargs,
+    ):
+        super().__init__(**kwargs)
+
+        if isinstance(image_name, UnsetType):
+            raise ValueError(
+                "When uploading a DICOM image set, "
+                "you must also specify an image_name."
+            )
+        else:
+            self.image_name: str = image_name
+
+        self.files = clean_file_source(files)
+
+        # Use the singleton deidentifier
+        deidentifier = self.get_deidentifier()
+
+        self.content = []
+        for file in self.files:
+            temp = SpooledTemporaryFile()
+            # Add early to content so it gets closed on error
+            self.content.append(temp)
+            deidentifier.deidentify_file(file=file, output=temp)
+            temp.seek(0)
+
+    @classmethod
+    def get_deidentifier(cls) -> DicomDeidentifier:
+        if cls._deidentifier_instance is None:
+            cls._deidentifier_instance = DicomDeidentifier()
+        return cls._deidentifier_instance
+
+    @_close_temp_content
+    def __call__(self):
+        post_request = super().__call__()
+
+        post_request.image_name = self.image_name
+
+        uploads = []
+        for idx, temp in enumerate(self.content):
+            upload = self.client.uploads.upload_fileobj(
+                fileobj=temp, filename=f"dicom_image_{idx}.dcm"
+            )
+            temp.close()
+            uploads.append(upload.api_url)
+
+        post_request.user_uploads = uploads
+
         return post_request
 
 
