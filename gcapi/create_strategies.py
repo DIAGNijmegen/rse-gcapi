@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import json
+import threading
 from dataclasses import dataclass
 from io import BytesIO
 from pathlib import Path
@@ -453,6 +454,7 @@ class ImageCreateStrategy(SocketValueCreateStrategy):
 class DICOMImageSetFileCreateStrategy(SocketValueCreateStrategy):
 
     _deidentifier_instance: DicomDeidentifier | None = None
+    _deidentifier_lock = threading.Lock()
 
     @staticmethod
     def _close_temp_content(func):
@@ -501,7 +503,9 @@ class DICOMImageSetFileCreateStrategy(SocketValueCreateStrategy):
     @classmethod
     def get_deidentifier(cls) -> DicomDeidentifier:
         if cls._deidentifier_instance is None:
-            cls._deidentifier_instance = DicomDeidentifier()
+            with cls._deidentifier_lock:
+                if cls._deidentifier_instance is None:
+                    cls._deidentifier_instance = DicomDeidentifier()
         return cls._deidentifier_instance
 
     @_close_temp_content
