@@ -1,8 +1,6 @@
 import os
-import re
 import shutil
 import subprocess
-import tarfile
 from collections.abc import Generator
 from os import makedirs
 from pathlib import Path
@@ -14,6 +12,7 @@ from unittest.mock import patch
 import httpx
 import pytest
 
+from tests import TESTDATA
 from tests.integration_tests import ADMIN_TOKEN
 
 
@@ -62,25 +61,29 @@ class GrandChallengeServerRuntimeError(RuntimeError):
 
 
 @pytest.fixture(scope="session")
-def local_grand_challenge(tmp_path_factory) -> Generator[str, None, None]:
+def local_grand_challenge(  # noqa: C901
+    tmp_path_factory,
+) -> Generator[str, None, None]:
 
     local_api_url = os.environ.get(
         "GCAPI_TESTS_LOCAL_API_URL",
         "https://gc.localhost:8000/api/v1/",
     )
 
-    try:
-        r = httpx.get(
-            local_api_url,
-            verify=False,
-            headers={"Authorization": f"Bearer {ADMIN_TOKEN}"},
-        )
-        r.raise_for_status()
-        local_gc_running = True
-    except httpx.HTTPError:
-        local_gc_running = False
+    def is_local_gc_available():
+        try:
+            r = httpx.get(
+                local_api_url,
+                verify=False,
+                headers={"Authorization": f"Bearer {ADMIN_TOKEN}"},
+                timeout=5,
+            )
+            r.raise_for_status()
+            return True
+        except httpx.HTTPError:
+            return False
 
-    if local_gc_running:
+    if is_local_gc_available():
         yield local_api_url
     else:
         # Start our own version of grand challenge
@@ -108,12 +111,7 @@ def local_grand_challenge(tmp_path_factory) -> Generator[str, None, None]:
                     gc_rep_path / "scripts" / file.name,
                 )
 
-        shim_location_path = tmp_path_factory.mktemp("grand_challenge_shim")
-        shim_version = download_latest_sagemaker_shim(shim_location_path)
-
-        env = build_env(
-            shim_location=shim_location_path, shim_version=shim_version
-        )
+        env = build_env()
 
         key_path, crt_path = build_ssl_certs(gc_rep_path)
         background_processes = []
@@ -144,31 +142,6 @@ def local_grand_challenge(tmp_path_factory) -> Generator[str, None, None]:
                 cwd=gc_rep_path,
                 stderr=STDOUT,
             )
-
-            # Start the celery worker
-            celery_worker_process = subprocess.Popen(
-                [
-                    "uv",
-                    "run",
-                    "--directory",
-                    "app",
-                    "celery",
-                    "--app",
-                    "config",
-                    "worker",
-                    "--concurrency",
-                    "1",
-                    "--pool",
-                    "prefork",
-                    "--queues",
-                    "workstations-eu-central-1,acks-late-2xlarge,acks-late-2xlarge-delay,acks-late-micro-short,acks-late-micro-short-delay",
-                ],
-                env=env,
-                cwd=gc_rep_path,
-                stdout=subprocess.PIPE,
-                stderr=subprocess.PIPE,
-            )
-            background_processes.append(celery_worker_process)
 
             check_output(
                 [
@@ -211,7 +184,13 @@ def local_grand_challenge(tmp_path_factory) -> Generator[str, None, None]:
             )
             background_processes.append(server_process)
 
-            sleep(5)  # Give processes a short while to properly start/fail
+            # Wait for server to be available
+            for _ in range(5):
+                if is_local_gc_available():
+                    break
+                sleep(1)
+            else:
+                raise RuntimeError(f"Failed to connect to {local_api_url}")
 
             # Check for early errors
             _check_for_server_errors(background_processes)
@@ -245,7 +224,7 @@ def local_grand_challenge(tmp_path_factory) -> Generator[str, None, None]:
             for process in background_processes:
                 try:
                     # Join with a timeout so we don't hang forever
-                    process.wait(timeout=30)
+                    process.wait(timeout=10)
                 except subprocess.TimeoutExpired:
                     process.kill()
 
@@ -286,44 +265,7 @@ def _check_for_server_errors(processes, cause=None):
             pytest.fail(error_msg, pytrace=False)
 
 
-def download_latest_sagemaker_shim(download_path: Path) -> str:
-    """Download the latest sagemaker shim release from GitHub and extract it."""
-
-    api_url = "https://api.github.com/repos/DIAGNijmegen/rse-sagemaker-shim/releases/latest"
-    resp = httpx.get(api_url, timeout=10)
-    resp.raise_for_status()
-    release = resp.json()
-
-    match = None
-    for asset in release.get("assets", []):
-        name = asset["name"]
-        if match := re.match(
-            r"sagemaker-shim-(.*)-Linux-x86_64\.tar\.gz", name
-        ):
-            url = asset["browser_download_url"]
-            print(f"Downloading {name} from {url}...")
-            with httpx.stream("GET", url=url, follow_redirects=True) as r:
-                r.raise_for_status()
-                with open(download_path / name, "wb") as f:
-                    for chunk in r.iter_bytes(chunk_size=8192):
-                        f.write(chunk)
-
-            # Extract the downloaded tar.gz file
-            tar_path = download_path / name
-            with tarfile.open(tar_path, "r:gz") as tar:
-                tar.extractall(path=download_path, filter="fully_trusted")
-
-            # Remove the tar.gz file after extraction
-            tar_path.unlink()
-            break
-
-    if match is None:
-        raise RuntimeError("Could not find suitable sagemaker shim release.")
-    else:
-        return str(match.group(1))  # Return the version string
-
-
-def build_env(shim_location: Path, shim_version: str) -> dict[str, Any]:
+def build_env() -> dict[str, Any]:
     env = os.environ.copy()
 
     if "UV_PYTHON" in env:
@@ -354,9 +296,9 @@ def build_env(shim_location: Path, shim_version: str) -> dict[str, Any]:
         "AWS_S3_URL_PROTOCOL": "https:",
         "COMPONENTS_REGISTRY_INSECURE": "True",
         "COMPONENTS_DEFAULT_BACKEND": "tests.components_tests.resources.backends.IOCopyExecutor",
-        "COMPONENTS_SAGEMAKER_SHIM_LOCATION": str(shim_location.absolute()),
+        "COMPONENTS_SAGEMAKER_SHIM_LOCATION": str(TESTDATA.absolute()),
         "COMPONENTS_VIRTUAL_ENV_BIOM_LOCATION": "PLEASE FIX ME EVENTUALLY",
-        "COMPONENTS_SAGEMAKER_SHIM_VERSION": shim_version,
+        "COMPONENTS_SAGEMAKER_SHIM_VERSION": "0",
         "COMPONENTS_REGISTRY_URL": "localhost:5000",
         "COMPONENTS_DOCKER_KEEP_CAPS_UNSAFE": "True",
         "DEBUG": "True",
