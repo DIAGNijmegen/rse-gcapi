@@ -716,7 +716,7 @@ class Client(httpx.Client, ApiDefinitions):
 
             inputs = [
                 SocketValueSpec(socket_slug="slug-0", existing_image_api_url=image.api_url),
-                SocketValueSpec(socket_slug="slug-0", existing_socket_value=socket_value),
+                SocketValueSpec(socket_slug="slug-1", existing_socket_value=socket_value),
                 SocketValueSpec(socket_slug="slug-2", existing_image_api_url=socket_value.image),
             ]
             ```
@@ -744,7 +744,8 @@ class Client(httpx.Client, ApiDefinitions):
 
             inputs: A list of socket value specifications.
                 Each specification defines a socket slug and exactly one source
-                (value, files, existing_image_api_url, or existing_socket_value).
+                (`value`, `file`, `files`, `existing_image_api_url`, or
+                `existing_socket_value`).
 
         Returns:
             The newly created Job (post) object. Note that not all inputs will
@@ -810,7 +811,10 @@ class Client(httpx.Client, ApiDefinitions):
 
         Args:
             display_set_pk: The primary key of the display set to update.
-            values: The values to update the display set with.
+            values: A list of socket value specifications.
+                Each specification defines a socket slug and exactly one source
+                (`value`, `file`, `files`, `existing_image_api_url`, or
+                `existing_socket_value`).
 
         Returns:
             The updated display item (post) object. Note that not all values will
@@ -840,7 +844,7 @@ class Client(httpx.Client, ApiDefinitions):
             client.add_case_to_reader_study(
                 reader_study_slug="i-am-a-reader-study",
                 values=[
-                    SocketValueSpec(socket_slug="report", files=["report.pdf"]),
+                    SocketValueSpec(socket_slug="report", file="report.pdf"),
                     SocketValueSpec(socket_slug="lung-volume", value=1.9),
                 ],
             )
@@ -860,7 +864,7 @@ class Client(httpx.Client, ApiDefinitions):
 
             values = [
                 SocketValueSpec(socket_slug="slug-0", existing_image_api_url=image.api_url),
-                SocketValueSpec(socket_slug="slug-0", existing_socket_value=socket_value),
+                SocketValueSpec(socket_slug="slug-1", existing_socket_value=socket_value),
                 SocketValueSpec(socket_slug="slug-2", existing_image_api_url=socket_value.image),
             ]
             ```
@@ -1011,7 +1015,7 @@ class Client(httpx.Client, ApiDefinitions):
 
             values = [
                 SocketValueSpec(socket_slug="slug-0", existing_image_api_url=image.api_url),
-                SocketValueSpec(socket_slug="slug-0", existing_socket_value=socket_value),
+                SocketValueSpec(socket_slug="slug-1", existing_socket_value=socket_value),
                 SocketValueSpec(socket_slug="slug-2", existing_image_api_url=socket_value.image),
             ]
             ```
