@@ -185,15 +185,17 @@ def local_grand_challenge(  # noqa: C901
             background_processes.append(server_process)
 
             # Wait for server to be available
-            for _ in range(5):
+            for _ in range(10):
                 if is_local_gc_available():
                     break
                 sleep(1)
             else:
-                raise RuntimeError(f"Failed to connect to {local_api_url}")
-
-            # Check for early errors
-            _check_for_server_errors(background_processes)
+                # Check for early errors
+                _check_for_server_errors(background_processes)
+                pytest.fail(
+                    f"Failed to timely connect to {local_api_url}: no errors found.",
+                    pytrace=False,
+                )
 
             yield local_api_url
 
