@@ -363,7 +363,7 @@ def test_file_socket_value_strategy_init(spec, socket, context, expected_cls):
             ),
             None,
         ),
-        (  # DICOM Image Set, missing image name
+        (  # DICOM Image Set, unsupported DICOM file
             SocketValueSpec(
                 socket_slug=dicom_image_set_socket.slug,
                 file=TESTDATA / "unsupported.dcm",
