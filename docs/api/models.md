@@ -1,5 +1,8 @@
 # `gcapi.models`
 
+## `SocketValueSpec`
+::: gcapi.SocketValueSpec
+
 ## `PageResult`
 ::: gcapi.apibase.PageResult
 

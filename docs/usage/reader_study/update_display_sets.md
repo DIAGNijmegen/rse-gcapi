@@ -2,7 +2,7 @@
 
 ## Update the **content** of display sets
 
-To update the contents of a display set you can use the convenience function: [Client.update_display_set][gcapi.client.Client.update_display_set].
+To update the contents of a display set you can use the convenience function: [Client.update_display_set][gcapi.client.Client.update_display_set], together with one or more [SocketValueSpec][gcapi.SocketValueSpec]s.
 
 ### Example
 
@@ -25,10 +25,10 @@ with the respective value or file path as follows:
 ```python
 client.update_display_set(
     display_set_pk=display_sets[0].pk,
-    values={
-        "report": 'path/on/your/machine/to/the/report.pdf'],
-        "lung-volume": 1.9,
-    },
+    values=[
+        SocketValueSpec(socket_slug="report", file="path/on/your/machine/to/the/report.pdf"),
+        SocketValueSpec(socket_slug="lung-volume", value=1.9),
+    ],
 )
 ```
 

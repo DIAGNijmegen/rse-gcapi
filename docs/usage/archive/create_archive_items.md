@@ -1,4 +1,4 @@
-If you are working on a challenge, you most likely need to upload cases to an archive on the platform. This can be done via the API and most easily using the convienence method: [Client.add_cases_to_archive][gcapi.client.Client.add_cases_to_archive]
+If you are working on a challenge, you most likely need to upload cases to an archive on the platform. This can be done via the API and most easily using the convienence method: [Client.add_case_to_archive][gcapi.client.Client.add_case_to_archive], together with one or more [SocketValueSpec][gcapi.SocketValueSpec]s.
 
 First things first, we need to [get started](../../getting-started.md) and initiate the client:
 
@@ -46,17 +46,19 @@ In this example two archive items are created and each archive item contains thr
 
 
 ```python
-archive_items = [
-    {
-        "ct-image": files[0],
-        "airway-segmentation": files[1],
-        "some-score": 2.1,
-    },
-    {
-        "ct-image": files[2],
-        "airway-segmentation": files[3],
-        "some-score": 7.9,
-    },
+from gcapi import SocketValueSpec
+
+cases = [
+    [
+        SocketValueSpec(socket_slug="ct-image", files=files[0:2]),
+        SocketValueSpec(socket_slug="airway-segmentation", file=files[2]),
+        SocketValueSpec(socket_slug="some-score", value=2.1),
+    ],
+    [
+        SocketValueSpec(socket_slug="ct-image", files=files[3:5]),
+        SocketValueSpec(socket_slug="airway-segmentation", file=files[5]),
+        SocketValueSpec(socket_slug="some-score", value=7.9),
+    ],
     ...
 ]
 ```
@@ -67,9 +69,12 @@ To upload cases and create the archive items, you will need to know the [slug](.
 # Specify the "slug" of the archive you want to upload your data to.
 upload_archive_slug = "my-archive-slug"
 
-archive_item_pks = client.add_cases_to_archive(
-  archive=upload_reader_study_slug,
-  archive_items=archive_items
-)
-print("Uploaded cases and created archive items: " + archive_item_pks)
+archive_items = []
+for case in cases:
+    archive_item = client.add_case_to_archive(
+        archive_slug=upload_archive_slug,
+        values=case,
+    )
+    archive_items.append(archive_item)
+print("Uploaded cases and created archive items: " + archive_items)
 ```
