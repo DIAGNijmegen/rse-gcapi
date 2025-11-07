@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import json
 from dataclasses import dataclass
+from functools import wraps
 from io import BytesIO
 from pathlib import Path
 from tempfile import SpooledTemporaryFile
@@ -456,6 +457,7 @@ class DICOMImageSetFileCreateStrategy(SocketValueCreateStrategy):
 
     @staticmethod
     def _close_temp_content(func):
+        @wraps(func)
         def wrapper(self, *args, **kwargs):
             try:
                 return func(self, *args, **kwargs)
