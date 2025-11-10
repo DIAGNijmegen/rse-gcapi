@@ -3,6 +3,7 @@ import os
 import re
 import uuid
 from collections.abc import Callable, Iterator
+from contextlib import ExitStack
 from io import BytesIO
 from pathlib import Path
 from random import randint
@@ -755,18 +756,17 @@ class Client(httpx.Client, ApiDefinitions):
 
         algorithm = self._fetch_algorithm_detail(slug=algorithm_slug)
 
-        input_strategy = JobInputsCreateStrategy(
+        with JobInputsCreateStrategy(
             algorithm=algorithm,
             inputs=inputs,
             client=self,
-        )
+        ) as input_strategy:
+            created_inputs = input_strategy()
 
-        created_inputs = input_strategy()
-
-        return self.algorithm_jobs.create(
-            algorithm=algorithm.api_url,
-            inputs=created_inputs,
-        )
+            return self.algorithm_jobs.create(
+                algorithm=algorithm.api_url,
+                inputs=created_inputs,
+            )
 
     def update_display_set(
         self, *, display_set_pk: str, values: list[SocketValueSpec]
@@ -1113,25 +1113,27 @@ class Client(httpx.Client, ApiDefinitions):
         api: ModifiableMixin,
     ) -> SocketValuePostSet:
 
-        # Prepare the strategies
-        strategies: list[SocketValueCreateStrategy] = []
-        for spec in values:
-            strategy = select_socket_value_strategy(
-                spec=spec,
-                client=self,
+        with ExitStack() as stack:
+            # Prepare the strategies
+            strategies: list[SocketValueCreateStrategy] = []
+            for spec in values:
+                strategy = select_socket_value_strategy(
+                    spec=spec,
+                    client=self,
+                )
+                stack.enter_context(strategy)
+                strategies.append(strategy)
+
+            # Create the socket-value set
+            socket_value_set = api.create(**creation_kwargs)
+
+            # Update the socket-value set with the prepared values
+            updated_socket_value_set = api.partial_update(
+                pk=socket_value_set.pk,
+                values=[s() for s in strategies],
             )
-            strategies.append(strategy)
 
-        # Create the socket-value set
-        socket_value_set = api.create(**creation_kwargs)
-
-        # Update the socket-value set with the prepared values
-        updated_socket_value_set = api.partial_update(
-            pk=socket_value_set.pk,
-            values=[s() for s in strategies],
-        )
-
-        return updated_socket_value_set
+            return updated_socket_value_set
 
     def _update_socket_value_set(
         self,
@@ -1140,17 +1142,20 @@ class Client(httpx.Client, ApiDefinitions):
         values: list[SocketValueSpec],
         api: ModifiableMixin,
     ) -> SocketValuePostSet:
-        # Prepare the strategies
-        strategies: list[SocketValueCreateStrategy] = []
-        for spec in values:
-            strategy = select_socket_value_strategy(
-                spec=spec,
-                client=self,
-            )
-            strategies.append(strategy)
 
-        # Update the socket-value set with the prepared values
-        return api.partial_update(
-            pk=target_pk,
-            values=[s() for s in strategies],
-        )
+        with ExitStack() as stack:
+            # Prepare the strategies
+            strategies: list[SocketValueCreateStrategy] = []
+            for spec in values:
+                strategy = select_socket_value_strategy(
+                    spec=spec,
+                    client=self,
+                )
+                stack.enter_context(strategy)
+                strategies.append(strategy)
+
+            # Update the socket-value set with the prepared values
+            return api.partial_update(
+                pk=target_pk,
+                values=[s() for s in strategies],
+            )

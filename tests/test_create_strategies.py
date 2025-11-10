@@ -192,10 +192,10 @@ def test_file_socket_value_strategy_init(spec, socket, context, expected_cls):
     client_mock._fetch_socket_detail = mock_socket_detail
 
     with context:
-        strategy = select_socket_value_strategy(
-            spec=spec,
-            client=client_mock,
-        )
+        with select_socket_value_strategy(
+            spec=spec, client=client_mock
+        ) as strategy:
+            pass
     if expected_cls:
         assert type(strategy) is expected_cls
 
@@ -398,10 +398,10 @@ def test_image_socket_value_strategy_init(spec, socket, context, expected_cls):
     client_mock.images.detail = mock_images_detail
 
     with context:
-        strategy = select_socket_value_strategy(
-            spec=spec,
-            client=client_mock,
-        )
+        with select_socket_value_strategy(
+            spec=spec, client=client_mock
+        ) as strategy:
+            pass
     if expected_cls:
         assert type(strategy) is expected_cls
 
@@ -531,7 +531,10 @@ def test_value_socket_value_strategy_init(spec, socket, context, expected_cls):
     client_mock._fetch_socket_detail = mock_socket_detail
 
     with context:
-        strategy = select_socket_value_strategy(spec=spec, client=client_mock)
+        with select_socket_value_strategy(
+            spec=spec, client=client_mock
+        ) as strategy:
+            pass
 
     if expected_cls:
         assert type(strategy) is expected_cls
@@ -596,11 +599,12 @@ def test_job_inputs_create_prep(algorithm, inputs, context):
     client_mock._fetch_socket_detail = MagicMock(return_value=file_socket)
 
     with context:
-        JobInputsCreateStrategy(
+        with JobInputsCreateStrategy(
             algorithm=algorithm,
             inputs=inputs,
             client=client_mock,
-        )
+        ):
+            pass
 
 
 @pytest.mark.parametrize(
@@ -692,3 +696,42 @@ def test_job_inputs_create_prep(algorithm, inputs, context):
 def test_socket_value_spec_validation(spec_dict, context):
     with context:
         SocketValueSpec(**spec_dict)
+
+
+def test_dicom_image_set_file_create_strategy_closes_spools():
+    spec = SocketValueSpec(
+        socket_slug="dicom-image-set-socket",
+        files=[
+            TESTDATA / "basic.dcm",
+            TESTDATA / "basic.dcm",
+        ],
+        image_name="foo",
+    )
+    socket = SocketFactory(
+        slug="dicom-image-set-socket",
+        super_kind="Image",
+        kind="DICOM Image Set",
+    )
+
+    client_mock = MagicMock()
+
+    def mock_socket_detail(slug=None, **__):
+        if slug == socket.slug:
+            return socket
+        else:
+            raise SocketNotFound(slug=slug)
+
+    client_mock._fetch_socket_detail = mock_socket_detail
+
+    with select_socket_value_strategy(
+        spec=spec, client=client_mock
+    ) as strategy:
+        # A few sanity checks. Note: we do NOT call the strategy: exit it in
+        # a half state
+        assert isinstance(strategy, DICOMImageSetFileCreateStrategy), "Sanity"
+        for f in strategy.content:
+            assert not f.closed
+
+    # After exiting the context, the spools should be closed
+    for f in strategy.content:
+        assert f.closed

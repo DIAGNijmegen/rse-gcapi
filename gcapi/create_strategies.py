@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 import json
-import threading
 from dataclasses import dataclass
 from io import BytesIO
 from pathlib import Path
@@ -188,6 +187,9 @@ class BaseCreateStrategy:
 
     Calling the strategy will, if applicable, upload contents and hence cause
     objects to be created on Grand Challenge.
+
+    If for some reason, the strategy is aborted halfway, the `close` method
+    can be called to clean up any resources held by the strategy.
     """
 
     client: Client
@@ -196,6 +198,16 @@ class BaseCreateStrategy:
         self.client = client
 
     def __call__(self) -> Any: ...
+
+    def __enter__(self):
+        return self
+
+    def __exit__(self, *_, **__):
+        self.close()
+
+    def close(self) -> None:
+        """Close any resources held by the strategy."""
+        pass
 
 
 class SocketValueCreateStrategy(BaseCreateStrategy):
@@ -454,22 +466,7 @@ class ImageCreateStrategy(SocketValueCreateStrategy):
 class DICOMImageSetFileCreateStrategy(SocketValueCreateStrategy):
 
     _deidentifier_instance: DicomDeidentifier | None = None
-    _deidentifier_lock = threading.Lock()
 
-    @staticmethod
-    def _close_temp_content(func):
-        def wrapper(self, *args, **kwargs):
-            try:
-                return func(self, *args, **kwargs)
-            except Exception:
-                if hasattr(self, "content"):
-                    for temp in self.content:
-                        temp.close()
-                raise
-
-        return wrapper
-
-    @_close_temp_content
     def __init__(
         self,
         *,
@@ -493,22 +490,29 @@ class DICOMImageSetFileCreateStrategy(SocketValueCreateStrategy):
         deidentifier = self.get_deidentifier()
 
         self.content = []
-        for file in self.files:
-            temp = SpooledTemporaryFile()
-            # Add early to content so it gets closed on error
-            self.content.append(temp)
-            deidentifier.deidentify_file(file=file, output=temp)
-            temp.seek(0)
+        try:
+            for file in self.files:
+                temp = SpooledTemporaryFile()
+                # Add early to content so it gets closed on error
+                self.content.append(temp)
+                deidentifier.deidentify_file(file=file, output=temp)
+                temp.seek(0)
+        except Exception:
+            self.close()
+            raise
+
+    def close(self):
+        super().close()
+
+        for temp in self.content:
+            temp.close()
 
     @classmethod
     def get_deidentifier(cls) -> DicomDeidentifier:
         if cls._deidentifier_instance is None:
-            with cls._deidentifier_lock:
-                if cls._deidentifier_instance is None:
-                    cls._deidentifier_instance = DicomDeidentifier()
+            cls._deidentifier_instance = DicomDeidentifier()
         return cls._deidentifier_instance
 
-    @_close_temp_content
     def __call__(self):
         post_request = super().__call__()
 
@@ -706,13 +710,21 @@ class JobInputsCreateStrategy(BaseCreateStrategy):
 
         self._assert_matching_interface(inputs=inputs)
 
-        for spec in inputs:
-            socket_value_strategy = select_socket_value_strategy(
-                spec=spec,
-                client=self.client,
-            )
+        try:
+            for spec in inputs:
+                socket_value_strategy = select_socket_value_strategy(
+                    spec=spec,
+                    client=self.client,
+                )
 
-            self.input_strategies.append(socket_value_strategy)
+                self.input_strategies.append(socket_value_strategy)
+        except Exception:
+            self.close()
+            raise
+
+    def close(self) -> None:
+        for strategy in self.input_strategies:
+            strategy.close()
 
     def _assert_matching_interface(
         self, *, inputs: list[SocketValueSpec]
@@ -748,4 +760,8 @@ class JobInputsCreateStrategy(BaseCreateStrategy):
             raise ValueError(msg)
 
     def __call__(self):
-        return [s() for s in self.input_strategies]
+        result = []
+        for s in self.input_strategies:
+            result.append(s())
+            s.close()
+        return result
