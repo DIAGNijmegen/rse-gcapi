@@ -44,21 +44,32 @@ jobs:
         uses: astral-sh/setup-uv@v6
         with:
           python-version: ${{ matrix.python-version }}
-      - name: Configure AWS credentials
-        uses: aws-actions/configure-aws-credentials@v4
-        with:
-          role-to-assume: ${{ secrets.AWS_ROLE_ARN }}
-          aws-region: us-east-1
-      - name: Pull the grand-challenge container images
-        run: |
-          sudo apt-get update
-          sudo apt-get install -y retry
-          retry -t 5 -- /bin/bash -c 'aws ecr-public get-login-password --region us-east-1 | docker login --username AWS --password-stdin public.ecr.aws/diag-nijmegen/grand-challenge/web'
-          retry -t 5 -- docker pull public.ecr.aws/diag-nijmegen/grand-challenge/web:latest
-          retry -t 5 -- /bin/bash -c 'aws ecr-public get-login-password --region us-east-1 | docker login --username AWS --password-stdin public.ecr.aws/diag-nijmegen/grand-challenge/http'
-          retry -t 5 -- docker pull public.ecr.aws/diag-nijmegen/grand-challenge/http:latest
       - name: Add gc.localhost to /etc/hosts
         run: sudo echo "127.0.0.1 gc.localhost\n127.0.0.1 minio.localhost" | sudo tee -a /etc/hosts
+      - name: Install Minio Client binary (mc)
+        run: |
+          mkdir -p /opt/mc
+          wget -q https://dl.min.io/client/mc/release/linux-amd64/archive/mc.RELEASE.2025-07-16T15-35-03Z -O /opt/mc/mc
+          echo "a5c3695b6f76ed958c0f099795f32091fced0d748ddc749c8b24e07681bbfbb9  /opt/mc/mc" | shasum -c - || exit 1
+          chmod a+x /opt/mc/mc
+          sudo mv /opt/mc/mc /usr/local/bin/
+          rm -r /opt/mc
+      - name: install crane
+        run: |
+          mkdir -p /opt/crane
+          wget -q https://github.com/google/go-containerregistry/releases/download/v0.19.0/go-containerregistry_Linux_x86_64.tar.gz -O /opt/crane/src.tar.gz
+          echo "daa629648e1d1d10fc8bde5e6ce4176cbc0cd48a32211b28c3fd806e0fa5f29b  /opt/crane/src.tar.gz" | shasum -c - || exit 1
+          tar -C /opt/crane/ -xzvf /opt/crane/src.tar.gz crane
+          chmod a+x /opt/crane/crane
+          sudo mv /opt/crane/crane /usr/local/bin/
+          rm -r /opt/crane
+      - name: Install system dependencies
+        run: |
+          sudo apt-get -qq update
+          sudo apt-get -qq install -y --no-install-recommends \
+            libpq-dev \
+            libcurl4-openssl-dev \
+            libssl-dev
       - name: Run uv
         run: |
           uv run pytest --cov-branch --cov-report term-missing --cov=tests/ --cov=gcapi/
