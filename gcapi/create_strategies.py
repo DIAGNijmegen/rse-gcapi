@@ -71,6 +71,14 @@ class SocketValueSpec:
             socket_slug="my_value_socket",
             existing_socket_value=display_set.values[0]
         )
+
+        # A DICOM Image set, including image_name
+        display_set = client.display_sets.detail(pk="...")
+        SocketValueSpec(
+            socket_slug="my_value_socket",
+            files=["/path/to/dicom/files/1.dcm", "/path/to/dicom/files/2.dcm"],
+            image_name="My Image Name",
+        )
         ```
 
     Args:
@@ -100,7 +108,19 @@ class SocketValueSpec:
     )
 
     def __post_init__(self):
-        # Get all fields except socket_slug
+
+        # Wrap file
+        if not isinstance(self.file, UnsetType):
+            self.files = [self.file]
+            del self.file
+
+        self.validate()
+
+    def validate(self) -> None:
+        """Validate the spec without a socket context."""
+        if not isinstance(self.socket_slug, str):
+            raise TypeError("socket_slug must be a string")
+
         sources = []
 
         for field_name, field_value in self.__dict__.items():
@@ -125,26 +145,71 @@ class SocketValueSpec:
                 "Please provide one of the available source fields ({', '.join(potential_source_fields)})."
             )
 
-        # Wrap file
-        if not isinstance(self.file, UnsetType):
-            self.files = [self.file]
-            del self.file
+    def validate_against_socket(self, socket: ComponentInterface) -> None:
+        """Validate the spec with the socket context."""
+        if socket.slug != self.socket_slug:
+            raise ValueError(
+                f"Socket slug {self.socket_slug!r} does not match "
+                f"the provided socket {socket.slug!r}"
+            )
 
-    def get_set_field_name(self) -> str:
+        self._validate_image_name_field(socket=socket)
+        self._validated_existing_socket_value_field(socket=socket)
+
+    def _validate_image_name_field(self, socket: ComponentInterface) -> None:
+        if socket.kind.casefold() == "dicom image set":
+            if all(
+                [
+                    self.image_name is Unset,
+                    self.existing_socket_value is Unset,
+                    self.existing_image_api_url is Unset,
+                ]
+            ):
+                raise ValueError(
+                    "When uploading a DICOM image set, "
+                    "you must also specify an image_name."
+                )
+        elif self.image_name is not Unset:
+            raise ValueError(
+                "image_name can only be specified when "
+                "uploading a DICOM image set."
+            )
+
+    def _validated_existing_socket_value_field(
+        self,
+        socket: ComponentInterface,
+    ) -> None:
+        if self.existing_socket_value is Unset:
+            return
+
+        socket_value = self.existing_socket_value
+        if not isinstance(
+            socket_value,
+            HyperlinkedComponentInterfaceValue,
+        ):
+            raise ValueError(
+                f"existing_socket_value must be a {HyperlinkedComponentInterfaceValue.__name__}"
+            )
+
+        if socket_value.interface.pk != socket.pk:
+            raise ValueError(
+                f"Source {socket_value.interface.title!r} does not "
+                f"match socket {socket.slug!r}"
+            )
+
+    def __repr__(self) -> str:
+        set_fields = []
         for field_name, field_value in self.__dict__.items():
             if field_name == "socket_slug":
                 continue
             if field_value is not Unset:
-                return field_name
-        raise RuntimeError("No source field is set, this should not happen.")
+                set_fields.append(field_name)
 
-    def __repr__(self) -> str:
-        set_field_name = self.get_set_field_name()
-        set_field_value = getattr(self, set_field_name)
-        return (
-            f"{self.__class__.__name__}(socket_slug={self.socket_slug}, "
-            f"{set_field_name}={set_field_value!r})"
-        )
+        parts = [f"socket_slug={self.socket_slug!r}"]
+        for field_name in set_fields:
+            field_value = getattr(self, field_name)
+            parts.append(f"{field_name}={field_value!r}")
+        return f"{self.__class__.__name__}({', '.join(parts)})"
 
 
 def clean_file_source(
@@ -249,6 +314,8 @@ def select_socket_value_strategy(  # noqa: C901
         client=client,
     )
 
+    spec.validate_against_socket(socket=socket)
+
     if socket.super_kind.casefold() == "file":
         if not isinstance(spec.files, UnsetType):
             return FileCreateStrategy(
@@ -267,7 +334,9 @@ def select_socket_value_strategy(  # noqa: C901
             )
     elif socket.super_kind.casefold() == "image":
         if not isinstance(spec.files, UnsetType):
-            if socket.kind.casefold() == "dicom image set":
+            if socket.kind.casefold() == "dicom image set" and not isinstance(
+                spec.image_name, UnsetType
+            ):
                 return DICOMImageSetFileCreateStrategy(
                     files=spec.files,
                     image_name=spec.image_name,
@@ -381,20 +450,6 @@ class FileFromSVCreateStrategy(SocketValueCreateStrategy):
     ):
         super().__init__(**kwargs)
 
-        if not isinstance(
-            socket_value,
-            HyperlinkedComponentInterfaceValue,
-        ):
-            raise ValueError(
-                f"existing_socket_value must be a {HyperlinkedComponentInterfaceValue.__name__}"
-            )
-
-        if socket_value.interface.pk != self.socket.pk:
-            raise ValueError(
-                f"Source {socket_value.interface.title!r} does not "
-                f"match socket {self.socket.title!r}"
-            )
-
         if socket_value.file is None:
             raise ValueError(
                 f"{HyperlinkedComponentInterfaceValue.__name__} must have a file"
@@ -471,20 +526,12 @@ class DICOMImageSetFileCreateStrategy(SocketValueCreateStrategy):
         self,
         *,
         files: list[str | Path],
-        image_name: str | UnsetType,
+        image_name: str,
         **kwargs,
     ):
         super().__init__(**kwargs)
-
-        if isinstance(image_name, UnsetType):
-            raise ValueError(
-                "When uploading a DICOM image set, "
-                "you must also specify an image_name."
-            )
-        else:
-            self.image_name: str = image_name
-
         self.files = clean_file_source(files)
+        self.image_name = image_name
 
         # Use the singleton deidentifier
         deidentifier = self.get_deidentifier()
@@ -567,28 +614,12 @@ class ImageFromSVCreateStrategy(SocketValueCreateStrategy):
     ) -> None:
         super().__init__(**kwargs)
 
-        socket_value = existing_socket_value
-
-        if not isinstance(
-            socket_value,
-            HyperlinkedComponentInterfaceValue,
-        ):
-            raise ValueError(
-                f"existing_socket_value must be a {HyperlinkedComponentInterfaceValue.__name__}"
-            )
-
-        if socket_value.interface.pk != self.socket.pk:
-            raise ValueError(
-                f"Source {socket_value.interface.title!r} does not "
-                f"match socket {self.socket.title!r}"
-            )
-
-        if socket_value.image is None:
+        if existing_socket_value.image is None:
             raise ValueError(
                 f"{HyperlinkedComponentInterfaceValue.__name__} must have an image"
             )
 
-        api_url = socket_value.image
+        api_url = existing_socket_value.image
 
         # assert it is a valid URL
         self.content_api_url = httpx.URL(api_url)
@@ -650,24 +681,12 @@ class ValueFromSVStrategy(SocketValueCreateStrategy):
     ):
         super().__init__(**kwargs)
 
-        socket_value = existing_socket_value
-        if not isinstance(socket_value, HyperlinkedComponentInterfaceValue):
-            raise ValueError(
-                f"existing_socket_value must be a {HyperlinkedComponentInterfaceValue.__name__}"
-            )
-
-        if socket_value.interface.pk != self.socket.pk:
-            raise ValueError(
-                f"Source {socket_value.interface.title!r} does not "
-                f"match socket {self.socket.title!r}"
-            )
-
-        if socket_value.value is None:
+        if existing_socket_value.value is None:
             raise ValueError(
                 f"{HyperlinkedComponentInterfaceValue.__name__} must have a value"
             )
 
-        self.content = socket_value.value
+        self.content = existing_socket_value.value
 
     def __call__(self):
         post_request = super().__call__()
