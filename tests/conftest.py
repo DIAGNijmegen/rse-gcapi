@@ -115,17 +115,23 @@ def local_grand_challenge(  # noqa: C901
 
         key_path, crt_path = build_ssl_certs(gc_rep_path)
         background_processes = []
-
         try:
             # Run dependencies
-            deps_process = subprocess.Popen(
-                ["make", "rundeps"],
-                env=env,
+            check_output(
+                [
+                    "docker",
+                    "compose",
+                    "up",
+                    "--wait",  # Waits for services to be running|healthy (implies detached)
+                    "postgres",
+                    "minio.localhost",
+                    "redis",
+                    "registry",
+                ],
                 cwd=gc_rep_path,
-                stdout=subprocess.PIPE,
-                stderr=subprocess.PIPE,
+                env=env,
+                stderr=STDOUT,
             )
-            background_processes.append(deps_process)
 
             # Migrate
             check_output(
