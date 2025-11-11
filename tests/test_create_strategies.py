@@ -376,6 +376,22 @@ def test_file_socket_value_strategy_init(spec, socket, context, expected_cls):
             ),
             None,
         ),
+        (  # Image set, but providing image_name
+            SocketValueSpec(
+                socket_slug=image_socket.slug,
+                files=[
+                    TESTDATA / "image10x10x101.mha",
+                    TESTDATA / "image10x10x101.mha",
+                ],
+                image_name="foo",
+            ),
+            image_socket,
+            pytest.raises(
+                ValueError,
+                match="image_name can only be specified when uploading a DICOM image set",
+            ),
+            None,
+        ),
     ),
 )
 def test_image_socket_value_strategy_init(spec, socket, context, expected_cls):
