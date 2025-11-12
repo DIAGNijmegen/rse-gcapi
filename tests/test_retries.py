@@ -1,4 +1,5 @@
 import datetime
+import sys
 from unittest import mock
 
 import pytest
@@ -122,3 +123,30 @@ def test_selective_backoff_strategy(responses, delays):
         strategy = generator()
         for response, expected_delay in zip(responses, delays, strict=True):
             assert strategy.get_delay(response) == expected_delay
+
+
+@pytest.fixture
+def docs_path():
+    """Temporarily add docs directory to sys.path"""
+    sys.path.insert(0, "./docs")
+    yield
+    sys.path.remove("./docs")
+
+
+def test_example_retry_strategy_usage(docs_path):
+    from examples.upload_retry_strategy import UploadRetryStrategy
+
+    strategy = UploadRetryStrategy()
+
+    delay = strategy.get_delay(
+        Response(
+            codes.BAD_REQUEST,
+            json={
+                "non_field_errors": [
+                    "You have created too many uploads. Please try later."
+                ]
+            },
+        )
+    )
+
+    assert delay == 300
