@@ -1,5 +1,6 @@
 import os
 import shutil
+import sys
 from collections.abc import Generator
 from os import makedirs
 from pathlib import Path
@@ -239,3 +240,11 @@ def rewrite_docker_compose(content: bytes) -> bytes:
 def mock_check_version():
     with patch("gcapi.client.check_version") as mock:
         yield mock
+
+
+@pytest.fixture
+def docs_path():
+    """Temporarily add docs directory to sys.path"""
+    sys.path.insert(0, "./docs")
+    yield
+    sys.path.remove("./docs")
