@@ -1,5 +1,4 @@
 from contextlib import nullcontext
-from pathlib import Path
 from unittest.mock import MagicMock
 
 import pytest
@@ -22,14 +21,13 @@ from gcapi.create_strategies import (
 )
 from gcapi.exceptions import ObjectNotFound
 from gcapi.models import AlgorithmInterface
+from tests import TESTDATA
 from tests.factories import (
     AlgorithmFactory,
     HyperlinkedComponentInterfaceValueFactory,
     HyperlinkedImageFactory,
     SocketFactory,
 )
-
-TESTDATA = Path(__file__).parent / "testdata"
 
 
 @pytest.mark.parametrize(
