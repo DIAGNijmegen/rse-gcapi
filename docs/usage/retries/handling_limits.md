@@ -2,12 +2,17 @@
 
 Grand Challenge has several limits in place to ensure fair use and system reliability.
 
-One such limit you could run into is the maximum number of uploads. Uploads are kept prior to being processed by background processes and removed after. If you naïvely keep re-doing the function call (e.g. `add_case_to_archive`) every few seconds
-you might unintentionally be blocking yourself by orphaned uploads. These will eventually be cleaned up but they can temporarily prevent new uploads.
+One such limit you could run into is the maximum number of uploads. Uploads are temporarily stored before being processed in the background and automatically cleaned up afterward.
 
-The user-upload limit being reached is generally reported by a 400-coded response from Grand Challenge which will tell you:
+If you hit the limit during a function call (e.g. `add_case_to_archive`) the uploads will remain unassigned.
 
-> "You have created too many uploads. Please try later."
+The uploads will eventually be cleaned up automatically, but can temporarily block creating any new uploads until that happens.
+
+If you retry the function call before enough uploads have been cleaned up, you might unintentionally be blocking yourself by creating yet more unassigned uploads.
+
+The upload limit being reached is generally reported by a 400-coded response from Grand Challenge which will tell you:
+
+> "You have created too many uploads. Please try again later."
 
 One solution could be to use a retry strategy to catch these responses, wait for a while, and continue from where your program initially ran into these limits.
 
