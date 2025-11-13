@@ -122,15 +122,6 @@ class ImagesAPI(APIBase[gcapi.models.HyperlinkedImage]):
         return downloaded_files
 
 
-class UploadSessionsAPI(
-    ModifiableMixin[gcapi.models.RawImageUploadSession],
-    APIBase[gcapi.models.RawImageUploadSession],
-):
-    base_path = "cases/upload-sessions/"
-    model = gcapi.models.RawImageUploadSession
-    response_model = gcapi.models.RawImageUploadSession
-
-
 class WorkstationSessionsAPI(APIBase[gcapi.models.Session]):
     base_path = "workstations/sessions/"
     model = gcapi.models.Session
@@ -516,7 +507,6 @@ class ApiDefinitions:
     algorithm_images: AlgorithmImagesAPI
     archives: ArchivesAPI
     workstation_configs: WorkstationConfigsAPI
-    raw_image_upload_sessions: UploadSessionsAPI
     archive_items: ArchiveItemsAPI
     interfaces: ComponentInterfacesAPI
 
@@ -659,27 +649,6 @@ class Client(httpx.Client, ApiDefinitions):
             return response.json()
         else:
             return response
-
-    def _upload_image_files(self, *, files, **kwargs):
-        uploads = []
-        for file in files:
-            with open(file, "rb") as f:
-                uploads.append(
-                    self.uploads.upload_fileobj(
-                        fileobj=f, filename=os.path.basename(file)
-                    )
-                )
-
-        return self.raw_image_upload_sessions.create(
-            uploads=[u.api_url for u in uploads], **kwargs
-        )
-
-    def _upload_file(self, value):
-        with open(value[0], "rb") as f:
-            upload = self.uploads.upload_fileobj(
-                fileobj=f, filename=value[0].name
-            )
-        return upload
 
     def _fetch_algorithm_detail(self, slug: str) -> gcapi.models.Algorithm:
         if slug not in self._algorithm_cache:
