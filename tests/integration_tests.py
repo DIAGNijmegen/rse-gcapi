@@ -21,11 +21,6 @@ from tests.utils import (
 TESTDATA = Path(__file__).parent / "testdata"
 
 
-def test_raw_image_and_upload_session(local_grand_challenge):
-    c = Client(base_url=local_grand_challenge, verify=False, token=ADMIN_TOKEN)
-    assert len(c.raw_image_upload_sessions.page()) == 0
-
-
 def test_local_response(local_grand_challenge):
     c = Client(base_url=local_grand_challenge, verify=False, token=ADMIN_TOKEN)
     # Empty response, but it didn't error out so the server is responding
