@@ -2,13 +2,7 @@
 
 Grand Challenge has several limits in place to ensure fair use and system reliability.
 
-One such limit you could run into is the maximum number of uploads. Uploads are temporarily stored before being processed in the background and automatically cleaned up afterward.
-
-If you hit the limit during a function call (e.g. `add_case_to_archive`) the uploads will remain unassigned.
-
-The uploads will eventually be cleaned up automatically, but can temporarily block creating any new uploads until that happens.
-
-If you retry the function call before enough uploads have been cleaned up, you might unintentionally be blocking yourself by creating yet more unassigned uploads.
+One such limit you could run into is the maximum number of uploads. Uploads are temporarily stored before being processed in the background and automatically cleaned up afterward. If you hit the limit during a function call (e.g. `add_case_to_archive`) the uploads will remain unassigned. These uploads will eventually be cleaned up automatically, but can temporarily block creating any new uploads until that happens. If you retry the function call before enough uploads have been cleaned up, you might unintentionally be blocking yourself by creating yet more unassigned uploads.
 
 The upload limit being reached is generally reported by a 400-coded response from Grand Challenge which will tell you:
 
