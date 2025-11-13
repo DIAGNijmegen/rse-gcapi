@@ -122,3 +122,22 @@ def test_selective_backoff_strategy(responses, delays):
         strategy = generator()
         for response, expected_delay in zip(responses, delays, strict=True):
             assert strategy.get_delay(response) == expected_delay
+
+
+def test_example_retry_strategy_usage(docs_path):
+    from examples.upload_retry_strategy import UploadRetryStrategy
+
+    strategy = UploadRetryStrategy()
+
+    delay = strategy.get_delay(
+        Response(
+            codes.BAD_REQUEST,
+            json={
+                "non_field_errors": [
+                    "You have created too many uploads. Please try again later."
+                ]
+            },
+        )
+    )
+
+    assert delay == 300

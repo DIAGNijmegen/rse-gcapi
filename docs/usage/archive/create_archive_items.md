@@ -78,3 +78,6 @@ for case in cases:
     archive_items.append(archive_item)
 print("Uploaded cases and created archive items: " + archive_items)
 ```
+
+!!! warning "Upload limits"
+    The number of yet unprocessed uploads have limits. For large processing batches these exceptions will need to be handled. One way is [using a retry strategy](../../usage/retries/handling_limits.md).

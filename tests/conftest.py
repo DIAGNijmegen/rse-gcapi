@@ -1,6 +1,7 @@
 import os
 import shutil
 import subprocess
+import sys
 from collections.abc import Generator
 from os import makedirs
 from pathlib import Path
@@ -360,3 +361,11 @@ def build_ssl_certs(base_path: Path) -> tuple[Path, Path]:
 def mock_check_version():
     with patch("gcapi.client.check_version") as mock:
         yield mock
+
+
+@pytest.fixture
+def docs_path():
+    """Temporarily add docs directory to sys.path"""
+    sys.path.insert(0, "./docs")
+    yield
+    sys.path.remove("./docs")

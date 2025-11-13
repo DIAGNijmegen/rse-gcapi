@@ -19,6 +19,8 @@ nav:
     - Algorithms:
       - Start Jobs: usage/algorithm/start_algorithm_jobs.md
       - Download Outputs: usage/algorithm/download_algorithm_outputs.md
+    - Automatic Retries:
+      - Handle Limits: usage/retries/handling_limits.md
   - Python API Reference:
     - Client: api/client_methods.md
     - APIs:
@@ -40,7 +42,6 @@ nav:
       - uploads: api/uploads.md
       - workstation_configs: api/workstation_configs.md
     - Models: api/models.md
-    - Retries: api/retries.md
 repo_url: https://github.com/DIAGNijmegen/rse-gcapi
 repo_name: gcapi
 
@@ -69,11 +70,13 @@ plugins:
 # Markdown
 markdown_extensions:
   - pymdownx.highlight:
+      default_lang: python
       anchor_linenums: true
       line_spans: __span
       pygments_lang_class: true
   - pymdownx.inlinehilite
-  - pymdownx.snippets
+  - pymdownx.snippets:
+      check_paths: True
   - pymdownx.superfences
   - attr_list
   - pymdownx.emoji:

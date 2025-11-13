@@ -78,6 +78,9 @@ for case in cases:
 print("Uploaded cases and created display sets: " + display_sets)
 ```
 
+!!! warning "Upload limits"
+    The number of yet unprocessed uploads have limits. For large processing batches these exceptions will need to be handled. One way is [using a retry strategy](../../usage/retries/handling_limits.md).
+
 ## Setting title and order
 
 Titles and order can easiest be set by [updating the display sets](../reader_study/update_display_sets.md#update-the-content-of-display-sets).

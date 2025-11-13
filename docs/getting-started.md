@@ -75,3 +75,15 @@ Requesting access can be done by navigating to the respective object page on Gra
 
 !!! note
     Responding to an access request is generally a manual step for the object owners and might take a couple of days! Please be patient.
+
+
+## Automatic retries
+
+API requests sometimes fail because of intermediate problems between the client and the server, or (temporary) usage limits. Failing requests like these can be automatically retried.
+
+By default, several transient server-side errors (i.e. `5xx`) are retried with an exponential-backoff strategy. This entails the client delays resending the request progressively longer and longer when it keeps encountering the same retriable error.
+
+### Customizing retry strategies
+The retry strategy is customizable by providing a callable when initializing the client via the `retry_strategy` argument.
+
+This allows you to setup error handling of responses to match your specfic use case. For instance, one can [retry requests when running into limits](usage/retries/handling_limits.md).
