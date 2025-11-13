@@ -11,7 +11,7 @@ The user-upload limit being reached is generally reported by a 400-coded respons
 
 One solution could be to use a retry strategy to catch these responses, wait for a while, and continue from where your program initially ran into these limits.
 
-Whether this strategy fits depends on your specific use case is up to you.
+Whether this strategy fits your specific use case is up to you.
 
 The following example strategy would retry after 5 minutes: a similar construct would work for other limit-related responses.
 
