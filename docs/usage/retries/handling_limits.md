@@ -2,8 +2,8 @@
 
 Grand Challenge has several limits in place to ensure fair use and system reliability.
 
-One such limit you could run into is the maximum number of user uploads. User uploads are kept prior to being processed by background processes and removed after. If you naïvely re-do the function call (e.g. `add_case_to_archive`)
-you might unintionally be creating orphaned user uploads. These will eventually be cleaned up but they can temporarily prevent new uploads.
+One such limit you could run into is the maximum number of uploads. Uploads are kept prior to being processed by background processes and removed after. If you naïvely keep re-doing the function call (e.g. `add_case_to_archive`) every few seconds
+you might unintentionally be blocking yourself by orphaned uploads. These will eventually be cleaned up but they can temporarily prevent new uploads.
 
 The user-upload limit being reached is generally reported by a 400-coded response from Grand Challenge which will tell you:
 

@@ -79,5 +79,5 @@ for case in cases:
 print("Uploaded cases and created archive items: " + archive_items)
 ```
 
-!!! info "Upload limits"
-    The number of yet unprocessed user uploads have limits. For large processing batches these exceptions will need to be handled. One way is [using a retry strategy](../../usage/retries/handling_limits.md).
+!!! warning "Upload limits"
+    The number of yet unprocessed uploads have limits. For large processing batches these exceptions will need to be handled. One way is [using a retry strategy](../../usage/retries/handling_limits.md).

@@ -1,7 +1,7 @@
 import os
 import shutil
-import sys
 import subprocess
+import sys
 from collections.abc import Generator
 from os import makedirs
 from pathlib import Path

@@ -134,7 +134,7 @@ def test_example_retry_strategy_usage(docs_path):
             codes.BAD_REQUEST,
             json={
                 "non_field_errors": [
-                    "You have created too many uploads. Please try later."
+                    "You have created too many uploads. Please try again later."
                 ]
             },
         )

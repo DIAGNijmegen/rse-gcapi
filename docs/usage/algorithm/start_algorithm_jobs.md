@@ -9,9 +9,6 @@ client = gcapi.Client(token="your-personal-token")
 
 ## Start jobs
 
-!!! info "Job limits"
-    The number of jobs running at the same time and the number jobs you are allowed to run in a set time period have [limits](https://grand-challenge.org/documentation/try-out-your-algorithm/#credits). For large processing batches these exceptions will need to be handled. One way is [using a retry strategy](../../usage/retries/handling_limits.md).
-
 
 Start off by getting the algorithm details, making sure you [have access rights](../../getting-started.md#access-rights):
 
@@ -52,6 +49,9 @@ job_2 =  client.start_algorithm_job(
     ]
 )
 ```
+
+!!! warning "Job limits"
+    The number of jobs running at the same time and the number jobs you are allowed to run in a set time period have [limits](https://grand-challenge.org/documentation/try-out-your-algorithm/#credits). For large processing batches these exceptions will need to be handled. One way is [using a retry strategy](../../usage/retries/handling_limits.md).
 
 !!! tip "Tip: store the job identifiers"
 
