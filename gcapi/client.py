@@ -122,6 +122,14 @@ class ImagesAPI(APIBase[gcapi.models.HyperlinkedImage]):
         return downloaded_files
 
 
+class UploadSessionsAPI(
+    APIBase[gcapi.models.RawImageUploadSession],
+):
+    base_path = "cases/upload-sessions/"
+    model = gcapi.models.RawImageUploadSession
+    response_model = gcapi.models.RawImageUploadSession
+
+
 class WorkstationSessionsAPI(APIBase[gcapi.models.Session]):
     base_path = "workstations/sessions/"
     model = gcapi.models.Session
@@ -507,6 +515,7 @@ class ApiDefinitions:
     algorithm_images: AlgorithmImagesAPI
     archives: ArchivesAPI
     workstation_configs: WorkstationConfigsAPI
+    raw_image_upload_sessions: UploadSessionsAPI
     archive_items: ArchiveItemsAPI
     interfaces: ComponentInterfacesAPI
 
