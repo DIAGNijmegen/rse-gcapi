@@ -508,13 +508,8 @@ class ImageCreateStrategy(SocketValueCreateStrategy):
                         fileobj=f, filename=file.name
                     )
                 )
-        raw_image_upload_session = (
-            self.client.raw_image_upload_sessions.create(
-                uploads=[u.api_url for u in uploads],
-            )
-        )
 
-        post_request.upload_session = raw_image_upload_session.api_url
+        post_request.user_uploads = [u.api_url for u in uploads]
         return post_request
 
 
