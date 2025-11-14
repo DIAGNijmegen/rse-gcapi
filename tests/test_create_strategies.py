@@ -751,3 +751,25 @@ def test_dicom_image_set_file_create_strategy_closes_spools():
     # After exiting the context, the spools should be closed
     for f in strategy.content:
         assert f.closed
+
+    unsupported_spec = SocketValueSpec(
+        socket_slug="dicom-image-set-socket",
+        files=[
+            TESTDATA / "basic.dcm",
+            TESTDATA / "unsupported.dcm",
+        ],
+        image_name="foo",
+    )
+    strategy = select_socket_value_strategy(
+        spec=unsupported_spec, client=client_mock
+    )
+
+    with pytest.raises(RejectedDICOMFileError):
+        strategy.prep()
+
+    assert isinstance(strategy, DICOMImageSetFileCreateStrategy)
+    assert len(strategy.content) == 2
+    # After exception, the spools should be closed
+    for f in strategy.content:
+        assert f.closed
+    assert strategy.content[0].closed
