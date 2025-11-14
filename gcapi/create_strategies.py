@@ -258,31 +258,19 @@ class BaseCreateStrategy:
     """
 
     client: Client
-    _is_prepped: bool
 
     def __init__(self, *, client):
         self.client = client
-        self._is_prepped = False
 
-    def prep(self) -> None:
-        """
-        Prepare the strategy for execution.
-
-        This method should be called before __call__() to perform any
-        necessary preparation steps. Subclasses can override this method
-        to implement custom preparation logic.
-        """
-        self._is_prepped = True
+    def prepare(self) -> None:
+        """Idempotent preparation method"""
+        object.__setattr__(self, "prepare", lambda *a, **k: None)
 
     def __call__(self) -> Any:
-        if not self._is_prepped:
-            raise RuntimeError(
-                f"{self.__class__.__name__}.prep() must be called before "
-                f"{self.__class__.__name__}.__call__()"
-            )
+        self.prepare()
 
     def __enter__(self):
-        self.prep()
+        self.prepare()
         return self
 
     def __exit__(self, *_, **__):
@@ -410,8 +398,8 @@ class FileCreateStrategy(SocketValueCreateStrategy):
         super().__init__(**kwargs)
         self.files = files
 
-    def prep(self) -> None:
-        super().prep()
+    def prepare(self) -> None:
+        super().prepare()
         try:
             cleaned_files: list[Path] = clean_file_source(
                 self.files,
@@ -442,8 +430,8 @@ class FileJSONCreateStrategy(SocketValueCreateStrategy):
         super().__init__(**kwargs)
         self.value = value
 
-    def prep(self) -> None:
-        super().prep()
+    def prepare(self) -> None:
+        super().prepare()
 
         try:
             json_bytes = json.dumps(self.value).encode()
@@ -522,8 +510,8 @@ class ImageCreateStrategy(SocketValueCreateStrategy):
         super().__init__(**kwargs)
         self.files = files
 
-    def prep(self) -> None:
-        super().prep()
+    def prepare(self) -> None:
+        super().prepare()
         self.cleaned_files = clean_file_source(self.files)
 
     def __call__(self):
@@ -564,8 +552,8 @@ class DICOMImageSetFileCreateStrategy(SocketValueCreateStrategy):
 
         self.content: list[SpooledTemporaryFile] = []
 
-    def prep(self) -> None:
-        super().prep()
+    def prepare(self) -> None:
+        super().prepare()
 
         cleaned_files = clean_file_source(self.files)
 
@@ -625,8 +613,8 @@ class ImageFromImageCreateStrategy(SocketValueCreateStrategy):
         super().__init__(**kwargs)
         self.existing_image_api_url = existing_image_api_url
 
-    def prep(self) -> None:
-        super().prep()
+    def prepare(self) -> None:
+        super().prepare()
         api_url = str(self.existing_image_api_url)
 
         # assert it is a valid URL
@@ -653,8 +641,8 @@ class ImageFromSVCreateStrategy(SocketValueCreateStrategy):
         super().__init__(**kwargs)
         self.existing_socket_value = existing_socket_value
 
-    def prep(self) -> None:
-        super().prep()
+    def prepare(self) -> None:
+        super().prepare()
         if self.existing_socket_value.image is None:
             raise ValueError(
                 f"{HyperlinkedComponentInterfaceValue.__name__} must have an image"
@@ -687,8 +675,8 @@ class ValueFromFileCreateStrategy(SocketValueCreateStrategy):
 
         self.files = files
 
-    def prep(self) -> None:
-        super().prep()
+    def prepare(self) -> None:
+        super().prepare()
         try:
             cleaned_files = clean_file_source(self.files, maximum_number=1)
         except TooManyFiles as e:
@@ -743,15 +731,16 @@ class ValueCreateStrategy(SocketValueCreateStrategy):
 
     def __init__(self, *, value: Any, **kwargs):
         super().__init__(**kwargs)
+        self.content = value
 
+    def prepare(self) -> None:
+        super().prepare()
         try:
-            json.dumps(value)  # Check if it is JSON serializable
+            json.dumps(self.content)  # Check if it is JSON serializable
         except TypeError as e:
             raise ValueError(
                 "Value is not JSON serializable. Nothing has been uploaded."
             ) from e
-
-        self.content = value
 
     def __call__(self):
         post_request = super().__call__()
@@ -773,9 +762,8 @@ class JobInputsCreateStrategy(BaseCreateStrategy):
         self.inputs: list[SocketValueSpec] = inputs
         self.input_strategies: list[SocketValueCreateStrategy] = []
 
-    def prep(self) -> None:
-        """Prepare the strategy by validating and creating input strategies."""
-        super().prep()
+    def prepare(self) -> None:
+        super().prepare()
 
         self._assert_matching_interface(inputs=self.inputs)
 
@@ -785,8 +773,8 @@ class JobInputsCreateStrategy(BaseCreateStrategy):
                     spec=spec,
                     client=self.client,
                 )
-                socket_value_strategy.prep()
                 self.input_strategies.append(socket_value_strategy)
+                socket_value_strategy.prepare()
         except Exception:
             self.close()
             raise
@@ -829,7 +817,7 @@ class JobInputsCreateStrategy(BaseCreateStrategy):
             raise ValueError(msg)
 
     def __call__(self):
-        super().__call__()  # Check prep was called
+        super().__call__()
 
         result = []
         for s in self.input_strategies:
