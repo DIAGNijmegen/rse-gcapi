@@ -77,6 +77,8 @@ def run():
     _create_archive(users)
     _create_user_tokens(users)
 
+    _create_extra_sockets()
+
     inputs = _get_inputs()
     outputs = _get_outputs()
     challenge_count = Challenge.objects.count()
@@ -200,7 +202,7 @@ def _create_reader_studies(users):
     json_file_interface = ComponentInterface(
         store_in_database=False,
         relative_path="file.json",
-        slug="file-socket",
+        slug="a-file-socket",
         title="A file socket",
         kind=ComponentInterface.Kind.ANY,
     )
@@ -216,7 +218,7 @@ def _create_reader_studies(users):
     pdf_file_interface = ComponentInterface(
         store_in_database=False,
         relative_path="file.pdf",
-        slug="pdf-file-socket",
+        slug="a-pdf-file-socket",
         title="A pdf file socket",
         kind=ComponentInterface.Kind.PDF,
     )
@@ -444,6 +446,16 @@ def _create_algorithm(*, creator, inputs, outputs, suffix):
 
     with _gc_demo_algorithm() as container:
         algorithm_image.image.save("algorithm_io.tar", container)
+
+
+def _create_extra_sockets():
+    ComponentInterface.objects.create(
+        store_in_database=False,
+        relative_path="images/dicom-image-set",
+        slug="a-dicom-image-set",
+        title="A DICOM image set socket",
+        kind=ComponentInterface.Kind.DICOM_IMAGE_SET,
+    )
 
 
 @contextmanager

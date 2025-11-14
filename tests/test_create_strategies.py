@@ -2,8 +2,12 @@ from contextlib import nullcontext
 from unittest.mock import MagicMock
 
 import pytest
+from grand_challenge_dicom_de_identifier.exceptions import (
+    RejectedDICOMFileError,
+)
 
 from gcapi.create_strategies import (
+    DICOMImageSetFileCreateStrategy,
     FileCreateStrategy,
     FileFromSVCreateStrategy,
     FileJSONCreateStrategy,
@@ -19,7 +23,7 @@ from gcapi.create_strategies import (
     clean_file_source,
     select_socket_value_strategy,
 )
-from gcapi.exceptions import ObjectNotFound
+from gcapi.exceptions import ObjectNotFound, SocketNotFound
 from gcapi.models import AlgorithmInterface
 from tests import TESTDATA
 from tests.factories import (
@@ -74,6 +78,10 @@ def test_prep_file_source(files, maximum_number, context):
 
 file_socket = SocketFactory(super_kind="File")
 image_socket = SocketFactory(super_kind="Image")
+dicom_image_set_socket = SocketFactory(
+    super_kind="Image",
+    kind="DICOM Image Set",
+)
 value_socket = SocketFactory(super_kind="Value")
 
 
@@ -184,10 +192,10 @@ def test_file_socket_value_strategy_init(spec, socket, context, expected_cls):
     client_mock._fetch_socket_detail = mock_socket_detail
 
     with context:
-        strategy = select_socket_value_strategy(
-            spec=spec,
-            client=client_mock,
-        )
+        with select_socket_value_strategy(
+            spec=spec, client=client_mock
+        ) as strategy:
+            pass
     if expected_cls:
         assert type(strategy) is expected_cls
 
@@ -213,6 +221,26 @@ def test_file_socket_value_strategy_init(spec, socket, context, expected_cls):
             nullcontext(),
             ImageCreateStrategy,
         ),
+        (  # DICOM Image Set, single file
+            SocketValueSpec(
+                socket_slug=dicom_image_set_socket.slug,
+                file=TESTDATA / "basic.dcm",
+                image_name="foo",
+            ),
+            dicom_image_set_socket,
+            nullcontext(),
+            DICOMImageSetFileCreateStrategy,
+        ),
+        (  # DICOM Image Set, multiple files
+            SocketValueSpec(
+                socket_slug=dicom_image_set_socket.slug,
+                files=[TESTDATA / "basic.dcm"],
+                image_name="foo",
+            ),
+            dicom_image_set_socket,
+            nullcontext(),
+            DICOMImageSetFileCreateStrategy,
+        ),
         (
             SocketValueSpec(
                 socket_slug=image_socket.slug,
@@ -234,6 +262,18 @@ def test_file_socket_value_strategy_init(spec, socket, context, expected_cls):
                 ),
             ),
             image_socket,
+            nullcontext(),
+            ImageFromSVCreateStrategy,
+        ),
+        (  # An existing socket value (DICOM Image Set)
+            SocketValueSpec(
+                socket_slug=dicom_image_set_socket.slug,
+                existing_socket_value=HyperlinkedComponentInterfaceValueFactory(
+                    interface=dicom_image_set_socket,
+                    image="https://example.test/api/v1/cases/images/a-uuid/",
+                ),
+            ),
+            dicom_image_set_socket,
             nullcontext(),
             ImageFromSVCreateStrategy,
         ),
@@ -312,6 +352,46 @@ def test_file_socket_value_strategy_init(spec, socket, context, expected_cls):
             pytest.raises(ObjectNotFound),
             None,
         ),
+        (  # DICOM Image Set, missing image name
+            SocketValueSpec(
+                socket_slug=dicom_image_set_socket.slug,
+                file=TESTDATA / "basic.dcm",
+            ),
+            dicom_image_set_socket,
+            pytest.raises(
+                ValueError, match="you must also specify an image_name"
+            ),
+            None,
+        ),
+        (  # DICOM Image Set, unsupported DICOM file
+            SocketValueSpec(
+                socket_slug=dicom_image_set_socket.slug,
+                file=TESTDATA / "unsupported.dcm",
+                image_name="foo",
+            ),
+            dicom_image_set_socket,
+            pytest.raises(
+                RejectedDICOMFileError,
+                match="Unsupported SOP Class",
+            ),
+            None,
+        ),
+        (  # Image set, but providing image_name
+            SocketValueSpec(
+                socket_slug=image_socket.slug,
+                files=[
+                    TESTDATA / "image10x10x101.mha",
+                    TESTDATA / "image10x10x101.mha",
+                ],
+                image_name="foo",
+            ),
+            image_socket,
+            pytest.raises(
+                ValueError,
+                match="image_name can only be specified when uploading a DICOM image set",
+            ),
+            None,
+        ),
     ),
 )
 def test_image_socket_value_strategy_init(spec, socket, context, expected_cls):
@@ -321,7 +401,7 @@ def test_image_socket_value_strategy_init(spec, socket, context, expected_cls):
         if slug == socket.slug:
             return socket
         else:
-            return SocketFactory(slug=slug)
+            raise SocketNotFound(slug=slug)
 
     client_mock._fetch_socket_detail = mock_socket_detail
 
@@ -334,10 +414,10 @@ def test_image_socket_value_strategy_init(spec, socket, context, expected_cls):
     client_mock.images.detail = mock_images_detail
 
     with context:
-        strategy = select_socket_value_strategy(
-            spec=spec,
-            client=client_mock,
-        )
+        with select_socket_value_strategy(
+            spec=spec, client=client_mock
+        ) as strategy:
+            pass
     if expected_cls:
         assert type(strategy) is expected_cls
 
@@ -467,7 +547,10 @@ def test_value_socket_value_strategy_init(spec, socket, context, expected_cls):
     client_mock._fetch_socket_detail = mock_socket_detail
 
     with context:
-        strategy = select_socket_value_strategy(spec=spec, client=client_mock)
+        with select_socket_value_strategy(
+            spec=spec, client=client_mock
+        ) as strategy:
+            pass
 
     if expected_cls:
         assert type(strategy) is expected_cls
@@ -532,11 +615,12 @@ def test_job_inputs_create_prep(algorithm, inputs, context):
     client_mock._fetch_socket_detail = MagicMock(return_value=file_socket)
 
     with context:
-        JobInputsCreateStrategy(
+        with JobInputsCreateStrategy(
             algorithm=algorithm,
             inputs=inputs,
             client=client_mock,
-        )
+        ):
+            pass
 
 
 @pytest.mark.parametrize(
@@ -553,6 +637,14 @@ def test_job_inputs_create_prep(algorithm, inputs, context):
         ),
         (
             {"socket_slug": "test-socket", "files": [TESTDATA / "test.json"]},
+            nullcontext(),
+        ),
+        (
+            {
+                "socket_slug": "test-socket",
+                "files": [TESTDATA / "test.json"],
+                "image_name": "a_image_name",
+            },
             nullcontext(),
         ),
         (
@@ -620,3 +712,42 @@ def test_job_inputs_create_prep(algorithm, inputs, context):
 def test_socket_value_spec_validation(spec_dict, context):
     with context:
         SocketValueSpec(**spec_dict)
+
+
+def test_dicom_image_set_file_create_strategy_closes_spools():
+    spec = SocketValueSpec(
+        socket_slug="dicom-image-set-socket",
+        files=[
+            TESTDATA / "basic.dcm",
+            TESTDATA / "basic.dcm",
+        ],
+        image_name="foo",
+    )
+    socket = SocketFactory(
+        slug="dicom-image-set-socket",
+        super_kind="Image",
+        kind="DICOM Image Set",
+    )
+
+    client_mock = MagicMock()
+
+    def mock_socket_detail(slug=None, **__):
+        if slug == socket.slug:
+            return socket
+        else:
+            raise SocketNotFound(slug=slug)
+
+    client_mock._fetch_socket_detail = mock_socket_detail
+
+    with select_socket_value_strategy(
+        spec=spec, client=client_mock
+    ) as strategy:
+        # A few sanity checks. Note: we do NOT call the strategy: exit it in
+        # a half state
+        assert isinstance(strategy, DICOMImageSetFileCreateStrategy), "Sanity"
+        for f in strategy.content:
+            assert not f.closed
+
+    # After exiting the context, the spools should be closed
+    for f in strategy.content:
+        assert f.closed
