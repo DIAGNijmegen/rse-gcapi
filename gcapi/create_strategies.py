@@ -258,13 +258,31 @@ class BaseCreateStrategy:
     """
 
     client: Client
+    _is_prepped: bool
 
     def __init__(self, *, client):
         self.client = client
+        self._is_prepped = False
 
-    def __call__(self) -> Any: ...
+    def prep(self) -> None:
+        """
+        Prepare the strategy for execution.
+
+        This method should be called before __call__() to perform any
+        necessary preparation steps. Subclasses can override this method
+        to implement custom preparation logic.
+        """
+        self._is_prepped = True
+
+    def __call__(self) -> Any:
+        if not self._is_prepped:
+            raise RuntimeError(
+                f"{self.__class__.__name__}.prep() must be called before "
+                f"{self.__class__.__name__}.__call__()"
+            )
 
     def __enter__(self):
+        self.prep()
         return self
 
     def __exit__(self, *_, **__):
@@ -289,6 +307,7 @@ class SocketValueCreateStrategy(BaseCreateStrategy):
     def __call__(
         self: SocketValueCreateStrategy,
     ) -> ComponentInterfaceValuePostRequest:
+        super().__call__()  # Check prep was called
 
         return ComponentInterfaceValuePostRequest(
             interface=self.socket.slug,
@@ -389,10 +408,13 @@ class FileCreateStrategy(SocketValueCreateStrategy):
         **kwargs,
     ):
         super().__init__(**kwargs)
+        self.files = files
 
+    def prep(self) -> None:
+        super().prep()
         try:
             cleaned_files: list[Path] = clean_file_source(
-                files,
+                self.files,
                 maximum_number=1,
             )
         except TooManyFiles as e:
@@ -418,9 +440,13 @@ class FileJSONCreateStrategy(SocketValueCreateStrategy):
 
     def __init__(self, *, value: Any, **kwargs):
         super().__init__(**kwargs)
+        self.value = value
+
+    def prep(self) -> None:
+        super().prep()
 
         try:
-            json_bytes = json.dumps(value).encode()
+            json_bytes = json.dumps(self.value).encode()
         except TypeError:
             raise ValueError("Source is not JSON serializable") from None
         else:
@@ -462,7 +488,6 @@ class FileFromSVCreateStrategy(SocketValueCreateStrategy):
         post_request = super().__call__()
 
         # Cannot link a file directly to file, so we download it first
-
         content = self._download_from_socket()
 
         with BytesIO(content) as f:
@@ -495,13 +520,17 @@ class ImageCreateStrategy(SocketValueCreateStrategy):
         **kwargs,
     ):
         super().__init__(**kwargs)
-        self.files = clean_file_source(files)
+        self.files = files
+
+    def prep(self) -> None:
+        super().prep()
+        self.cleaned_files = clean_file_source(self.files)
 
     def __call__(self):
         post_request = super().__call__()
 
         uploads: list[UserUpload] = []
-        for file in self.files:
+        for file in self.cleaned_files:
             with open(file, "rb") as f:
                 uploads.append(
                     self.client.uploads.upload_fileobj(
@@ -525,20 +554,26 @@ class DICOMImageSetFileCreateStrategy(SocketValueCreateStrategy):
     def __init__(
         self,
         *,
-        files: list[str | Path],
+        files: list[Path | str],
         image_name: str,
         **kwargs,
     ):
         super().__init__(**kwargs)
-        self.files = clean_file_source(files)
+        self.files = files
         self.image_name = image_name
+
+        self.content: list[SpooledTemporaryFile] = []
+
+    def prep(self) -> None:
+        super().prep()
+
+        cleaned_files = clean_file_source(self.files)
 
         # Use the singleton deidentifier
         deidentifier = self.get_deidentifier()
 
-        self.content = []
         try:
-            for file in self.files:
+            for file in cleaned_files:
                 temp = SpooledTemporaryFile()
                 # Add early to content so it gets closed on error
                 self.content.append(temp)
@@ -588,8 +623,11 @@ class ImageFromImageCreateStrategy(SocketValueCreateStrategy):
         **kwargs,
     ) -> None:
         super().__init__(**kwargs)
+        self.existing_image_api_url = existing_image_api_url
 
-        api_url = str(existing_image_api_url)
+    def prep(self) -> None:
+        super().prep()
+        api_url = str(self.existing_image_api_url)
 
         # assert it is a valid URL
         self.content_api_url = httpx.URL(api_url)
@@ -613,13 +651,16 @@ class ImageFromSVCreateStrategy(SocketValueCreateStrategy):
         **kwargs,
     ) -> None:
         super().__init__(**kwargs)
+        self.existing_socket_value = existing_socket_value
 
-        if existing_socket_value.image is None:
+    def prep(self) -> None:
+        super().prep()
+        if self.existing_socket_value.image is None:
             raise ValueError(
                 f"{HyperlinkedComponentInterfaceValue.__name__} must have an image"
             )
 
-        api_url = existing_socket_value.image
+        api_url = self.existing_socket_value.image
 
         # assert it is a valid URL
         self.content_api_url = httpx.URL(api_url)
@@ -644,8 +685,12 @@ class ValueFromFileCreateStrategy(SocketValueCreateStrategy):
     ):
         super().__init__(**kwargs)
 
+        self.files = files
+
+    def prep(self) -> None:
+        super().prep()
         try:
-            cleaned_files = clean_file_source(files, maximum_number=1)
+            cleaned_files = clean_file_source(self.files, maximum_number=1)
         except TooManyFiles as e:
             raise ValueError("You can only provide one file") from e
 
@@ -725,17 +770,22 @@ class JobInputsCreateStrategy(BaseCreateStrategy):
         super().__init__(**kwargs)
 
         self.algorithm: Algorithm = algorithm
+        self.inputs: list[SocketValueSpec] = inputs
         self.input_strategies: list[SocketValueCreateStrategy] = []
 
-        self._assert_matching_interface(inputs=inputs)
+    def prep(self) -> None:
+        """Prepare the strategy by validating and creating input strategies."""
+        super().prep()
+
+        self._assert_matching_interface(inputs=self.inputs)
 
         try:
-            for spec in inputs:
+            for spec in self.inputs:
                 socket_value_strategy = select_socket_value_strategy(
                     spec=spec,
                     client=self.client,
                 )
-
+                socket_value_strategy.prep()
                 self.input_strategies.append(socket_value_strategy)
         except Exception:
             self.close()
@@ -779,6 +829,8 @@ class JobInputsCreateStrategy(BaseCreateStrategy):
             raise ValueError(msg)
 
     def __call__(self):
+        super().__call__()  # Check prep was called
+
         result = []
         for s in self.input_strategies:
             result.append(s())
