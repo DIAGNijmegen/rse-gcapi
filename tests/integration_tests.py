@@ -1,3 +1,4 @@
+import json
 from contextlib import nullcontext
 from io import BytesIO
 from pathlib import Path
@@ -545,7 +546,15 @@ def test_download_socket_value(local_grand_challenge, tmpdir):
             output_directory=Path(tmpdir),
         )
 
-    assert (tmpdir / "file.json").isfile()  # From file
+    # Check downloaded files
     assert (tmpdir / "files" / "file.pdf").isfile()  # From file
-    assert (tmpdir / "annotation.json").isfile()  # From value
     assert (tmpdir / "generic-medical-image.mha").isfile()  # From image
+
+    with open(tmpdir / "file.json") as f:
+        value = json.load(f)
+    assert value == 42
+
+    with open(tmpdir / "annotation.json") as f:
+        value = json.load(f)
+
+    assert value["name"] == "forearm"
