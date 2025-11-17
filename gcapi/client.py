@@ -5,13 +5,12 @@ import re
 import sys
 import uuid
 from asyncio import Semaphore
-from collections.abc import Callable, Iterator
+from collections.abc import Callable, Iterator, Sequence
 from contextlib import ExitStack
-from io import BytesIO
 from pathlib import Path
 from random import randint
 from time import sleep
-from typing import IO, Any, cast, get_type_hints
+from typing import Any, cast, get_type_hints
 from urllib.parse import urljoin
 
 import httpx
@@ -35,7 +34,7 @@ from gcapi.create_strategies import (
 from gcapi.exceptions import ObjectNotFound, SocketNotFound
 from gcapi.retries import BaseRetryStrategy, SelectiveBackoffStrategy
 from gcapi.transports import RetryTransport
-from gcapi.typing import SocketValuePostSet
+from gcapi.typing import ReadableBuffer, SocketValuePostSet
 
 logger = logging.getLogger(__name__)
 
@@ -386,7 +385,7 @@ class UploadsAPI(APIBase[gcapi.models.UserUpload]):
 
     def generate_presigned_urls(
         self, *, pk: str, s3_upload_id: str, part_numbers: list[int]
-    ) -> dict[str, str]:
+    ) -> Any:
         """
         Generate presigned URLs for multipart upload parts.
 
@@ -454,10 +453,45 @@ class UploadsAPI(APIBase[gcapi.models.UserUpload]):
         url = urljoin(self.base_path, f"{pk}/{s3_upload_id}/list-parts/")
         return self._client(path=url)
 
+    @async_to_sync
+    async def upload_multiple_fileobj(
+        self,
+        *,
+        file_objects: Sequence[ReadableBuffer],
+        filenames: Sequence[str],
+    ) -> list[gcapi.models.UserUpload]:
+        """
+        Upload multiple files concurrently.
+
+        Args:
+            file_objects: List of file objects to upload.
+            filenames: List of filenames corresponding to the file objects.
+
+        Returns:
+            List of completed upload model instances.
+        """
+        sempaphore = Semaphore(  # Limit concurrent uploads
+            self._client.max_concurrent_uploads
+        )
+
+        async def upload(fileobj, filename):
+            async with sempaphore:
+                return await self.upload_fileobj_async(
+                    fileobj=fileobj, filename=filename
+                )
+
+        tasks = []
+        async with TaskGroup() as tg:
+            for fileobj, filename in zip(file_objects, filenames, strict=True):
+                task = tg.create_task(upload(fileobj, filename))
+                tasks.append(task)
+
+        return [t.result() for t in tasks]
+
     def upload_fileobj(
         self,
         *,
-        fileobj: IO,
+        fileobj: ReadableBuffer,
         filename: str,
     ) -> gcapi.models.UserUpload:
         """
@@ -491,7 +525,18 @@ class UploadsAPI(APIBase[gcapi.models.UserUpload]):
         )
         return self.model(**result)  # noqa: B901
 
-    def _put_fileobj(self, *, fileobj, pk, s3_upload_id):
+    upload_fileobj_async = sync_to_async(
+        upload_fileobj,
+        thread_sensitive=False,
+    )
+
+    def _put_fileobj(
+        self,
+        *,
+        fileobj: ReadableBuffer,
+        pk: str,
+        s3_upload_id: str,
+    ) -> list[dict]:
         part_number = 1  # s3 uses 1-indexed chunks
         presigned_urls = {}
         parts = []
@@ -533,12 +578,9 @@ class UploadsAPI(APIBase[gcapi.models.UserUpload]):
         )
         return response["presigned_urls"]
 
-    def _put_chunk(self, *, chunk, url):
+    def _put_chunk(self, *, chunk: bytes, url: str) -> httpx.Response:
         num_retries = 0
         e = Exception()
-
-        if isinstance(chunk, BytesIO):
-            chunk = chunk.read()
 
         while num_retries < self.max_retries:
             try:
@@ -622,6 +664,7 @@ class Client(httpx.Client, ApiDefinitions):
         verify: bool = True,
         timeout: float = 60.0,
         retry_strategy: Callable[[], BaseRetryStrategy] | None = None,
+        max_concurrent_uploads: int = 10,
         max_concurrent_downloads: int = 10,
     ):
         """
@@ -633,6 +676,7 @@ class Client(httpx.Client, ApiDefinitions):
             timeout: Request timeout in seconds.
             retry_strategy: Factory function that returns a retry strategy instance. If None,
                 uses SelectiveBackoffStrategy with default parameters.
+            max_concurrent_uploads: Maximum number of concurrent uploads allowed.
             max_concurrent_downloads: Maximum number of concurrent downloads allowed.
         """
         check_version(base_url=base_url)
@@ -658,6 +702,7 @@ class Client(httpx.Client, ApiDefinitions):
         if self.base_url.scheme.lower() != "https":
             raise RuntimeError("Base URL must be https")
 
+        self.max_concurrent_uploads = max_concurrent_uploads
         self.max_concurrent_downloads = max_concurrent_downloads
 
         self._api_meta = ApiDefinitions()

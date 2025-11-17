@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import json
+from contextlib import ExitStack
 from dataclasses import dataclass
 from io import BytesIO
 from pathlib import Path
@@ -19,7 +20,6 @@ from gcapi.models import (
     ComponentInterface,
     ComponentInterfaceValuePostRequest,
     HyperlinkedComponentInterfaceValue,
-    UserUpload,
 )
 
 
@@ -500,14 +500,15 @@ class ImageCreateStrategy(SocketValueCreateStrategy):
     def __call__(self):
         post_request = super().__call__()
 
-        uploads: list[UserUpload] = []
-        for file in self.files:
-            with open(file, "rb") as f:
-                uploads.append(
-                    self.client.uploads.upload_fileobj(
-                        fileobj=f, filename=file.name
-                    )
-                )
+        with ExitStack() as stack:
+            file_objects = [
+                stack.enter_context(open(f, "rb")) for f in self.files
+            ]
+            filenames = [f.name for f in self.files]
+            uploads = self.client.uploads.upload_multiple_fileobj(
+                file_objects=file_objects,
+                filenames=filenames,
+            )
 
         post_request.user_uploads = [u.api_url for u in uploads]
         return post_request
@@ -560,15 +561,14 @@ class DICOMImageSetFileCreateStrategy(SocketValueCreateStrategy):
 
         post_request.image_name = self.image_name
 
-        uploads = []
-        for idx, temp in enumerate(self.content):
-            upload = self.client.uploads.upload_fileobj(
-                fileobj=temp, filename=f"dicom_image_{idx}.dcm"
-            )
-            temp.close()
-            uploads.append(upload.api_url)
-
-        post_request.user_uploads = uploads
+        filenames = [
+            f"dicom_image_{idx}.dcm" for idx in range(len(self.content))
+        ]
+        uploads = self.client.uploads.upload_multiple_fileobj(
+            file_objects=self.content,
+            filenames=filenames,
+        )
+        post_request.user_uploads = [u.api_url for u in uploads]
 
         return post_request
 
