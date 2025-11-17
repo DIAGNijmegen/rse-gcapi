@@ -217,7 +217,7 @@ def _create_reader_studies(users):
 
     pdf_file_interface = ComponentInterface(
         store_in_database=False,
-        relative_path="file.pdf",
+        relative_path="files/file.pdf",
         slug="a-pdf-file-socket",
         title="A pdf file socket",
         kind=ComponentInterface.Kind.PDF,

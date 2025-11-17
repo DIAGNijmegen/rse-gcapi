@@ -1,3 +1,4 @@
+import json
 import logging
 import os
 import re
@@ -690,6 +691,60 @@ class Client(httpx.Client, ApiDefinitions):
         if slug not in self._algorithm_cache:
             self._algorithm_cache[slug] = self.algorithms.detail(slug=slug)
         return self._algorithm_cache[slug]
+
+    def download_socket_value(
+        self,
+        value: gcapi.models.HyperlinkedComponentInterfaceValue,
+        *,
+        output_directory: Path,
+    ):
+        """Download a socket value to the specified output directory.
+
+        Uses the socket's relative path to determine the filename. The relative
+        path is fixed and unique per socket, so downloading multiple different values
+        will not overwrite each other.
+
+        Args:
+            value: The socket value to download.
+            output_directory: The directory to download the value into.
+        """
+
+        if value.interface.relative_path:
+            filename = output_directory / value.interface.relative_path
+        else:
+            # Only the legacy socket 'generic medical image' lacks relative path
+            filename = output_directory / value.interface.slug
+
+        filename.parent.mkdir(parents=True, exist_ok=True)
+
+        super_kind = value.interface.super_kind.casefold()
+        if super_kind == "image":
+            # Image values
+            self.images.download(
+                url=str(value.image),
+                filename=filename,
+            )
+        elif super_kind == "value":
+            # Direct values (e.g. '42')
+            with open(filename, "w") as f:
+                json.dump(value.value, f, indent=2)
+        elif super_kind == "file":
+            # Values stored as files
+            resp = self(
+                url=str(value.file),
+                follow_redirects=True,
+            )
+            content = (
+                resp.content
+                if isinstance(resp, httpx.Response)
+                else json.dumps(resp).encode()
+            )
+            with open(filename, "wb") as f:
+                f.write(content)
+        else:
+            raise ValueError(
+                f"Unexpected super_kind {value.interface.super_kind}"
+            )
 
     def start_algorithm_job(
         self,

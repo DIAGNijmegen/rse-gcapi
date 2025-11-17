@@ -524,3 +524,28 @@ def test_add_cases_to_archive_invalid_socket(local_grand_challenge):
         "Please provide one from this list: "
         "https://grand-challenge.org/components/interfaces/inputs/"
     )
+
+
+def test_download_socket_value(local_grand_challenge, tmpdir):
+    c = Client(
+        base_url=local_grand_challenge,
+        verify=False,
+        token=READERSTUDY_TOKEN,
+    )
+
+    display_set = c.reader_studies.display_sets.detail(
+        pk="14909328-7a62-4745-8d2a-81a5d936f34b"
+    )
+
+    assert len(display_set.values) == 4, "Sanity check"
+
+    for socket_value in display_set.values:
+        c.download_socket_value(
+            value=socket_value,
+            output_directory=Path(tmpdir),
+        )
+
+    assert (tmpdir / "file.json").isfile()  # From file
+    assert (tmpdir / "files" / "file.pdf").isfile()  # From file
+    assert (tmpdir / "annotation.json").isfile()  # From value
+    assert (tmpdir / "generic-medical-image.mha").isfile()  # From image
