@@ -94,6 +94,11 @@ class ImagesAPI(APIBase[gcapi.models.HyperlinkedImage]):
             else:
                 image = self.detail(**params)
 
+            if image.dicom_image_set is not None:
+                raise NotImplementedError(
+                    "Cannot download DICOM image sets using this method"
+                )
+
             files = image.files
 
         # Make sure file destination exists
