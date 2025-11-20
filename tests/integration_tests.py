@@ -272,9 +272,7 @@ def test_detail_multiple_objects(local_grand_challenge):
 
 def test_auth_headers_not_sent(local_httpbin):
     c = Client(token="foo")
-    response = c.uploads._put_chunk(
-        chunk=BytesIO(b"123"), url=f"{local_httpbin}put"
-    )
+    response = c.uploads._put_chunk(chunk=b"123", url=f"{local_httpbin}put")
     sent_headers = response.json()["headers"]
     assert not set(c._auth_header.keys()) & set(sent_headers.keys())
 
