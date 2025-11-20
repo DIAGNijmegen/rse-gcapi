@@ -9,9 +9,6 @@ dependencies = [
     "pydantic",
     "packaging",
     "grand-challenge-dicom-de-identifier",
-    "numpy>=2.2.6",
-    "pylibjpeg>=2.1.0",
-    "pylibjpeg-openjpeg>=2.5.0",
     "asgiref",
     "taskgroup",
 ]
