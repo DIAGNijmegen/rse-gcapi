@@ -2,7 +2,9 @@ import json
 import logging
 import os
 import re
+import sys
 import uuid
+from asyncio import Semaphore
 from collections.abc import Callable, Iterator
 from contextlib import ExitStack
 from io import BytesIO
@@ -13,7 +15,13 @@ from typing import IO, Any, cast, get_type_hints
 from urllib.parse import urljoin
 
 import httpx
+from asgiref.sync import async_to_sync, sync_to_async
 from httpx import URL, HTTPStatusError, Timeout
+
+if sys.version_info >= (3, 11):
+    from asyncio import TaskGroup
+else:  # Use backport for Python <3.11
+    from taskgroup import TaskGroup
 
 import gcapi.models
 from gcapi.apibase import APIBase, ModifiableMixin
@@ -57,7 +65,8 @@ class ImagesAPI(APIBase[gcapi.models.HyperlinkedImage]):
     def download(
         self,
         *,
-        filename: str | Path,
+        output_directory: str | Path,
+        filename: str | None = None,
         image_type: str | None = None,
         pk: str | None = None,
         url: str | None = None,
@@ -68,7 +77,7 @@ class ImagesAPI(APIBase[gcapi.models.HyperlinkedImage]):
         Download image files to local filesystem.
 
         Args:
-            filename: Base filename for downloaded files. Extension is added automatically.
+            filename: Optional, base filename for downloaded files. Extension is added automatically.
             image_type: Restrict download to a particular image type.
             pk: Primary key of the image to download.
             url: API URL of the image to download.
@@ -96,17 +105,24 @@ class ImagesAPI(APIBase[gcapi.models.HyperlinkedImage]):
                 image = self.detail(**params)
 
             if image.dicom_image_set is not None:
-                raise NotImplementedError(
-                    "Cannot download DICOM image sets using this method"
+                if filename is not None:
+                    raise ValueError(
+                        "Do not provide a filename for DICOM image sets"
+                    )
+
+                return self._download_dicom_image_set(
+                    pk=image.pk,
+                    output_directory=output_directory,
                 )
 
+            filename = filename or image.pk
             files = image.files
 
-        # Make sure file destination exists
-        p = Path(filename).absolute()
-        directory = p.parent
-        directory.mkdir(parents=True, exist_ok=True)
-        basename = p.name
+        # Make sure destination exists
+        output_directory = Path(output_directory).absolute()
+        output_directory.mkdir(parents=True, exist_ok=True)
+
+        filename = filename or "image"
 
         # Download the files
         downloaded_files = []
@@ -119,13 +135,72 @@ class ImagesAPI(APIBase[gcapi.models.HyperlinkedImage]):
             ).content
 
             suffix = file.file.split(".")[-1]
-            local_file = directory / f"{basename}.{suffix}"
+            local_file = output_directory / f"{filename}.{suffix}"
             with local_file.open("wb") as fp:
                 fp.write(data)
 
             downloaded_files.append(local_file)
 
         return downloaded_files
+
+    @async_to_sync
+    async def _download_dicom_image_set(
+        self,
+        *,
+        pk: str,
+        output_directory: Path | str,
+    ) -> list[Path]:
+        """
+        Download all DICOM instances of a DICOM image set.
+
+        Args:
+            pk: Primary key of the image to download.
+            output_directory: Directory to save downloaded files.
+            filename: Optional prefix filename for downloaded files.
+
+        Returns:
+            List of Path objects for downloaded DICOM files.
+        """
+        resp = self._client(
+            path=f"cases/images/{pk}/dicom/instances/",
+            method="GET",
+        )
+
+        output = Path(output_directory).absolute()
+        output.mkdir(parents=True, exist_ok=True)
+
+        semaphore = Semaphore(self._client.max_concurrent_downloads)
+
+        async def download_with_semaphore(instance):
+            sop_instance_uid = instance["sop_instance_uid"]
+            output_file = output / f"{sop_instance_uid}.dcm"
+
+            async with semaphore:
+                return await self._download_dicom_instance(
+                    stream_kwargs=instance["get_instance"],
+                    file=output_file,
+                )
+
+        tasks = []
+        async with TaskGroup() as tg:
+            for instance in resp["instances"]:
+                task = tg.create_task(download_with_semaphore(instance))
+                tasks.append(task)
+
+        return [t.result() for t in tasks]
+
+    @sync_to_async(thread_sensitive=False)
+    def _download_dicom_instance(
+        self, stream_kwargs: dict[str, Any], file: Path
+    ):
+        with open(file, "wb") as f:
+            with httpx.stream(
+                **stream_kwargs,
+            ) as resp:
+                resp.raise_for_status()
+                for chunk in resp.iter_bytes():
+                    f.write(chunk)
+        return file
 
 
 class UploadSessionsAPI(
@@ -539,6 +614,7 @@ class Client(httpx.Client, ApiDefinitions):
         verify: bool = True,
         timeout: float = 60.0,
         retry_strategy: Callable[[], BaseRetryStrategy] | None = None,
+        max_concurrent_downloads: int = 10,
     ):
         """
         Args:
@@ -549,6 +625,7 @@ class Client(httpx.Client, ApiDefinitions):
             timeout: Request timeout in seconds.
             retry_strategy: Factory function that returns a retry strategy instance. If None,
                 uses SelectiveBackoffStrategy with default parameters.
+            max_concurrent_downloads: Maximum number of concurrent downloads allowed.
         """
         check_version(base_url=base_url)
 
@@ -572,6 +649,8 @@ class Client(httpx.Client, ApiDefinitions):
         self.base_url = URL(base_url)
         if self.base_url.scheme.lower() != "https":
             raise RuntimeError("Base URL must be https")
+
+        self.max_concurrent_downloads = max_concurrent_downloads
 
         self._api_meta = ApiDefinitions()
         for name, cls in get_type_hints(ApiDefinitions).items():
@@ -709,11 +788,7 @@ class Client(httpx.Client, ApiDefinitions):
             output_directory: The directory to download the value into.
         """
 
-        if value.interface.relative_path:
-            filename = output_directory / value.interface.relative_path
-        else:
-            # Only the legacy socket 'generic medical image' lacks relative path
-            filename = output_directory / value.interface.slug
+        filename = output_directory / value.interface.relative_path
 
         filename.parent.mkdir(parents=True, exist_ok=True)
 
@@ -722,7 +797,7 @@ class Client(httpx.Client, ApiDefinitions):
             # Image values
             self.images.download(
                 url=str(value.image),
-                filename=filename,
+                output_directory=filename,
             )
         elif super_kind == "value":
             # Direct values (e.g. '42')
