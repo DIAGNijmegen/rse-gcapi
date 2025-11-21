@@ -77,6 +77,7 @@ class ImagesAPI(APIBase[gcapi.models.HyperlinkedImage]):
         Download image files to local filesystem.
 
         Args:
+            output_directory: Directory to save downloaded files.
             filename: Optional, base filename for downloaded files. Extension is added automatically.
             image_type: Restrict download to a particular image type.
             pk: Primary key of the image to download.
