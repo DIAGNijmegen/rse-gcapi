@@ -187,14 +187,29 @@ def _create_reader_studies(users):
         pk="14909328-7a62-4745-8d2a-81a5d936f34b",
         reader_study=reader_study,
     )
+
     image = _create_image(
+        pk="d2856bc1-fe72-42d7-b8b7-1622527b8311",
         name="test_image2.mha",
         width=128,
         height=128,
         color_space="RGB",
     )
-    image_civ = ComponentInterfaceValue.objects.create(
+    legacy_image_civ = ComponentInterfaceValue.objects.create(
         interface=ComponentInterface.objects.get(slug="generic-medical-image"),
+        image=image,
+    )
+    image_interface = ComponentInterface(
+        store_in_database=False,
+        relative_path="images/non-legacy-image",
+        slug="an-image-socket",
+        title="An image socket",
+        kind=ComponentInterface.Kind.PANIMG_IMAGE,
+    )
+    image_interface.save()
+
+    image_civ = ComponentInterfaceValue.objects.create(
+        interface=image_interface,
         image=image,
     )
 
@@ -217,7 +232,7 @@ def _create_reader_studies(users):
 
     pdf_file_interface = ComponentInterface(
         store_in_database=False,
-        relative_path="file.pdf",
+        relative_path="files/file.pdf",
         slug="a-pdf-file-socket",
         title="A pdf file socket",
         kind=ComponentInterface.Kind.PDF,
@@ -255,7 +270,9 @@ def _create_reader_studies(users):
     )
 
     # Note: ordering is based on the slug here
-    display_set.values.set([image_civ, json_file_civ, pdf_file_civ, value_civ])
+    display_set.values.set(
+        [legacy_image_civ, json_file_civ, pdf_file_civ, value_civ, image_civ]
+    )
 
     display_set_with_answer = DisplaySet.objects.create(
         reader_study=reader_study,

@@ -43,7 +43,7 @@ jobs = client.algorithm_jobs.iterate_all(
 
 ## Download the outputs
 
-With a job list ready, download the outputs of the jobs by handling the socket values depending on the output socket.
+With a job list ready, download the outputs of the jobs by handling the socket values via [Client.download_socket_value][gcapi.client.Client.download_socket_value].
 
 The snippet below will download all contents as files and place them under the `download/` directory, creating a subdirectory for each job that has ran.
 
@@ -61,25 +61,8 @@ for job in jobs:
     item_path.mkdir(parents=True, exist_ok=True)
 
     for socket_value in job.outputs:
-        filename = item_path / socket_value.interface.relative_path
-        super_kind = socket_value.interface.super_kind.casefold()
-
-        if super_kind == "image":
-            # Image values
-            client.images.download(
-                url=socket_value.image,
-                filename=filename / socket_value.interface.slug
-            )
-        elif super_kind == "value":
-            # Direct values (e.g. '42')
-            with open(filename, "w") as f:
-                json.dump(socket_value.value, f, indent=2)
-        elif super_kind == "file":
-            # Values stored as files
-            resp = client(url=socket_value.file, follow_redirects=True)
-            resp.raise_for_status()
-            with open(filename, "wb") as f:
-                f.write(resp.content)
-        else:
-            raise ValueError(f"Unexpected super_kind {socket_value.super_kind}")
+       client.download_socket_value(
+            socket_value=socket_value,
+            output_directory=item_path,
+       )
 ```

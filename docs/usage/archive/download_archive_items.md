@@ -48,7 +48,7 @@ archive_items = list(
 )
 ```
 
-Then one-by-one, download the values found within. The snippet below will download all the files to the `download/` directory: creating a subdirectory for each archive item.
+Then one-by-one, download the values found within via [Client.download_socket_value][gcapi.client.Client.download_socket_value]. The snippet below will download all the files to the `download/` directory: creating a subdirectory for each archive item.
 
 ```python
 from pathlib import Path
@@ -62,25 +62,8 @@ for item in archive_items:
     item_path.mkdir(parents=True, exist_ok=True)
 
     for socket_value in item.values:
-        filename = item_path / socket_value.interface.relative_path
-        super_kind = socket_value.interface.super_kind.casefold()
-
-        if super_kind == "image":
-            # Image values
-            client.images.download(
-                url=socket_value.image,
-                filename=filename
-            )
-        elif super_kind == "value":
-            # Direct values (e.g. '42')
-            with open(filename, "w") as f:
-                json.dump(socket_value.value, f, indent=2)
-        elif super_kind == "file":
-            # Values stored as files
-            resp = client(url=socket_value.file, follow_redirects=True)
-            resp.raise_for_status()
-            with open(filename, "wb") as f:
-                f.write(resp.content)
-        else:
-            raise ValueError(f"Unexpected super_kind {socket_value.super_kind}")
+        client.download_socket_value(
+            socket_value,
+            output_directory=item_path
+        )
 ```
