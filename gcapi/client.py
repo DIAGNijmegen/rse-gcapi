@@ -136,6 +136,10 @@ class ImagesAPI(APIBase[gcapi.models.HyperlinkedImage]):
 
             suffix = file.file.split(".")[-1]
             local_file = output_directory / f"{filename}.{suffix}"
+
+            if local_file.exists():
+                raise FileExistsError(f"File {local_file} already exists")
+
             with local_file.open("wb") as fp:
                 fp.write(data)
 
@@ -175,6 +179,9 @@ class ImagesAPI(APIBase[gcapi.models.HyperlinkedImage]):
             sop_instance_uid = instance["sop_instance_uid"]
             output_file = output / f"{sop_instance_uid}.dcm"
 
+            if output_file.exists():
+                raise FileExistsError(f"File {output_file} already exists")
+
             async with semaphore:
                 return await self._download_dicom_instance(
                     stream_kwargs=instance["get_instance"],
@@ -193,6 +200,7 @@ class ImagesAPI(APIBase[gcapi.models.HyperlinkedImage]):
     def _download_dicom_instance(
         self, stream_kwargs: dict[str, Any], file: Path
     ):
+
         with open(file, "wb") as f:
             with httpx.stream(
                 **stream_kwargs,
@@ -783,13 +791,15 @@ class Client(httpx.Client, ApiDefinitions):
         path is fixed and unique per socket, so downloading multiple different values
         will not overwrite each other.
 
+        In addition, if the file to be downloaded already exists in the output
+        directory, a FileExistsError is raised to prevent overwriting existing files.
+
         Args:
             value: The socket value to download.
             output_directory: The directory to download the value into.
         """
 
         filename = output_directory / value.interface.relative_path
-
         filename.parent.mkdir(parents=True, exist_ok=True)
 
         super_kind = value.interface.super_kind.casefold()
@@ -799,27 +809,30 @@ class Client(httpx.Client, ApiDefinitions):
                 url=str(value.image),
                 output_directory=filename,
             )
-        elif super_kind == "value":
-            # Direct values (e.g. '42')
-            with open(filename, "w") as f:
-                json.dump(value.value, f, indent=2)
-        elif super_kind == "file":
-            # Values stored as files
-            resp = self(
-                url=str(value.file),
-                follow_redirects=True,
-            )
-            content = (
-                resp.content
-                if isinstance(resp, httpx.Response)
-                else json.dumps(resp).encode()
-            )
-            with open(filename, "wb") as f:
-                f.write(content)
         else:
-            raise ValueError(
-                f"Unexpected super_kind {value.interface.super_kind}"
-            )
+            if filename.exists():
+                raise FileExistsError(f"File {filename} already exists")
+            if super_kind == "value":
+                # Direct values (e.g. '42')
+                with open(filename, "w") as f:
+                    json.dump(value.value, f, indent=2)
+            elif super_kind == "file":
+                # Values stored as files
+                resp = self(
+                    url=str(value.file),
+                    follow_redirects=True,
+                )
+                content = (
+                    resp.content
+                    if isinstance(resp, httpx.Response)
+                    else json.dumps(resp).encode()
+                )
+                with open(filename, "wb") as f:
+                    f.write(content)
+            else:
+                raise ValueError(
+                    f"Unexpected super_kind {value.interface.super_kind}"
+                )
 
     def start_algorithm_job(
         self,

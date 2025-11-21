@@ -548,26 +548,33 @@ def test_download_socket_value(local_grand_challenge, tmpdir):
     for socket_value in display_set.values:
         c.download_socket_value(
             value=socket_value,
-            output_directory=Path(tmpdir),
+            output_directory=Path(tmpdir) / "downloads",
         )
 
     # Check downloaded files
-    assert (tmpdir / "files" / "file.pdf").isfile()  # From file
+    assert (tmpdir / "downloads" / "files" / "file.pdf").isfile()  # From file
     assert (
-        tmpdir / "d2856bc1-fe72-42d7-b8b7-1622527b8311.mha"
+        tmpdir / "downloads" / "d2856bc1-fe72-42d7-b8b7-1622527b8311.mha"
     ).isfile()  # From generic-medical-image
     assert (
         tmpdir
+        / "downloads"
         / "images"
         / "non-legacy-image"
         / "d2856bc1-fe72-42d7-b8b7-1622527b8311.mha"
     ).isfile()  # From image
 
-    with open(tmpdir / "file.json") as f:
+    with open(tmpdir / "downloads" / "file.json") as f:
         value = json.load(f)
     assert value == 42
 
-    with open(tmpdir / "annotation.json") as f:
+    with open(tmpdir / "downloads" / "annotation.json") as f:
         value = json.load(f)
 
     assert value["name"] == "forearm"
+
+    with pytest.raises(FileExistsError):
+        c.download_socket_value(
+            value=display_set.values[0],
+            output_directory=Path(tmpdir) / "downloads",
+        )
