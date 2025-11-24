@@ -105,4 +105,4 @@ jobs:
           python-version: ${{ env.MINIMUM_PYTHON_VERSION }}
       - name:
         run: |
-          uv run mkdocs gh-pages --force
+          uv run mkdocs gh-deploy --force
