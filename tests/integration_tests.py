@@ -2,6 +2,7 @@ from contextlib import nullcontext
 from io import BytesIO
 from pathlib import Path
 from time import sleep
+from uuid import uuid4
 
 import pytest
 from httpx import HTTPStatusError
@@ -522,6 +523,8 @@ def test_add_cases_to_archive_invalid_socket(local_grand_challenge):
 
 
 def test_title_add_case_to_reader_study(local_grand_challenge):
+    title = f"My custom title {uuid4()}"
+
     with Client(
         base_url=local_grand_challenge,
         verify=False,
@@ -530,14 +533,16 @@ def test_title_add_case_to_reader_study(local_grand_challenge):
         ds = client.add_case_to_reader_study(
             reader_study_slug="reader-study",
             values=[],
-            title="My custom title",
+            title=title,
         )
 
     assert isinstance(ds, gcapi.models.DisplaySetPost)
-    assert ds.title == "My custom title"
+    assert ds.title == title
 
 
 def test_title_update_display_set(local_grand_challenge):
+    updated_title = f"My updated title {uuid4()}"
+
     with Client(
         base_url=local_grand_challenge,
         verify=False,
@@ -547,23 +552,21 @@ def test_title_update_display_set(local_grand_challenge):
             client.reader_studies.display_sets.detail(
                 pk="1f8c7dae-9bf8-431b-8b7b-59238985961f"
             ).title
-            != "My updated title"
+            != updated_title
         ), "Sanity Check"
 
         ds = client.update_display_set(
             display_set_pk="1f8c7dae-9bf8-431b-8b7b-59238985961f",
             values=[],
-            title="My updated title",
+            title=updated_title,
         )
         assert isinstance(ds, gcapi.models.DisplaySetPost)
-        assert ds.title == "My updated title"
+        assert ds.title == updated_title
 
         ds = client.update_display_set(
             display_set_pk="1f8c7dae-9bf8-431b-8b7b-59238985961f", values=[]
         )
-        assert (
-            ds.title == "My updated title"
-        ), "Title should persist if not updated"
+        assert ds.title == updated_title, "Title should persist if not updated"
 
         ds = client.update_display_set(
             display_set_pk="1f8c7dae-9bf8-431b-8b7b-59238985961f",
@@ -576,6 +579,8 @@ def test_title_update_display_set(local_grand_challenge):
 
 
 def test_title_add_case_to_archive(local_grand_challenge):
+    title = f"My custom title {uuid4()}"
+
     with Client(
         base_url=local_grand_challenge,
         verify=False,
@@ -584,14 +589,16 @@ def test_title_add_case_to_archive(local_grand_challenge):
         ds = client.add_case_to_archive(
             archive_slug="archive",
             values=[],
-            title="My custom title",
+            title=title,
         )
 
         assert isinstance(ds, gcapi.models.ArchiveItemPost)
-        assert ds.title == "My custom title"
+        assert ds.title == title
 
 
 def test_title_update_archive_item(local_grand_challenge):
+    updated_title = f"My updated title {uuid4()}"
+
     with Client(
         base_url=local_grand_challenge,
         verify=False,
@@ -601,23 +608,21 @@ def test_title_update_archive_item(local_grand_challenge):
             client.archive_items.detail(
                 pk="3dfa7e7d-8895-4f1f-80c2-4172e00e63ea"
             ).title
-            != "My updated title"
+            != updated_title
         ), "Sanity Check"
         ds = client.update_archive_item(
             archive_item_pk="3dfa7e7d-8895-4f1f-80c2-4172e00e63ea",
             values=[],
-            title="My updated title",
+            title=updated_title,
         )
 
         assert isinstance(ds, gcapi.models.ArchiveItemPost)
-        assert ds.title == "My updated title"
+        assert ds.title == updated_title
 
         ai = client.update_archive_item(
             archive_item_pk="3dfa7e7d-8895-4f1f-80c2-4172e00e63ea", values=[]
         )
-        assert (
-            ai.title == "My updated title"
-        ), "Title should persist if not updated"
+        assert ai.title == updated_title, "Title should persist if not updated"
 
         ai = client.update_archive_item(
             archive_item_pk="3dfa7e7d-8895-4f1f-80c2-4172e00e63ea",

@@ -821,6 +821,7 @@ class Client(httpx.Client, ApiDefinitions):
         *,
         reader_study_slug: str,
         values: list[SocketValueSpec],
+        title: str | None = None,
     ) -> gcapi.models.DisplaySetPost:
         """
         This function takes a reader-study slug and a list of socket value specs.
@@ -885,15 +886,22 @@ class Client(httpx.Client, ApiDefinitions):
                 (`value`, `file`, `files`, `existing_image_api_url`, or
                 `existing_socket_value`).
 
+            title: An optional title for the display set.
+
         Returns:
             The newly created display set (post) object. Note that not all values will
                 be immediately available until the background processing has completed.
         """
+        additional_kwargs = {}
+        if title is not None:
+            additional_kwargs["title"] = title
+
         try:
             created_display_set = self._create_socket_value_set(
                 creation_kwargs={"reader_study": reader_study_slug},
                 values=values,
                 api=self.reader_studies.display_sets,
+                additional_kwargs=additional_kwargs,
             )
         except SocketNotFound as e:
             raise ValueError(
@@ -981,6 +989,7 @@ class Client(httpx.Client, ApiDefinitions):
         *,
         archive_slug: str,
         values: list[SocketValueSpec],
+        title: str | None = None,
     ) -> gcapi.models.ArchiveItemPost:
         """
         This function takes an archive slug and a list of socket value specs.
@@ -1043,17 +1052,24 @@ class Client(httpx.Client, ApiDefinitions):
                 (`value`, `file`, `files`, `existing_image_api_url`, or
                 `existing_socket_value`).
 
+            title: An optional title for the archive item.
+
         Returns:
             The new archive item (post) object. Note that not all values will
                 be immediately available until the background processing has completed.
         """
         archive_api_url = self._fetch_archive_api_url(archive_slug)
 
+        additional_kwargs = {}
+        if title is not None:
+            additional_kwargs["title"] = title
+
         try:
             created_archive_item = self._create_socket_value_set(
                 creation_kwargs={"archive": archive_api_url},
                 values=values,
                 api=self.archive_items,
+                additional_kwargs=additional_kwargs,
             )
         except SocketNotFound as e:
             raise ValueError(
@@ -1107,10 +1123,9 @@ class Client(httpx.Client, ApiDefinitions):
         *,
         creation_kwargs: dict,
         values: list[SocketValueSpec],
-        title: str | None = None,
         api: ModifiableMixin,
+        additional_kwargs: dict,
     ) -> SocketValuePostSet:
-
         with ExitStack() as stack:
             # Prepare the strategies
             strategies: list[SocketValueCreateStrategy] = []
@@ -1129,7 +1144,7 @@ class Client(httpx.Client, ApiDefinitions):
             updated_socket_value_set = api.partial_update(
                 pk=socket_value_set.pk,
                 values=[s() for s in strategies],
-                title=title,
+                **additional_kwargs,
             )
 
             return updated_socket_value_set
@@ -1139,11 +1154,9 @@ class Client(httpx.Client, ApiDefinitions):
         *,
         target_pk: str,
         values: list[SocketValueSpec],
-        additional_kwargs: dict | None = None,
+        additional_kwargs: dict,
         api: ModifiableMixin,
     ) -> SocketValuePostSet:
-        additional_kwargs = additional_kwargs or {}
-
         with ExitStack() as stack:
             # Prepare the strategies
             strategies: list[SocketValueCreateStrategy] = []
