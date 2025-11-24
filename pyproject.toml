@@ -9,6 +9,8 @@ dependencies = [
     "pydantic",
     "packaging",
     "grand-challenge-dicom-de-identifier",
+    "asgiref",
+    "taskgroup",
 ]
 name = "gcapi"
 version = "0.13.4"

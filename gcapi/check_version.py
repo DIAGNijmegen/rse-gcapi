@@ -16,6 +16,7 @@ def check_version(base_url):
 
     with httpx.Client() as client:
         response = client.get(f"{base_url}gcapi/")
+        response.raise_for_status()
 
         api_data = response.json()
 

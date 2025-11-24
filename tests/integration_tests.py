@@ -1,3 +1,4 @@
+import json
 from contextlib import nullcontext
 from io import BytesIO
 from pathlib import Path
@@ -106,14 +107,16 @@ def test_download_image(local_grand_challenge, tmpdir):
         pk="14909328-7a62-4745-8d2a-81a5d936f34b"
     )
 
-    socket_value = display_set.values[3]
+    socket_value = display_set.values[4]
 
     assert socket_value.interface.slug == "generic-medical-image", "Sanity"
     downloaded_files = c.images.download(
-        filename=tmpdir / "image",
+        output_directory=tmpdir,
+        filename="image",
         url=socket_value.image,
     )
 
+    assert (tmpdir / "image.mha").isfile()
     assert len(downloaded_files) == 1
 
     # Check that the downloaded file is a mha file
@@ -444,7 +447,7 @@ def test_reuse_existing_socket_values(local_grand_challenge):
 
     # Sanity: double check the source socket value has the expected sockets
     values = display_set.values
-    assert len(values) == 4, "Sanity check"
+    assert len(values) == 5, "Sanity check"
 
     assert values[0].interface.slug == "a-file-socket"
     assert values[0].interface.super_kind == "File"
@@ -455,8 +458,11 @@ def test_reuse_existing_socket_values(local_grand_challenge):
     assert values[2].interface.slug == "a-pdf-file-socket"
     assert values[2].interface.super_kind == "File"
 
-    assert values[3].interface.slug == "generic-medical-image"
+    assert values[3].interface.slug == "an-image-socket"
     assert values[3].interface.super_kind == "Image"
+
+    assert values[4].interface.slug == "generic-medical-image"
+    assert values[4].interface.super_kind == "Image"
 
     new_ds = c.add_case_to_reader_study(
         reader_study_slug="reader-study",
@@ -519,3 +525,51 @@ def test_add_cases_to_archive_invalid_socket(local_grand_challenge):
         "Please provide one from this list: "
         "https://grand-challenge.org/components/interfaces/inputs/"
     )
+
+
+def test_download_socket_value(local_grand_challenge, tmpdir):
+    c = Client(
+        base_url=local_grand_challenge,
+        verify=False,
+        token=READERSTUDY_TOKEN,
+    )
+
+    display_set = c.reader_studies.display_sets.detail(
+        pk="14909328-7a62-4745-8d2a-81a5d936f34b"
+    )
+
+    assert len(display_set.values) == 5, "Sanity check"
+
+    for socket_value in display_set.values:
+        c.download_socket_value(
+            value=socket_value,
+            output_directory=Path(tmpdir) / "downloads",
+        )
+
+    # Check downloaded files
+    assert (tmpdir / "downloads" / "files" / "file.pdf").isfile()  # From file
+    assert (
+        tmpdir / "downloads" / "d2856bc1-fe72-42d7-b8b7-1622527b8311.mha"
+    ).isfile()  # From generic-medical-image
+    assert (
+        tmpdir
+        / "downloads"
+        / "images"
+        / "non-legacy-image"
+        / "d2856bc1-fe72-42d7-b8b7-1622527b8311.mha"
+    ).isfile()  # From image
+
+    with open(tmpdir / "downloads" / "file.json") as f:
+        value = json.load(f)
+    assert value == 42
+
+    with open(tmpdir / "downloads" / "annotation.json") as f:
+        value = json.load(f)
+
+    assert value["name"] == "forearm"
+
+    with pytest.raises(FileExistsError):
+        c.download_socket_value(
+            value=display_set.values[0],
+            output_directory=Path(tmpdir) / "downloads",
+        )
