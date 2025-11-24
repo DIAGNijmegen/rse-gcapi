@@ -13,7 +13,7 @@ dependencies = [
     "taskgroup",
 ]
 name = "gcapi"
-version = "0.13.4"
+version = "0.14.0"
 description = "Python client for the grand-challenge.org REST API"
 readme = "README.md"
 classifiers = [
