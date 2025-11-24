@@ -810,30 +810,31 @@ class Client(httpx.Client, ApiDefinitions):
                 url=str(value.image),
                 output_directory=filename,
             )
-        else:
+        elif super_kind == "value":
             if filename.exists():
                 raise FileExistsError(f"File {filename} already exists")
-            if super_kind == "value":
-                # Direct values (e.g. '42')
-                with open(filename, "w") as f:
-                    json.dump(value.value, f, indent=2)
-            elif super_kind == "file":
-                # Values stored as files
-                resp = self(
-                    url=str(value.file),
-                    follow_redirects=True,
-                )
-                content = (
-                    resp.content
-                    if isinstance(resp, httpx.Response)
-                    else json.dumps(resp).encode()
-                )
-                with open(filename, "wb") as f:
-                    f.write(content)
-            else:
-                raise ValueError(
-                    f"Unexpected super_kind {value.interface.super_kind}"
-                )
+            # Direct values (e.g. '42')
+            with open(filename, "w") as f:
+                json.dump(value.value, f, indent=2)
+        elif super_kind == "file":
+            if filename.exists():
+                raise FileExistsError(f"File {filename} already exists")
+            # Values stored as files
+            resp = self(
+                url=str(value.file),
+                follow_redirects=True,
+            )
+            content = (
+                resp.content
+                if isinstance(resp, httpx.Response)
+                else json.dumps(resp).encode()
+            )
+            with open(filename, "wb") as f:
+                f.write(content)
+        else:
+            raise ValueError(
+                f"Unexpected super_kind {value.interface.super_kind}"
+            )
 
     def start_algorithm_job(
         self,
