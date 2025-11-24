@@ -519,3 +519,67 @@ def test_add_cases_to_archive_invalid_socket(local_grand_challenge):
         "Please provide one from this list: "
         "https://grand-challenge.org/components/interfaces/inputs/"
     )
+
+
+def test_title_add_case_to_reader_study(local_grand_challenge):
+    with Client(
+        base_url=local_grand_challenge,
+        verify=False,
+        token=READERSTUDY_TOKEN,
+    ) as client:
+        ds = client.add_case_to_reader_study(
+            reader_study_slug="reader-study",
+            values=[],
+            title="My custom title",
+        )
+
+    assert isinstance(ds, gcapi.models.DisplaySetPost)
+    assert ds.title == "My custom title"
+
+
+def test_title_update_display_set(local_grand_challenge):
+    with Client(
+        base_url=local_grand_challenge,
+        verify=False,
+        token=READERSTUDY_TOKEN,
+    ) as client:
+        ds = client.update_display_set(
+            display_set_pk="1f8c7dae-9bf8-431b-8b7b-59238985961f",
+            values=[],
+            title="My updated title",
+        )
+
+    assert isinstance(ds, gcapi.models.DisplaySetPost)
+    assert ds.title == "My updated title"
+
+
+def test_title_add_case_to_archive(local_grand_challenge):
+    with Client(
+        base_url=local_grand_challenge,
+        verify=False,
+        token=ARCHIVE_TOKEN,
+    ) as client:
+        ds = client.add_case_to_archive(
+            archive_slug="archive",
+            values=[],
+            title="My custom title",
+        )
+
+        assert isinstance(ds, gcapi.models.ArchiveItemPost)
+        assert ds.title == "My custom title"
+
+
+def test_title_update_archive_item(local_grand_challenge):
+    with Client(
+        base_url=local_grand_challenge,
+        verify=False,
+        token=ARCHIVE_TOKEN,
+    ) as client:
+        ds = client.update_archive_item(
+            archive_item_pk="3dfa7e7d-8895-4f1f-80c2-4172e00e63ea",
+            values=[],
+            title="My updated title",
+        )
+
+    assert isinstance(ds, gcapi.models.ArchiveItemPost)
+    assert ds.title == "My updated title"
