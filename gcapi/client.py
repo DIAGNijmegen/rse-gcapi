@@ -800,25 +800,25 @@ class Client(httpx.Client, ApiDefinitions):
             output_directory: The directory to download the value into.
         """
 
-        filename = output_directory / value.interface.relative_path
-        filename.parent.mkdir(parents=True, exist_ok=True)
+        target_path = output_directory / value.interface.relative_path
+        target_path.parent.mkdir(parents=True, exist_ok=True)
 
         super_kind = value.interface.super_kind.casefold()
         if super_kind == "image":
             # Image values
             self.images.download(
                 url=str(value.image),
-                output_directory=filename,
+                output_directory=target_path,
             )
         elif super_kind == "value":
-            if filename.exists():
-                raise FileExistsError(f"File {filename} already exists")
+            if target_path.exists():
+                raise FileExistsError(f"File {target_path} already exists")
             # Direct values (e.g. '42')
-            with open(filename, "w") as f:
+            with open(target_path, "w") as f:
                 json.dump(value.value, f, indent=2)
         elif super_kind == "file":
-            if filename.exists():
-                raise FileExistsError(f"File {filename} already exists")
+            if target_path.exists():
+                raise FileExistsError(f"File {target_path} already exists")
             # Values stored as files
             resp = self(
                 url=str(value.file),
@@ -829,7 +829,7 @@ class Client(httpx.Client, ApiDefinitions):
                 if isinstance(resp, httpx.Response)
                 else json.dumps(resp).encode()
             )
-            with open(filename, "wb") as f:
+            with open(target_path, "wb") as f:
                 f.write(content)
         else:
             raise ValueError(
