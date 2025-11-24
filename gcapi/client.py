@@ -26,7 +26,7 @@ from gcapi.create_strategies import (
 from gcapi.exceptions import ObjectNotFound, SocketNotFound
 from gcapi.retries import BaseRetryStrategy, SelectiveBackoffStrategy
 from gcapi.transports import RetryTransport
-from gcapi.typing import SocketValuePostSet
+from gcapi.typing import SocketValuePostSet, Unset, UnsetType
 
 logger = logging.getLogger(__name__)
 
@@ -752,7 +752,7 @@ class Client(httpx.Client, ApiDefinitions):
         display_set_pk: str,
         values: list[SocketValueSpec],
         title: str | None = None,
-        order: int | None = None,
+        order: int | None | UnsetType = Unset,
     ) -> gcapi.models.DisplaySetPost:
         """
         This function patches an existing display set with the provided values.
@@ -800,7 +800,7 @@ class Client(httpx.Client, ApiDefinitions):
                 (`value`, `file`, `files`, `existing_image_api_url`, or
                 `existing_socket_value`).
             title: An optional new title for the display set. Set to `""` to clear.
-            order: An optional new order for the display set.
+            order: An optional new order for the display set. Set to `None` or 0 to auto-assign.
 
         Returns:
             The updated display item (post) object. Note that not all values will
@@ -809,8 +809,8 @@ class Client(httpx.Client, ApiDefinitions):
         update_kwargs: dict[str, Any] = {"pk": display_set_pk}
         if title is not None:
             update_kwargs["title"] = title
-        if order is not None:
-            update_kwargs["order"] = order
+        if order is not Unset:
+            update_kwargs["order"] = order or 0
 
         display_set = self._update_socket_value_set(
             values=values,
@@ -825,7 +825,7 @@ class Client(httpx.Client, ApiDefinitions):
         reader_study_slug: str,
         values: list[SocketValueSpec],
         title: str | None = None,
-        order: int | None = None,
+        order: int | None | UnsetType = Unset,
     ) -> gcapi.models.DisplaySetPost:
         """
         This function takes a reader-study slug and a list of socket value specs.
@@ -892,7 +892,7 @@ class Client(httpx.Client, ApiDefinitions):
 
             title: An optional title for the display set.
 
-            order: An optional order for the display set.
+            order: An optional order for the display set. Set to `None` or 0 to auto-assign.
 
         Returns:
             The newly created display set (post) object. Note that not all values will
@@ -901,8 +901,8 @@ class Client(httpx.Client, ApiDefinitions):
         creation_kwargs: dict[str, Any] = {"reader_study": reader_study_slug}
         if title is not None:
             creation_kwargs["title"] = title
-        if order is not None:
-            creation_kwargs["order"] = order
+        if order is not Unset:
+            creation_kwargs["order"] = order or 0
 
         try:
             created_display_set = self._create_socket_value_set(

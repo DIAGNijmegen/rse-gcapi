@@ -522,7 +522,7 @@ def test_add_cases_to_archive_invalid_socket(local_grand_challenge):
     )
 
 
-def test_title_add_case_to_reader_study(local_grand_challenge):
+def test_title_order_add_case_to_reader_study(local_grand_challenge):
     title = f"My custom title {uuid4()}"
 
     with Client(
@@ -542,7 +542,7 @@ def test_title_add_case_to_reader_study(local_grand_challenge):
     assert ds.order == 42
 
 
-def test_title_update_display_set(local_grand_challenge):
+def test_title_order_update_display_set(local_grand_challenge):
     updated_title = f"My updated title {uuid4()}"
     updated_order = 10
 
@@ -577,11 +577,12 @@ def test_title_update_display_set(local_grand_challenge):
             display_set_pk="1f8c7dae-9bf8-431b-8b7b-59238985961f",
             values=[],
             title="",
-            order=updated_order + 9999,
+            order=None,
         )
         assert (
             ds.title == ""
         ), "Can update with empty title to clear title field"
+        assert ds.order != updated_order, "Order gets auto-assigned when None"
 
 
 def test_title_add_case_to_archive(local_grand_challenge):
