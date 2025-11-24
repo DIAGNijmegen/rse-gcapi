@@ -543,14 +543,36 @@ def test_title_update_display_set(local_grand_challenge):
         verify=False,
         token=READERSTUDY_TOKEN,
     ) as client:
+        assert (
+            client.reader_studies.display_sets.detail(
+                pk="1f8c7dae-9bf8-431b-8b7b-59238985961f"
+            ).title
+            != "My updated title"
+        ), "Sanity Check"
+
         ds = client.update_display_set(
             display_set_pk="1f8c7dae-9bf8-431b-8b7b-59238985961f",
             values=[],
             title="My updated title",
         )
+        assert isinstance(ds, gcapi.models.DisplaySetPost)
+        assert ds.title == "My updated title"
 
-    assert isinstance(ds, gcapi.models.DisplaySetPost)
-    assert ds.title == "My updated title"
+        ds = client.update_display_set(
+            display_set_pk="1f8c7dae-9bf8-431b-8b7b-59238985961f", values=[]
+        )
+        assert (
+            ds.title == "My updated title"
+        ), "Title should persist if not updated"
+
+        ds = client.update_display_set(
+            display_set_pk="1f8c7dae-9bf8-431b-8b7b-59238985961f",
+            values=[],
+            title="",
+        )
+        assert (
+            ds.title == ""
+        ), "Can update with empty title to clear title field"
 
 
 def test_title_add_case_to_archive(local_grand_challenge):
@@ -575,11 +597,33 @@ def test_title_update_archive_item(local_grand_challenge):
         verify=False,
         token=ARCHIVE_TOKEN,
     ) as client:
+        assert (
+            client.archive_items.detail(
+                pk="3dfa7e7d-8895-4f1f-80c2-4172e00e63ea"
+            ).title
+            != "My updated title"
+        ), "Sanity Check"
         ds = client.update_archive_item(
             archive_item_pk="3dfa7e7d-8895-4f1f-80c2-4172e00e63ea",
             values=[],
             title="My updated title",
         )
 
-    assert isinstance(ds, gcapi.models.ArchiveItemPost)
-    assert ds.title == "My updated title"
+        assert isinstance(ds, gcapi.models.ArchiveItemPost)
+        assert ds.title == "My updated title"
+
+        ai = client.update_archive_item(
+            archive_item_pk="3dfa7e7d-8895-4f1f-80c2-4172e00e63ea", values=[]
+        )
+        assert (
+            ai.title == "My updated title"
+        ), "Title should persist if not updated"
+
+        ai = client.update_archive_item(
+            archive_item_pk="3dfa7e7d-8895-4f1f-80c2-4172e00e63ea",
+            values=[],
+            title="",
+        )
+        assert (
+            ai.title == ""
+        ), "Can update with empty title to clear title field"
