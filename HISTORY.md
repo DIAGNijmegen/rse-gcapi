@@ -1,5 +1,16 @@
 # History
 
+## 0.14.0
+* (Breaking) Add `SocketValueSpec` type of interfaces
+* (Breaking) Renaming of helper functions and arguments
+* New `download_socket_value` helper function
+* New documentation on [github.io](https://diagnijmegen.github.io/rse-gcapi/)
+  * Automatically created and uploaded via mkdocs
+  * Large number of general documentation improvements
+  * New example show how to handle limits cleanly via retry strategy
+* Support DICOM image sets, including local de-identification prior to uploading
+* `RawImageUploadSession` can now only be viewed and no longer created
+
 ## 0.13.4
 * Increased typing coverage (making MyPy check more strictly)
 * Refactored socket-value creation strategies (related to typing)
