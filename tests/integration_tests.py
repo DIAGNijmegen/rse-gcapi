@@ -534,44 +534,50 @@ def test_title_add_case_to_reader_study(local_grand_challenge):
             reader_study_slug="reader-study",
             values=[],
             title=title,
+            order=42,
         )
 
     assert isinstance(ds, gcapi.models.DisplaySetPost)
     assert ds.title == title
+    assert ds.order == 42
 
 
 def test_title_update_display_set(local_grand_challenge):
     updated_title = f"My updated title {uuid4()}"
+    updated_order = 10
 
     with Client(
         base_url=local_grand_challenge,
         verify=False,
         token=READERSTUDY_TOKEN,
     ) as client:
-        assert (
-            client.reader_studies.display_sets.detail(
-                pk="1f8c7dae-9bf8-431b-8b7b-59238985961f"
-            ).title
-            != updated_title
-        ), "Sanity Check"
+        current_ds = client.reader_studies.display_sets.detail(
+            pk="1f8c7dae-9bf8-431b-8b7b-59238985961f"
+        )
+        assert current_ds.title != updated_title, "Sanity Check"
+        assert current_ds.order != updated_order, "Sanity Check"
 
         ds = client.update_display_set(
             display_set_pk="1f8c7dae-9bf8-431b-8b7b-59238985961f",
             values=[],
             title=updated_title,
+            order=updated_order,
         )
         assert isinstance(ds, gcapi.models.DisplaySetPost)
         assert ds.title == updated_title
+        assert ds.order == updated_order
 
         ds = client.update_display_set(
             display_set_pk="1f8c7dae-9bf8-431b-8b7b-59238985961f", values=[]
         )
         assert ds.title == updated_title, "Title should persist if not updated"
+        assert ds.order == updated_order, "Order should persist if not updated"
 
         ds = client.update_display_set(
             display_set_pk="1f8c7dae-9bf8-431b-8b7b-59238985961f",
             values=[],
             title="",
+            order=updated_order + 9999,
         )
         assert (
             ds.title == ""

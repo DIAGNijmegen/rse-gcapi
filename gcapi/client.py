@@ -750,8 +750,9 @@ class Client(httpx.Client, ApiDefinitions):
         self,
         *,
         display_set_pk: str,
-        values: list[SocketValueSpec] | None = None,
+        values: list[SocketValueSpec],
         title: str | None = None,
+        order: int | None = None,
     ) -> gcapi.models.DisplaySetPost:
         """
         This function patches an existing display set with the provided values.
@@ -799,20 +800,22 @@ class Client(httpx.Client, ApiDefinitions):
                 (`value`, `file`, `files`, `existing_image_api_url`, or
                 `existing_socket_value`).
             title: An optional new title for the display set. Set to `""` to clear.
+            order: An optional new order for the display set.
 
         Returns:
             The updated display item (post) object. Note that not all values will
                 be immediately available until the background processing has completed.
         """
-        additional_kwargs = {}
+        update_kwargs: dict[str, Any] = {"pk": display_set_pk}
         if title is not None:
-            additional_kwargs["title"] = title
+            update_kwargs["title"] = title
+        if order is not None:
+            update_kwargs["order"] = order
 
         display_set = self._update_socket_value_set(
-            target_pk=display_set_pk,
-            values=values or [],
+            values=values,
             api=self.reader_studies.display_sets,
-            additional_kwargs=additional_kwargs,
+            **update_kwargs,
         )
         return cast(gcapi.models.DisplaySetPost, display_set)
 
@@ -822,6 +825,7 @@ class Client(httpx.Client, ApiDefinitions):
         reader_study_slug: str,
         values: list[SocketValueSpec],
         title: str | None = None,
+        order: int | None = None,
     ) -> gcapi.models.DisplaySetPost:
         """
         This function takes a reader-study slug and a list of socket value specs.
@@ -888,20 +892,23 @@ class Client(httpx.Client, ApiDefinitions):
 
             title: An optional title for the display set.
 
+            order: An optional order for the display set.
+
         Returns:
             The newly created display set (post) object. Note that not all values will
                 be immediately available until the background processing has completed.
         """
-        additional_kwargs = {}
+        creation_kwargs: dict[str, Any] = {"reader_study": reader_study_slug}
         if title is not None:
-            additional_kwargs["title"] = title
+            creation_kwargs["title"] = title
+        if order is not None:
+            creation_kwargs["order"] = order
 
         try:
             created_display_set = self._create_socket_value_set(
-                creation_kwargs={"reader_study": reader_study_slug},
                 values=values,
                 api=self.reader_studies.display_sets,
-                additional_kwargs=additional_kwargs,
+                **creation_kwargs,
             )
         except SocketNotFound as e:
             raise ValueError(
@@ -967,15 +974,14 @@ class Client(httpx.Client, ApiDefinitions):
             The updated archive item (post) object. Note that not all values will
                 be immediately available until the background processing has completed.
         """
-        additional_kwargs = {}
+        update_kwargs = {"pk": archive_item_pk}
         if title is not None:
-            additional_kwargs["title"] = title
+            update_kwargs["title"] = title
 
         archive_item = self._update_socket_value_set(
-            target_pk=archive_item_pk,
             values=values,
             api=self.archive_items,
-            additional_kwargs=additional_kwargs,
+            **update_kwargs,
         )
         return cast(gcapi.models.ArchiveItemPost, archive_item)
 
@@ -1059,17 +1065,15 @@ class Client(httpx.Client, ApiDefinitions):
                 be immediately available until the background processing has completed.
         """
         archive_api_url = self._fetch_archive_api_url(archive_slug)
-
-        additional_kwargs = {}
+        creation_kwargs: dict[str, Any] = {"archive": archive_api_url}
         if title is not None:
-            additional_kwargs["title"] = title
+            creation_kwargs["title"] = title
 
         try:
             created_archive_item = self._create_socket_value_set(
-                creation_kwargs={"archive": archive_api_url},
                 values=values,
                 api=self.archive_items,
-                additional_kwargs=additional_kwargs,
+                **creation_kwargs,
             )
         except SocketNotFound as e:
             raise ValueError(
@@ -1121,10 +1125,9 @@ class Client(httpx.Client, ApiDefinitions):
     def _create_socket_value_set(
         self,
         *,
-        creation_kwargs: dict,
         values: list[SocketValueSpec],
         api: ModifiableMixin,
-        additional_kwargs: dict,
+        **creation_kwargs: Any,
     ) -> SocketValuePostSet:
         with ExitStack() as stack:
             # Prepare the strategies
@@ -1144,7 +1147,6 @@ class Client(httpx.Client, ApiDefinitions):
             updated_socket_value_set = api.partial_update(
                 pk=socket_value_set.pk,
                 values=[s() for s in strategies],
-                **additional_kwargs,
             )
 
             return updated_socket_value_set
@@ -1152,10 +1154,9 @@ class Client(httpx.Client, ApiDefinitions):
     def _update_socket_value_set(
         self,
         *,
-        target_pk: str,
         values: list[SocketValueSpec],
-        additional_kwargs: dict,
         api: ModifiableMixin,
+        **update_kwargs: Any,
     ) -> SocketValuePostSet:
         with ExitStack() as stack:
             # Prepare the strategies
@@ -1170,7 +1171,6 @@ class Client(httpx.Client, ApiDefinitions):
 
             # Update the socket-value set with the prepared values
             return api.partial_update(
-                pk=target_pk,
                 values=[s() for s in strategies],
-                **additional_kwargs,
+                **update_kwargs,
             )
