@@ -9,7 +9,7 @@
       
       
       
-        <link rel="prev" href="../../usage/algorithm/download_algorithm_outputs/">
+        <link rel="prev" href="../../usage/retries/handling_limits/">
       
       
         <link rel="next" href="../algorithm_images/">
@@ -876,6 +876,80 @@
 
               
             
+              
+                
+  
+  
+  
+  
+    
+    
+    
+    
+      
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+          
+        
+        <input class="md-nav__toggle md-toggle md-toggle--indeterminate" type="checkbox" id="__nav_3_4" >
+        
+          
+          <label class="md-nav__link" for="__nav_3_4" id="__nav_3_4_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    Automatic Retries
+    
+  </span>
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_3_4_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_3_4">
+            <span class="md-nav__icon md-icon"></span>
+            Automatic Retries
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../usage/retries/handling_limits/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    Handle Limits
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+              
+            
           </ul>
         </nav>
       
@@ -1009,6 +1083,24 @@
 </li>
       
         <li class="md-nav__item">
+  <a href="#gcapi.client.Client.add_case_to_archive" class="md-nav__link">
+    <span class="md-ellipsis">
+      add_case_to_archive
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#gcapi.client.Client.add_case_to_reader_study" class="md-nav__link">
+    <span class="md-ellipsis">
+      add_case_to_reader_study
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
   <a href="#gcapi.client.Client.add_cases_to_archive" class="md-nav__link">
     <span class="md-ellipsis">
       add_cases_to_archive
@@ -1027,9 +1119,27 @@
 </li>
       
         <li class="md-nav__item">
+  <a href="#gcapi.client.Client.download_socket_value" class="md-nav__link">
+    <span class="md-ellipsis">
+      download_socket_value
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
   <a href="#gcapi.client.Client.run_external_job" class="md-nav__link">
     <span class="md-ellipsis">
       run_external_job
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#gcapi.client.Client.start_algorithm_job" class="md-nav__link">
+    <span class="md-ellipsis">
+      start_algorithm_job
     </span>
   </a>
   
@@ -1555,29 +1665,6 @@
 
               
             
-              
-                
-  
-  
-  
-  
-    <li class="md-nav__item">
-      <a href="../retries/" class="md-nav__link">
-        
-  
-  
-  <span class="md-ellipsis">
-    Retries
-    
-  </span>
-  
-
-      </a>
-    </li>
-  
-
-              
-            
           </ul>
         </nav>
       
@@ -1637,6 +1724,24 @@
 </li>
       
         <li class="md-nav__item">
+  <a href="#gcapi.client.Client.add_case_to_archive" class="md-nav__link">
+    <span class="md-ellipsis">
+      add_case_to_archive
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#gcapi.client.Client.add_case_to_reader_study" class="md-nav__link">
+    <span class="md-ellipsis">
+      add_case_to_reader_study
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
   <a href="#gcapi.client.Client.add_cases_to_archive" class="md-nav__link">
     <span class="md-ellipsis">
       add_cases_to_archive
@@ -1655,9 +1760,27 @@
 </li>
       
         <li class="md-nav__item">
+  <a href="#gcapi.client.Client.download_socket_value" class="md-nav__link">
+    <span class="md-ellipsis">
+      download_socket_value
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
   <a href="#gcapi.client.Client.run_external_job" class="md-nav__link">
     <span class="md-ellipsis">
       run_external_job
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#gcapi.client.Client.start_algorithm_job" class="md-nav__link">
+    <span class="md-ellipsis">
+      start_algorithm_job
     </span>
   </a>
   
@@ -1873,14 +1996,8 @@
 <b><code>Any</code></b> (              <code><span title="typing.Any">Any</span></code>
 )          –
           <div class="doc-md-description">
-            <p>JSON response data if Content-Type is application/json,</p>
-          </div>
-        </li>
-        <li class="doc-section-item field-body">
-              <code><span title="typing.Any">Any</span></code>
-          –
-          <div class="doc-md-description">
-            <p>otherwise the raw response object.</p>
+            <p>JSON response data if Content-Type is application/json,
+otherwise the raw response object.</p>
           </div>
         </li>
     </ul>
@@ -1915,10 +2032,11 @@
 </span><span id="__span-0-3"><a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a>    <span class="n">base_url</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&quot;https://grand-challenge.org/api/v1/&quot;</span><span class="p">,</span>
 </span><span id="__span-0-4"><a id="__codelineno-0-4" name="__codelineno-0-4" href="#__codelineno-0-4"></a>    <span class="n">verify</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span><span class="p">,</span>
 </span><span id="__span-0-5"><a id="__codelineno-0-5" name="__codelineno-0-5" href="#__codelineno-0-5"></a>    <span class="n">timeout</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">60.0</span><span class="p">,</span>
-</span><span id="__span-0-6"><a id="__codelineno-0-6" name="__codelineno-0-6" href="#__codelineno-0-6"></a>    <span class="n">retry_strategy</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span>
-</span><span id="__span-0-7"><a id="__codelineno-0-7" name="__codelineno-0-7" href="#__codelineno-0-7"></a>        <span class="n">Callable</span><span class="p">[[],</span> <span class="n">BaseRetryStrategy</span><span class="p">]</span>
-</span><span id="__span-0-8"><a id="__codelineno-0-8" name="__codelineno-0-8" href="#__codelineno-0-8"></a>    <span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
-</span><span id="__span-0-9"><a id="__codelineno-0-9" name="__codelineno-0-9" href="#__codelineno-0-9"></a><span class="p">)</span>
+</span><span id="__span-0-6"><a id="__codelineno-0-6" name="__codelineno-0-6" href="#__codelineno-0-6"></a>    <span class="n">retry_strategy</span><span class="p">:</span> <span class="p">(</span>
+</span><span id="__span-0-7"><a id="__codelineno-0-7" name="__codelineno-0-7" href="#__codelineno-0-7"></a>        <span class="n">Callable</span><span class="p">[[],</span> <span class="n">BaseRetryStrategy</span><span class="p">]</span> <span class="o">|</span> <span class="kc">None</span>
+</span><span id="__span-0-8"><a id="__codelineno-0-8" name="__codelineno-0-8" href="#__codelineno-0-8"></a>    <span class="p">)</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+</span><span id="__span-0-9"><a id="__codelineno-0-9" name="__codelineno-0-9" href="#__codelineno-0-9"></a>    <span class="n">max_concurrent_downloads</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">10</span><span class="p">,</span>
+</span><span id="__span-0-10"><a id="__codelineno-0-10" name="__codelineno-0-10" href="#__codelineno-0-10"></a><span class="p">)</span>
 </span></code></pre></div>
 
     <div class="doc doc-contents ">
@@ -1945,7 +2063,7 @@ from GRAND_CHALLENGE_AUTHORIZATION environment variable.</p>
 )
           –
           <div class="doc-md-description">
-            <p>Base URL for the API, by default "https://grand-challenge.org/api/v1/".</p>
+            <p>Base URL for the API.</p>
           </div>
         </li>
         <li class="doc-section-item field-body">
@@ -1955,7 +2073,7 @@ from GRAND_CHALLENGE_AUTHORIZATION environment variable.</p>
 )
           –
           <div class="doc-md-description">
-            <p>Whether to verify SSL certificates, by default True.</p>
+            <p>Whether to verify SSL certificates.</p>
           </div>
         </li>
         <li class="doc-section-item field-body">
@@ -1965,18 +2083,245 @@ from GRAND_CHALLENGE_AUTHORIZATION environment variable.</p>
 )
           –
           <div class="doc-md-description">
-            <p>Request timeout in seconds, by default 60.0.</p>
+            <p>Request timeout in seconds.</p>
           </div>
         </li>
         <li class="doc-section-item field-body">
             <b><code>retry_strategy</code></b>
-              (<code><span title="callable">callable</span></code>, default:
+              (<code><span title="collections.abc.Callable">Callable</span>[[], <span title="gcapi.retries.BaseRetryStrategy">BaseRetryStrategy</span>] | None</code>, default:
                   <code>None</code>
 )
           –
           <div class="doc-md-description">
             <p>Factory function that returns a retry strategy instance. If None,
 uses SelectiveBackoffStrategy with default parameters.</p>
+          </div>
+        </li>
+        <li class="doc-section-item field-body">
+            <b><code>max_concurrent_downloads</code></b>
+              (<code><span title="int">int</span></code>, default:
+                  <code>10</code>
+)
+          –
+          <div class="doc-md-description">
+            <p>Maximum number of concurrent downloads allowed.</p>
+          </div>
+        </li>
+    </ul>
+
+
+    </div>
+
+</div>
+
+<div class="doc doc-object doc-function">
+
+
+<h2 id="gcapi.client.Client.add_case_to_archive" class="doc doc-heading">
+            <span class="doc doc-object-name doc-function-name">add_case_to_archive</span>
+
+
+<a href="#gcapi.client.Client.add_case_to_archive" class="headerlink" title="Permanent link">¤</a></h2>
+<div class="language-python doc-signature highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="nf">add_case_to_archive</span><span class="p">(</span>
+</span><span id="__span-0-2"><a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a>    <span class="o">*</span><span class="p">,</span> <span class="n">archive_slug</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">values</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="n">SocketValueSpec</span><span class="p">]</span>
+</span><span id="__span-0-3"><a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">gcapi</span><span class="o">.</span><span class="n">models</span><span class="o">.</span><span class="n">ArchiveItemPost</span>
+</span></code></pre></div>
+
+    <div class="doc doc-contents ">
+
+        <p>This function takes an archive slug and a list of socket value specs.
+It then creates a single archive item for the archive.</p>
+
+
+<details class="example" open>
+  <summary>Example</summary>
+  <div class="language-Python highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="kn">from</span><span class="w"> </span><span class="nn">gcapi</span><span class="w"> </span><span class="kn">import</span> <span class="n">SocketValueSpec</span>
+</span><span id="__span-0-2"><a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a>
+</span><span id="__span-0-3"><a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a><span class="n">client</span><span class="o">.</span><span class="n">add_case_to_archive</span><span class="p">(</span>
+</span><span id="__span-0-4"><a id="__codelineno-0-4" name="__codelineno-0-4" href="#__codelineno-0-4"></a>    <span class="n">archive_slug</span><span class="o">=</span><span class="s2">&quot;i-am-an-archive&quot;</span><span class="p">,</span>
+</span><span id="__span-0-5"><a id="__codelineno-0-5" name="__codelineno-0-5" href="#__codelineno-0-5"></a>    <span class="n">values</span><span class="o">=</span><span class="p">[</span>
+</span><span id="__span-0-6"><a id="__codelineno-0-6" name="__codelineno-0-6" href="#__codelineno-0-6"></a>        <span class="n">SocketValueSpec</span><span class="p">(</span><span class="n">socket_slug</span><span class="o">=</span><span class="s2">&quot;report&quot;</span><span class="p">,</span> <span class="n">file</span><span class="o">=</span><span class="s2">&quot;report.pdf&quot;</span><span class="p">),</span>
+</span><span id="__span-0-7"><a id="__codelineno-0-7" name="__codelineno-0-7" href="#__codelineno-0-7"></a>        <span class="n">SocketValueSpec</span><span class="p">(</span><span class="n">socket_slug</span><span class="o">=</span><span class="s2">&quot;lung-volume&quot;</span><span class="p">,</span> <span class="n">value</span><span class="o">=</span><span class="mf">1.9</span><span class="p">),</span>
+</span><span id="__span-0-8"><a id="__codelineno-0-8" name="__codelineno-0-8" href="#__codelineno-0-8"></a>    <span class="p">],</span>
+</span><span id="__span-0-9"><a id="__codelineno-0-9" name="__codelineno-0-9" href="#__codelineno-0-9"></a><span class="p">)</span>
+</span></code></pre></div>
+</details>        <details class="tip">
+<summary>Re-using existing images</summary>
+<p>Existing images on Grand Challenge can be re-used by either
+passing an API url, or an existing socket value:</p>
+<div class="language-Python highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="kn">from</span><span class="w"> </span><span class="nn">gcapi</span><span class="w"> </span><span class="kn">import</span> <span class="n">SocketValueSpec</span>
+</span><span id="__span-0-2"><a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a>
+</span><span id="__span-0-3"><a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a><span class="n">image</span> <span class="o">=</span> <span class="n">client</span><span class="o">.</span><span class="n">images</span><span class="o">.</span><span class="n">detail</span><span class="p">(</span><span class="n">pk</span><span class="o">=</span><span class="s2">&quot;ad5...&quot;</span><span class="p">)</span>
+</span><span id="__span-0-4"><a id="__codelineno-0-4" name="__codelineno-0-4" href="#__codelineno-0-4"></a><span class="n">ai</span> <span class="o">=</span> <span class="n">client</span><span class="o">.</span><span class="n">archive_items</span><span class="o">.</span><span class="n">detail</span><span class="p">(</span><span class="n">pk</span><span class="o">=</span><span class="s2">&quot;f5...&quot;</span><span class="p">)</span>
+</span><span id="__span-0-5"><a id="__codelineno-0-5" name="__codelineno-0-5" href="#__codelineno-0-5"></a><span class="n">socket_value</span> <span class="o">=</span> <span class="n">ai</span><span class="o">.</span><span class="n">values</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+</span><span id="__span-0-6"><a id="__codelineno-0-6" name="__codelineno-0-6" href="#__codelineno-0-6"></a>
+</span><span id="__span-0-7"><a id="__codelineno-0-7" name="__codelineno-0-7" href="#__codelineno-0-7"></a><span class="n">values</span> <span class="o">=</span> <span class="p">[</span>
+</span><span id="__span-0-8"><a id="__codelineno-0-8" name="__codelineno-0-8" href="#__codelineno-0-8"></a>    <span class="n">SocketValueSpec</span><span class="p">(</span><span class="n">socket_slug</span><span class="o">=</span><span class="s2">&quot;slug-0&quot;</span><span class="p">,</span> <span class="n">existing_image_api_url</span><span class="o">=</span><span class="n">image</span><span class="o">.</span><span class="n">api_url</span><span class="p">),</span>
+</span><span id="__span-0-9"><a id="__codelineno-0-9" name="__codelineno-0-9" href="#__codelineno-0-9"></a>    <span class="n">SocketValueSpec</span><span class="p">(</span><span class="n">socket_slug</span><span class="o">=</span><span class="s2">&quot;slug-1&quot;</span><span class="p">,</span> <span class="n">existing_socket_value</span><span class="o">=</span><span class="n">socket_value</span><span class="p">),</span>
+</span><span id="__span-0-10"><a id="__codelineno-0-10" name="__codelineno-0-10" href="#__codelineno-0-10"></a>    <span class="n">SocketValueSpec</span><span class="p">(</span><span class="n">socket_slug</span><span class="o">=</span><span class="s2">&quot;slug-2&quot;</span><span class="p">,</span> <span class="n">existing_image_api_url</span><span class="o">=</span><span class="n">socket_value</span><span class="o">.</span><span class="n">image</span><span class="p">),</span>
+</span><span id="__span-0-11"><a id="__codelineno-0-11" name="__codelineno-0-11" href="#__codelineno-0-11"></a><span class="p">]</span>
+</span></code></pre></div>
+</details>
+<details class="tip">
+<summary>Re-using existing socket values</summary>
+<p>Existing socket values from other archive items can be re-used by
+passing a socket value. The sockets must be the same.</p>
+<p>For instance:</p>
+<div class="language-Python highlight"><pre><span></span><code><span id="__span-1-1"><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a><span class="kn">from</span><span class="w"> </span><span class="nn">gcapi</span><span class="w"> </span><span class="kn">import</span> <span class="n">SocketValueSpec</span>
+</span><span id="__span-1-2"><a id="__codelineno-1-2" name="__codelineno-1-2" href="#__codelineno-1-2"></a>
+</span><span id="__span-1-3"><a id="__codelineno-1-3" name="__codelineno-1-3" href="#__codelineno-1-3"></a><span class="n">ai</span> <span class="o">=</span> <span class="n">client</span><span class="o">.</span><span class="n">archive_items</span><span class="o">.</span><span class="n">detail</span><span class="p">(</span><span class="n">pk</span><span class="o">=</span><span class="s2">&quot;f5...&quot;</span><span class="p">)</span>
+</span><span id="__span-1-4"><a id="__codelineno-1-4" name="__codelineno-1-4" href="#__codelineno-1-4"></a><span class="n">values</span> <span class="o">=</span> <span class="p">[</span>
+</span><span id="__span-1-5"><a id="__codelineno-1-5" name="__codelineno-1-5" href="#__codelineno-1-5"></a>    <span class="n">SocketValueSpec</span><span class="p">(</span><span class="n">socket_slug</span><span class="o">=</span><span class="s2">&quot;slug-0&quot;</span><span class="p">,</span> <span class="n">existing_socket_value</span><span class="o">=</span><span class="n">ai</span><span class="o">.</span><span class="n">values</span><span class="p">[</span><span class="mi">0</span><span class="p">]),</span>
+</span><span id="__span-1-6"><a id="__codelineno-1-6" name="__codelineno-1-6" href="#__codelineno-1-6"></a>    <span class="n">SocketValueSpec</span><span class="p">(</span><span class="n">socket_slug</span><span class="o">=</span><span class="s2">&quot;slug-1&quot;</span><span class="p">,</span> <span class="n">existing_socket_value</span><span class="o">=</span><span class="n">ai</span><span class="o">.</span><span class="n">values</span><span class="p">[</span><span class="mi">1</span><span class="p">]),</span>
+</span><span id="__span-1-7"><a id="__codelineno-1-7" name="__codelineno-1-7" href="#__codelineno-1-7"></a>    <span class="n">SocketValueSpec</span><span class="p">(</span><span class="n">socket_slug</span><span class="o">=</span><span class="s2">&quot;slug-2&quot;</span><span class="p">,</span> <span class="n">file</span><span class="o">=</span><span class="s2">&quot;some_local_file&quot;</span><span class="p">),</span>
+</span><span id="__span-1-8"><a id="__codelineno-1-8" name="__codelineno-1-8" href="#__codelineno-1-8"></a><span class="p">]</span>
+</span></code></pre></div>
+</details>
+
+
+<p><span class="doc-section-title">Parameters:</span></p>
+    <ul>
+        <li class="doc-section-item field-body">
+            <b><code>archive_slug</code></b>
+              (<code><span title="str">str</span></code>)
+          –
+          <div class="doc-md-description">
+            <p>slug for the archive (e.g. <code>"i-am-an-archive"</code>).
+You can find this readily in the URL you use to visit the archive page:
+<code>https://grand-challenge.org/archives/i-am-an-archive/</code></p>
+          </div>
+        </li>
+        <li class="doc-section-item field-body">
+            <b><code>values</code></b>
+              (<code><span title="list">list</span>[<a class="autorefs autorefs-internal" title="gcapi.create_strategies.SocketValueSpec" href="../models/#gcapi.SocketValueSpec">SocketValueSpec</a>]</code>)
+          –
+          <div class="doc-md-description">
+            <p>A list of socket value specifications.
+Each specification defines a socket slug and exactly one source
+(<code>value</code>, <code>file</code>, <code>files</code>, <code>existing_image_api_url</code>, or
+<code>existing_socket_value</code>).</p>
+          </div>
+        </li>
+    </ul>
+
+
+<p><span class="doc-section-title">Returns:</span></p>
+    <ul>
+        <li class="doc-section-item field-body">
+              <code><a class="autorefs autorefs-internal" title="ArchiveItemPost (gcapi.models.ArchiveItemPost)" href="../models/#gcapi.models.ArchiveItemPost">ArchiveItemPost</a></code>
+          –
+          <div class="doc-md-description">
+            <p>The new archive item (post) object. Note that not all values will
+be immediately available until the background processing has completed.</p>
+          </div>
+        </li>
+    </ul>
+
+
+    </div>
+
+</div>
+
+<div class="doc doc-object doc-function">
+
+
+<h2 id="gcapi.client.Client.add_case_to_reader_study" class="doc doc-heading">
+            <span class="doc doc-object-name doc-function-name">add_case_to_reader_study</span>
+
+
+<a href="#gcapi.client.Client.add_case_to_reader_study" class="headerlink" title="Permanent link">¤</a></h2>
+<div class="language-python doc-signature highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="nf">add_case_to_reader_study</span><span class="p">(</span>
+</span><span id="__span-0-2"><a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a>    <span class="o">*</span><span class="p">,</span> <span class="n">reader_study_slug</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">values</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="n">SocketValueSpec</span><span class="p">]</span>
+</span><span id="__span-0-3"><a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">gcapi</span><span class="o">.</span><span class="n">models</span><span class="o">.</span><span class="n">DisplaySetPost</span>
+</span></code></pre></div>
+
+    <div class="doc doc-contents ">
+
+        <p>This function takes a reader-study slug and a list of socket value specs.
+It then creates a single display set for the reader study.</p>
+
+
+<details class="example" open>
+  <summary>Example</summary>
+  <div class="language-Python highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="kn">from</span><span class="w"> </span><span class="nn">gcapi</span><span class="w"> </span><span class="kn">import</span> <span class="n">SocketValueSpec</span>
+</span><span id="__span-0-2"><a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a>
+</span><span id="__span-0-3"><a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a><span class="n">client</span><span class="o">.</span><span class="n">add_case_to_reader_study</span><span class="p">(</span>
+</span><span id="__span-0-4"><a id="__codelineno-0-4" name="__codelineno-0-4" href="#__codelineno-0-4"></a>    <span class="n">reader_study_slug</span><span class="o">=</span><span class="s2">&quot;i-am-a-reader-study&quot;</span><span class="p">,</span>
+</span><span id="__span-0-5"><a id="__codelineno-0-5" name="__codelineno-0-5" href="#__codelineno-0-5"></a>    <span class="n">values</span><span class="o">=</span><span class="p">[</span>
+</span><span id="__span-0-6"><a id="__codelineno-0-6" name="__codelineno-0-6" href="#__codelineno-0-6"></a>        <span class="n">SocketValueSpec</span><span class="p">(</span><span class="n">socket_slug</span><span class="o">=</span><span class="s2">&quot;report&quot;</span><span class="p">,</span> <span class="n">file</span><span class="o">=</span><span class="s2">&quot;report.pdf&quot;</span><span class="p">),</span>
+</span><span id="__span-0-7"><a id="__codelineno-0-7" name="__codelineno-0-7" href="#__codelineno-0-7"></a>        <span class="n">SocketValueSpec</span><span class="p">(</span><span class="n">socket_slug</span><span class="o">=</span><span class="s2">&quot;lung-volume&quot;</span><span class="p">,</span> <span class="n">value</span><span class="o">=</span><span class="mf">1.9</span><span class="p">),</span>
+</span><span id="__span-0-8"><a id="__codelineno-0-8" name="__codelineno-0-8" href="#__codelineno-0-8"></a>    <span class="p">],</span>
+</span><span id="__span-0-9"><a id="__codelineno-0-9" name="__codelineno-0-9" href="#__codelineno-0-9"></a><span class="p">)</span>
+</span></code></pre></div>
+</details>        <details class="tip">
+<summary>Re-using existing images</summary>
+<p>Existing images on Grand Challenge can be re-used by either
+passing an API url, or an existing socket value:</p>
+<div class="language-Python highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="kn">from</span><span class="w"> </span><span class="nn">gcapi</span><span class="w"> </span><span class="kn">import</span> <span class="n">SocketValueSpec</span>
+</span><span id="__span-0-2"><a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a>
+</span><span id="__span-0-3"><a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a>
+</span><span id="__span-0-4"><a id="__codelineno-0-4" name="__codelineno-0-4" href="#__codelineno-0-4"></a><span class="n">image</span> <span class="o">=</span> <span class="n">client</span><span class="o">.</span><span class="n">images</span><span class="o">.</span><span class="n">detail</span><span class="p">(</span><span class="n">pk</span><span class="o">=</span><span class="s2">&quot;ad5...&quot;</span><span class="p">)</span>
+</span><span id="__span-0-5"><a id="__codelineno-0-5" name="__codelineno-0-5" href="#__codelineno-0-5"></a><span class="n">ds</span> <span class="o">=</span> <span class="n">client</span><span class="o">.</span><span class="n">reader_studies</span><span class="o">.</span><span class="n">display_sets</span><span class="o">.</span><span class="n">detail</span><span class="p">(</span><span class="n">pk</span><span class="o">=</span><span class="s2">&quot;f5...&quot;</span><span class="p">)</span>
+</span><span id="__span-0-6"><a id="__codelineno-0-6" name="__codelineno-0-6" href="#__codelineno-0-6"></a><span class="n">socket_value</span> <span class="o">=</span> <span class="n">ds</span><span class="o">.</span><span class="n">values</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+</span><span id="__span-0-7"><a id="__codelineno-0-7" name="__codelineno-0-7" href="#__codelineno-0-7"></a>
+</span><span id="__span-0-8"><a id="__codelineno-0-8" name="__codelineno-0-8" href="#__codelineno-0-8"></a><span class="n">values</span> <span class="o">=</span> <span class="p">[</span>
+</span><span id="__span-0-9"><a id="__codelineno-0-9" name="__codelineno-0-9" href="#__codelineno-0-9"></a>    <span class="n">SocketValueSpec</span><span class="p">(</span><span class="n">socket_slug</span><span class="o">=</span><span class="s2">&quot;slug-0&quot;</span><span class="p">,</span> <span class="n">existing_image_api_url</span><span class="o">=</span><span class="n">image</span><span class="o">.</span><span class="n">api_url</span><span class="p">),</span>
+</span><span id="__span-0-10"><a id="__codelineno-0-10" name="__codelineno-0-10" href="#__codelineno-0-10"></a>    <span class="n">SocketValueSpec</span><span class="p">(</span><span class="n">socket_slug</span><span class="o">=</span><span class="s2">&quot;slug-1&quot;</span><span class="p">,</span> <span class="n">existing_socket_value</span><span class="o">=</span><span class="n">socket_value</span><span class="p">),</span>
+</span><span id="__span-0-11"><a id="__codelineno-0-11" name="__codelineno-0-11" href="#__codelineno-0-11"></a>    <span class="n">SocketValueSpec</span><span class="p">(</span><span class="n">socket_slug</span><span class="o">=</span><span class="s2">&quot;slug-2&quot;</span><span class="p">,</span> <span class="n">existing_image_api_url</span><span class="o">=</span><span class="n">socket_value</span><span class="o">.</span><span class="n">image</span><span class="p">),</span>
+</span><span id="__span-0-12"><a id="__codelineno-0-12" name="__codelineno-0-12" href="#__codelineno-0-12"></a><span class="p">]</span>
+</span></code></pre></div>
+</details>
+<details class="tip">
+<summary>Re-using existing socket values</summary>
+<p>Existing socket values from other display sets can be re-used by
+passing a socket value. The sockets must be the same.</p>
+<p>For instance:</p>
+<div class="language-Python highlight"><pre><span></span><code><span id="__span-1-1"><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a><span class="kn">from</span><span class="w"> </span><span class="nn">gcapi</span><span class="w"> </span><span class="kn">import</span> <span class="n">SocketValueSpec</span>
+</span><span id="__span-1-2"><a id="__codelineno-1-2" name="__codelineno-1-2" href="#__codelineno-1-2"></a>
+</span><span id="__span-1-3"><a id="__codelineno-1-3" name="__codelineno-1-3" href="#__codelineno-1-3"></a>
+</span><span id="__span-1-4"><a id="__codelineno-1-4" name="__codelineno-1-4" href="#__codelineno-1-4"></a><span class="n">ds</span> <span class="o">=</span> <span class="n">client</span><span class="o">.</span><span class="n">reader_studies</span><span class="o">.</span><span class="n">display_sets</span><span class="o">.</span><span class="n">detail</span><span class="p">(</span><span class="n">pk</span><span class="o">=</span><span class="s2">&quot;f5...&quot;</span><span class="p">)</span>
+</span><span id="__span-1-5"><a id="__codelineno-1-5" name="__codelineno-1-5" href="#__codelineno-1-5"></a><span class="n">values</span> <span class="o">=</span> <span class="p">[</span>
+</span><span id="__span-1-6"><a id="__codelineno-1-6" name="__codelineno-1-6" href="#__codelineno-1-6"></a>    <span class="n">SocketValueSpec</span><span class="p">(</span><span class="n">socket_slug</span><span class="o">=</span><span class="s2">&quot;slug-0&quot;</span><span class="p">,</span> <span class="n">existing_socket_value</span><span class="o">=</span><span class="n">ds</span><span class="o">.</span><span class="n">values</span><span class="p">[</span><span class="mi">0</span><span class="p">]),</span>
+</span><span id="__span-1-7"><a id="__codelineno-1-7" name="__codelineno-1-7" href="#__codelineno-1-7"></a>    <span class="n">SocketValueSpec</span><span class="p">(</span><span class="n">socket_slug</span><span class="o">=</span><span class="s2">&quot;slug-1&quot;</span><span class="p">,</span> <span class="n">existing_socket_value</span><span class="o">=</span><span class="n">ds</span><span class="o">.</span><span class="n">values</span><span class="p">[</span><span class="mi">1</span><span class="p">]),</span>
+</span><span id="__span-1-8"><a id="__codelineno-1-8" name="__codelineno-1-8" href="#__codelineno-1-8"></a><span class="p">]</span>
+</span></code></pre></div>
+</details>
+
+
+<p><span class="doc-section-title">Parameters:</span></p>
+    <ul>
+        <li class="doc-section-item field-body">
+            <b><code>reader_study_slug</code></b>
+              (<code><span title="str">str</span></code>)
+          –
+          <div class="doc-md-description">
+            <p>slug for the reader study (e.g. <code>"i-am-a-reader-study"</code>).
+You can find this readily in the URL you use to visit the reader-study page:
+<code>https://grand-challenge.org/reader-studies/i-am-a-reader-study/</code></p>
+          </div>
+        </li>
+        <li class="doc-section-item field-body">
+            <b><code>values</code></b>
+              (<code><span title="list">list</span>[<a class="autorefs autorefs-internal" title="gcapi.create_strategies.SocketValueSpec" href="../models/#gcapi.SocketValueSpec">SocketValueSpec</a>]</code>)
+          –
+          <div class="doc-md-description">
+            <p>A list of socket value specifications.
+Each specification defines a socket slug and exactly one source
+(<code>value</code>, <code>file</code>, <code>files</code>, <code>existing_image_api_url</code>, or
+<code>existing_socket_value</code>).</p>
+          </div>
+        </li>
+    </ul>
+
+
+<p><span class="doc-section-title">Returns:</span></p>
+    <ul>
+        <li class="doc-section-item field-body">
+              <code><a class="autorefs autorefs-internal" title="DisplaySetPost (gcapi.models.DisplaySetPost)" href="../models/#gcapi.models.DisplaySetPost">DisplaySetPost</a></code>
+          –
+          <div class="doc-md-description">
+            <p>The newly created display set (post) object. Note that not all values will
+be immediately available until the background processing has completed.</p>
           </div>
         </li>
     </ul>
@@ -1994,97 +2339,15 @@ uses SelectiveBackoffStrategy with default parameters.</p>
 
 
 <a href="#gcapi.client.Client.add_cases_to_archive" class="headerlink" title="Permanent link">¤</a></h2>
-<div class="language-python doc-signature highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="nf">add_cases_to_archive</span><span class="p">(</span>
-</span><span id="__span-0-2"><a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a>    <span class="o">*</span><span class="p">,</span>
-</span><span id="__span-0-3"><a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a>    <span class="n">archive</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Archive</span><span class="p">],</span>
-</span><span id="__span-0-4"><a id="__codelineno-0-4" name="__codelineno-0-4" href="#__codelineno-0-4"></a>    <span class="n">archive_items</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="n">SocketValueSetDescription</span><span class="p">]</span>
-</span><span id="__span-0-5"><a id="__codelineno-0-5" name="__codelineno-0-5" href="#__codelineno-0-5"></a><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">list</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span>
+<div class="language-python doc-signature highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="nf">add_cases_to_archive</span><span class="p">(</span><span class="o">*</span><span class="n">_</span><span class="p">,</span> <span class="o">**</span><span class="n">__</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Any</span>
 </span></code></pre></div>
 
     <div class="doc doc-contents ">
 
-        <p>This function takes an archive slug or model and a list of archive item
-descriptions and creates the archive item to be used on the platform.</p>
-<details class="tip">
-<summary>Re-using existing images</summary>
-<p>Existing images on Grand Challenge can be re-used by either
-passing an API url, or a socket value (archive item):</p>
-<div class="language-Python highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="n">image</span> <span class="o">=</span> <span class="n">client</span><span class="o">.</span><span class="n">images</span><span class="o">.</span><span class="n">detail</span><span class="p">(</span><span class="n">pk</span><span class="o">=</span><span class="s2">&quot;ad5...&quot;</span><span class="p">)</span>
-</span><span id="__span-0-2"><a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a><span class="n">ai</span> <span class="o">=</span> <span class="n">client</span><span class="o">.</span><span class="n">archive_items</span><span class="o">.</span><span class="n">detail</span><span class="p">(</span><span class="n">pk</span><span class="o">=</span><span class="s2">&quot;f5...&quot;</span><span class="p">)</span>
-</span><span id="__span-0-3"><a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a><span class="n">socket_value</span> <span class="o">=</span> <span class="n">ai</span><span class="o">.</span><span class="n">values</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
-</span><span id="__span-0-4"><a id="__codelineno-0-4" name="__codelineno-0-4" href="#__codelineno-0-4"></a>
-</span><span id="__span-0-5"><a id="__codelineno-0-5" name="__codelineno-0-5" href="#__codelineno-0-5"></a><span class="n">archive_items</span> <span class="o">=</span> <span class="p">[</span>
-</span><span id="__span-0-6"><a id="__codelineno-0-6" name="__codelineno-0-6" href="#__codelineno-0-6"></a>    <span class="p">{</span>
-</span><span id="__span-0-7"><a id="__codelineno-0-7" name="__codelineno-0-7" href="#__codelineno-0-7"></a>        <span class="s2">&quot;slug_0&quot;</span><span class="p">:</span> <span class="n">image</span><span class="o">.</span><span class="n">api_url</span><span class="p">,</span>
-</span><span id="__span-0-8"><a id="__codelineno-0-8" name="__codelineno-0-8" href="#__codelineno-0-8"></a>        <span class="s2">&quot;slug_1&quot;</span><span class="p">:</span> <span class="n">socket_value</span><span class="p">,</span>
-</span><span id="__span-0-9"><a id="__codelineno-0-9" name="__codelineno-0-9" href="#__codelineno-0-9"></a>        <span class="s2">&quot;slug_2&quot;</span><span class="p">:</span> <span class="n">socket_value</span><span class="o">.</span><span class="n">image</span><span class="p">,</span>
-</span><span id="__span-0-10"><a id="__codelineno-0-10" name="__codelineno-0-10" href="#__codelineno-0-10"></a>    <span class="p">}</span>
-</span><span id="__span-0-11"><a id="__codelineno-0-11" name="__codelineno-0-11" href="#__codelineno-0-11"></a><span class="p">]</span>
-</span></code></pre></div>
-<p>One can also provide a same-socket socket value:</p>
-<div class="language-Python highlight"><pre><span></span><code><span id="__span-1-1"><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a><span class="n">ai</span> <span class="o">=</span> <span class="n">client</span><span class="o">.</span><span class="n">archive_items</span><span class="o">.</span><span class="n">detail</span><span class="p">(</span><span class="n">pk</span><span class="o">=</span><span class="s2">&quot;f5...&quot;</span><span class="p">)</span>
-</span><span id="__span-1-2"><a id="__codelineno-1-2" name="__codelineno-1-2" href="#__codelineno-1-2"></a><span class="n">archive_items</span> <span class="o">=</span> <span class="p">[</span>
-</span><span id="__span-1-3"><a id="__codelineno-1-3" name="__codelineno-1-3" href="#__codelineno-1-3"></a>    <span class="p">{</span>
-</span><span id="__span-1-4"><a id="__codelineno-1-4" name="__codelineno-1-4" href="#__codelineno-1-4"></a>        <span class="s2">&quot;slug_0&quot;</span><span class="p">:</span> <span class="n">ai</span><span class="o">.</span><span class="n">values</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span>
-</span><span id="__span-1-5"><a id="__codelineno-1-5" name="__codelineno-1-5" href="#__codelineno-1-5"></a>        <span class="s2">&quot;slug_1&quot;</span><span class="p">:</span> <span class="n">ai</span><span class="o">.</span><span class="n">values</span><span class="p">[</span><span class="mi">1</span><span class="p">],</span>
-</span><span id="__span-1-6"><a id="__codelineno-1-6" name="__codelineno-1-6" href="#__codelineno-1-6"></a>        <span class="s2">&quot;slug_2&quot;</span><span class="p">:</span> <span class="s2">&quot;some_local_file&quot;</span><span class="p">,</span>
-</span><span id="__span-1-7"><a id="__codelineno-1-7" name="__codelineno-1-7" href="#__codelineno-1-7"></a>    <span class="p">},</span>
-</span><span id="__span-1-8"><a id="__codelineno-1-8" name="__codelineno-1-8" href="#__codelineno-1-8"></a><span class="p">]</span>
-</span></code></pre></div>
-</details>
-
-
-<p><span class="doc-section-title">Parameters:</span></p>
-    <ul>
-        <li class="doc-section-item field-body">
-            <b><code>archive</code></b>
-              (<code><span title="typing.Union">Union</span>[<span title="str">str</span>, <a class="autorefs autorefs-internal" title="Archive (gcapi.models.Archive)" href="../models/#gcapi.models.Archive">Archive</a>]</code>)
-          –
-          <div class="doc-md-description">
-            <p>slug for the archive (e.g. <code>"i-am-an-archive"</code>).
-You can find this readily in the URL you use to visit the archive page:
-<code>https://grand-challenge.org/archives/i-am-an-archive/</code></p>
-          </div>
-        </li>
-        <li class="doc-section-item field-body">
-            <b><code>archive_items</code></b>
-              (<code><span title="list">list</span>[<span title="gcapi.typing.SocketValueSetDescription">SocketValueSetDescription</span>]</code>)
-          –
-          <div class="doc-md-description">
-            <p>The format for the descriptions of
-archive items are as follows:</p>
-<div class="language-Python highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="p">[</span>
-</span><span id="__span-0-2"><a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a>    <span class="p">{</span>
-</span><span id="__span-0-3"><a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a>        <span class="s2">&quot;slug_0&quot;</span><span class="p">:</span> <span class="p">[</span><span class="s2">&quot;filepath_0&quot;</span><span class="p">,</span> <span class="o">...</span><span class="p">],</span>
-</span><span id="__span-0-4"><a id="__codelineno-0-4" name="__codelineno-0-4" href="#__codelineno-0-4"></a>        <span class="s2">&quot;slug_1&quot;</span><span class="p">:</span> <span class="s2">&quot;filepath_0&quot;</span><span class="p">,</span>
-</span><span id="__span-0-5"><a id="__codelineno-0-5" name="__codelineno-0-5" href="#__codelineno-0-5"></a>        <span class="s2">&quot;slug_2&quot;</span><span class="p">:</span> <span class="n">pathlib</span><span class="o">.</span><span class="n">Path</span><span class="p">(</span><span class="s2">&quot;filepath_0&quot;</span><span class="p">),</span>
-</span><span id="__span-0-6"><a id="__codelineno-0-6" name="__codelineno-0-6" href="#__codelineno-0-6"></a>        <span class="o">...</span>
-</span><span id="__span-0-7"><a id="__codelineno-0-7" name="__codelineno-0-7" href="#__codelineno-0-7"></a>        <span class="s2">&quot;slug_n&quot;</span><span class="p">:</span> <span class="p">{</span><span class="s2">&quot;json&quot;</span><span class="p">:</span> <span class="s2">&quot;value&quot;</span><span class="p">}</span>
-</span><span id="__span-0-8"><a id="__codelineno-0-8" name="__codelineno-0-8" href="#__codelineno-0-8"></a>
-</span><span id="__span-0-9"><a id="__codelineno-0-9" name="__codelineno-0-9" href="#__codelineno-0-9"></a>    <span class="p">},</span>
-</span><span id="__span-0-10"><a id="__codelineno-0-10" name="__codelineno-0-10" href="#__codelineno-0-10"></a>    <span class="o">...</span>
-</span><span id="__span-0-11"><a id="__codelineno-0-11" name="__codelineno-0-11" href="#__codelineno-0-11"></a><span class="p">]</span>
-</span></code></pre></div>
-<p>Where the file paths are local paths to the files making up a
-single image. For file-kind sockets the file path can only
-reference a single file. For json-kind sockets any value that
-is valid for the sockets can directly be passed, or a filepath
-to a file that contain the value can be provided.</p>
-          </div>
-        </li>
-    </ul>
-
-
-<p><span class="doc-section-title">Returns:</span></p>
-    <ul>
-        <li class="doc-section-item field-body">
-              <code><span title="list">list</span>[<span title="str">str</span>]</code>
-          –
-          <div class="doc-md-description">
-            <p>The pks of the newly created archive items.</p>
-          </div>
-        </li>
-    </ul>
+        <div class="admonition failure deprecated">
+<p class="admonition-title">Failure</p>
+<p>Use <code>add_case_to_archive</code> instead. This method will be removed in a future version.</p>
+</div>
 
 
     </div>
@@ -2099,95 +2362,62 @@ to a file that contain the value can be provided.</p>
 
 
 <a href="#gcapi.client.Client.add_cases_to_reader_study" class="headerlink" title="Permanent link">¤</a></h2>
-<div class="language-python doc-signature highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="nf">add_cases_to_reader_study</span><span class="p">(</span>
-</span><span id="__span-0-2"><a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a>    <span class="o">*</span><span class="p">,</span>
-</span><span id="__span-0-3"><a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a>    <span class="n">reader_study</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">ReaderStudy</span><span class="p">],</span>
-</span><span id="__span-0-4"><a id="__codelineno-0-4" name="__codelineno-0-4" href="#__codelineno-0-4"></a>    <span class="n">display_sets</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="n">SocketValueSetDescription</span><span class="p">]</span>
-</span><span id="__span-0-5"><a id="__codelineno-0-5" name="__codelineno-0-5" href="#__codelineno-0-5"></a><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">list</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span>
+<div class="language-python doc-signature highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="nf">add_cases_to_reader_study</span><span class="p">(</span><span class="o">*</span><span class="n">_</span><span class="p">,</span> <span class="o">**</span><span class="n">__</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Any</span>
 </span></code></pre></div>
 
     <div class="doc doc-contents ">
 
-        <p>This function takes an reader-study slug or model and a list of display-set
-descriptions. It then creates the display-sets for the reader study.</p>
-<details class="tip">
-<summary>Re-using existing images</summary>
-<p>Existing images on Grand Challenge can be re-used by either
-passing an API url, or a socket value (display set):</p>
-<div class="language-Python highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a>    <span class="n">image</span> <span class="o">=</span> <span class="n">client</span><span class="o">.</span><span class="n">images</span><span class="o">.</span><span class="n">detail</span><span class="p">(</span><span class="n">pk</span><span class="o">=</span><span class="s2">&quot;ad5...&quot;</span><span class="p">)</span>
-</span><span id="__span-0-2"><a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a>    <span class="n">ds</span> <span class="o">=</span> <span class="n">client</span><span class="o">.</span><span class="n">reader_studies</span><span class="o">.</span><span class="n">display_sets</span><span class="o">.</span><span class="n">detail</span><span class="p">(</span><span class="n">pk</span><span class="o">=</span><span class="s2">&quot;f5...&quot;</span><span class="p">)</span>
-</span><span id="__span-0-3"><a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a>    <span class="n">socket_value</span> <span class="o">=</span> <span class="n">ds</span><span class="o">.</span><span class="n">values</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
-</span><span id="__span-0-4"><a id="__codelineno-0-4" name="__codelineno-0-4" href="#__codelineno-0-4"></a>
-</span><span id="__span-0-5"><a id="__codelineno-0-5" name="__codelineno-0-5" href="#__codelineno-0-5"></a>    <span class="n">display_sets</span> <span class="o">=</span> <span class="p">[</span>
-</span><span id="__span-0-6"><a id="__codelineno-0-6" name="__codelineno-0-6" href="#__codelineno-0-6"></a>        <span class="p">{</span>
-</span><span id="__span-0-7"><a id="__codelineno-0-7" name="__codelineno-0-7" href="#__codelineno-0-7"></a>            <span class="s2">&quot;slug_0&quot;</span><span class="p">:</span> <span class="n">image</span><span class="o">.</span><span class="n">api_url</span><span class="p">,</span>
-</span><span id="__span-0-8"><a id="__codelineno-0-8" name="__codelineno-0-8" href="#__codelineno-0-8"></a>            <span class="s2">&quot;slug_1&quot;</span><span class="p">:</span> <span class="n">socket_value</span><span class="p">,</span>
-</span><span id="__span-0-9"><a id="__codelineno-0-9" name="__codelineno-0-9" href="#__codelineno-0-9"></a>            <span class="s2">&quot;slug_2&quot;</span><span class="p">:</span> <span class="n">socket_value</span><span class="o">.</span><span class="n">image</span><span class="p">,</span>
-</span><span id="__span-0-10"><a id="__codelineno-0-10" name="__codelineno-0-10" href="#__codelineno-0-10"></a>        <span class="p">}</span>
-</span><span id="__span-0-11"><a id="__codelineno-0-11" name="__codelineno-0-11" href="#__codelineno-0-11"></a>    <span class="p">]</span>
+        <div class="admonition failure deprecated">
+<p class="admonition-title">Failure</p>
+<p>Use <code>add_case_to_reader_study</code> instead. This method will be removed in a future version.</p>
+</div>
+
+
+    </div>
+
+</div>
+
+<div class="doc doc-object doc-function">
+
+
+<h2 id="gcapi.client.Client.download_socket_value" class="doc doc-heading">
+            <span class="doc doc-object-name doc-function-name">download_socket_value</span>
+
+
+<a href="#gcapi.client.Client.download_socket_value" class="headerlink" title="Permanent link">¤</a></h2>
+<div class="language-python doc-signature highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="nf">download_socket_value</span><span class="p">(</span>
+</span><span id="__span-0-2"><a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a>    <span class="n">value</span><span class="p">:</span> <span class="n">HyperlinkedComponentInterfaceValue</span><span class="p">,</span>
+</span><span id="__span-0-3"><a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a>    <span class="o">*</span><span class="p">,</span>
+</span><span id="__span-0-4"><a id="__codelineno-0-4" name="__codelineno-0-4" href="#__codelineno-0-4"></a>    <span class="n">output_directory</span><span class="p">:</span> <span class="n">Path</span>
+</span><span id="__span-0-5"><a id="__codelineno-0-5" name="__codelineno-0-5" href="#__codelineno-0-5"></a><span class="p">)</span>
 </span></code></pre></div>
-<p>One can also provide a same-socket socket value:</p>
-<div class="language-Python highlight"><pre><span></span><code><span id="__span-1-1"><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a><span class="n">ds</span> <span class="o">=</span> <span class="n">client</span><span class="o">.</span><span class="n">reader_studies</span><span class="o">.</span><span class="n">display_sets</span><span class="o">.</span><span class="n">detail</span><span class="p">(</span><span class="n">pk</span><span class="o">=</span><span class="s2">&quot;f5...&quot;</span><span class="p">)</span>
-</span><span id="__span-1-2"><a id="__codelineno-1-2" name="__codelineno-1-2" href="#__codelineno-1-2"></a><span class="n">display_sets</span> <span class="o">=</span> <span class="p">[</span>
-</span><span id="__span-1-3"><a id="__codelineno-1-3" name="__codelineno-1-3" href="#__codelineno-1-3"></a>    <span class="p">{</span>
-</span><span id="__span-1-4"><a id="__codelineno-1-4" name="__codelineno-1-4" href="#__codelineno-1-4"></a>        <span class="s2">&quot;slug_0&quot;</span><span class="p">:</span> <span class="n">ds</span><span class="o">.</span><span class="n">values</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span>
-</span><span id="__span-1-5"><a id="__codelineno-1-5" name="__codelineno-1-5" href="#__codelineno-1-5"></a>        <span class="s2">&quot;slug_1&quot;</span><span class="p">:</span> <span class="n">ds</span><span class="o">.</span><span class="n">values</span><span class="p">[</span><span class="mi">1</span><span class="p">],</span>
-</span><span id="__span-1-6"><a id="__codelineno-1-6" name="__codelineno-1-6" href="#__codelineno-1-6"></a>        <span class="s2">&quot;slug_2&quot;</span><span class="p">:</span> <span class="s2">&quot;some_local_file&quot;</span><span class="p">,</span>
-</span><span id="__span-1-7"><a id="__codelineno-1-7" name="__codelineno-1-7" href="#__codelineno-1-7"></a>    <span class="p">},</span>
-</span><span id="__span-1-8"><a id="__codelineno-1-8" name="__codelineno-1-8" href="#__codelineno-1-8"></a><span class="p">]</span>
-</span></code></pre></div>
-</details>
+
+    <div class="doc doc-contents ">
+
+        <p>Download a socket value to the specified output directory.</p>
+<p>Uses the socket's relative path to determine the filename. The relative
+path is fixed and unique per socket, so downloading multiple different values
+will not overwrite each other.</p>
+<p>In addition, if the file to be downloaded already exists in the output
+directory, a FileExistsError is raised to prevent overwriting existing files.</p>
 
 
 <p><span class="doc-section-title">Parameters:</span></p>
     <ul>
         <li class="doc-section-item field-body">
-            <b><code>reader_study</code></b>
-              (<code><span title="typing.Union">Union</span>[<span title="str">str</span>, <a class="autorefs autorefs-internal" title="ReaderStudy (gcapi.models.ReaderStudy)" href="../models/#gcapi.models.ReaderStudy">ReaderStudy</a>]</code>)
+            <b><code>value</code></b>
+              (<code><a class="autorefs autorefs-internal" title="HyperlinkedComponentInterfaceValue (gcapi.models.HyperlinkedComponentInterfaceValue)" href="../models/#gcapi.models.HyperlinkedComponentInterfaceValue">HyperlinkedComponentInterfaceValue</a></code>)
           –
           <div class="doc-md-description">
-            <p>slug for the reader
-study (e.g. <code>"i-am-a-reader-study"</code>). You can find this readily in the
-URL you use to visit the reader-study page:
-<code>https://grand-challenge.org/reader-studies/i-am-a-reader-study/</code></p>
+            <p>The socket value to download.</p>
           </div>
         </li>
         <li class="doc-section-item field-body">
-            <b><code>display_sets</code></b>
-              (<code><span title="list">list</span>[<span title="gcapi.typing.SocketValueSetDescription">SocketValueSetDescription</span>]</code>)
+            <b><code>output_directory</code></b>
+              (<code><span title="pathlib.Path">Path</span></code>)
           –
           <div class="doc-md-description">
-            <p>The format for the
-descriptions of display sets are as follows:</p>
-<div class="language-Python highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="p">[</span>
-</span><span id="__span-0-2"><a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a>    <span class="p">{</span>
-</span><span id="__span-0-3"><a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a>        <span class="s2">&quot;slug_0&quot;</span><span class="p">:</span> <span class="p">[</span><span class="s2">&quot;filepath_0&quot;</span><span class="p">,</span> <span class="o">...</span><span class="p">],</span>
-</span><span id="__span-0-4"><a id="__codelineno-0-4" name="__codelineno-0-4" href="#__codelineno-0-4"></a>        <span class="s2">&quot;slug_1&quot;</span><span class="p">:</span> <span class="s2">&quot;filepath_0&quot;</span><span class="p">,</span>
-</span><span id="__span-0-5"><a id="__codelineno-0-5" name="__codelineno-0-5" href="#__codelineno-0-5"></a>        <span class="s2">&quot;slug_2&quot;</span><span class="p">:</span> <span class="n">pathlib</span><span class="o">.</span><span class="n">Path</span><span class="p">(</span><span class="s2">&quot;filepath_0&quot;</span><span class="p">),</span>
-</span><span id="__span-0-6"><a id="__codelineno-0-6" name="__codelineno-0-6" href="#__codelineno-0-6"></a>        <span class="o">...</span>
-</span><span id="__span-0-7"><a id="__codelineno-0-7" name="__codelineno-0-7" href="#__codelineno-0-7"></a>        <span class="s2">&quot;slug_n&quot;</span><span class="p">:</span> <span class="p">{</span><span class="s2">&quot;json&quot;</span><span class="p">:</span> <span class="s2">&quot;value&quot;</span><span class="p">}</span>
-</span><span id="__span-0-8"><a id="__codelineno-0-8" name="__codelineno-0-8" href="#__codelineno-0-8"></a>
-</span><span id="__span-0-9"><a id="__codelineno-0-9" name="__codelineno-0-9" href="#__codelineno-0-9"></a>    <span class="p">},</span>
-</span><span id="__span-0-10"><a id="__codelineno-0-10" name="__codelineno-0-10" href="#__codelineno-0-10"></a>    <span class="o">...</span>
-</span><span id="__span-0-11"><a id="__codelineno-0-11" name="__codelineno-0-11" href="#__codelineno-0-11"></a><span class="p">]</span>
-</span></code></pre></div>
-<p>Where the file paths are local paths to the files making up a
-single image. For file-kind sockets the file path can only
-reference a single file. For json-kind sockets any value that
-is valid for the sockets can directly be passed, or a filepath
-to a file that contain the value can be provided.</p>
-          </div>
-        </li>
-    </ul>
-
-
-<p><span class="doc-section-title">Returns:</span></p>
-    <ul>
-        <li class="doc-section-item field-body">
-              <code><span title="list">list</span>[<span title="str">str</span>]</code>
-          –
-          <div class="doc-md-description">
-            <p>The pks of the newly created display sets.</p>
+            <p>The directory to download the value into.</p>
           </div>
         </li>
     </ul>
@@ -2205,11 +2435,32 @@ to a file that contain the value can be provided.</p>
 
 
 <a href="#gcapi.client.Client.run_external_job" class="headerlink" title="Permanent link">¤</a></h2>
-<div class="language-python doc-signature highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="nf">run_external_job</span><span class="p">(</span>
-</span><span id="__span-0-2"><a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a>    <span class="o">*</span><span class="p">,</span>
-</span><span id="__span-0-3"><a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a>    <span class="n">algorithm</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Algorithm</span><span class="p">],</span>
-</span><span id="__span-0-4"><a id="__codelineno-0-4" name="__codelineno-0-4" href="#__codelineno-0-4"></a>    <span class="n">inputs</span><span class="p">:</span> <span class="n">SocketValueSetDescription</span>
-</span><span id="__span-0-5"><a id="__codelineno-0-5" name="__codelineno-0-5" href="#__codelineno-0-5"></a><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">gcapi</span><span class="o">.</span><span class="n">models</span><span class="o">.</span><span class="n">JobPost</span>
+<div class="language-python doc-signature highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="nf">run_external_job</span><span class="p">(</span><span class="o">*</span><span class="n">_</span><span class="p">,</span> <span class="o">**</span><span class="n">__</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Any</span>
+</span></code></pre></div>
+
+    <div class="doc doc-contents ">
+
+        <div class="admonition failure deprecated">
+<p class="admonition-title">Failure</p>
+<p>Use <code>start_algorithm_job</code> instead. This method will be removed in a future version.</p>
+</div>
+
+
+    </div>
+
+</div>
+
+<div class="doc doc-object doc-function">
+
+
+<h2 id="gcapi.client.Client.start_algorithm_job" class="doc doc-heading">
+            <span class="doc doc-object-name doc-function-name">start_algorithm_job</span>
+
+
+<a href="#gcapi.client.Client.start_algorithm_job" class="headerlink" title="Permanent link">¤</a></h2>
+<div class="language-python doc-signature highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="nf">start_algorithm_job</span><span class="p">(</span>
+</span><span id="__span-0-2"><a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a>    <span class="o">*</span><span class="p">,</span> <span class="n">algorithm_slug</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">inputs</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="n">SocketValueSpec</span><span class="p">]</span>
+</span><span id="__span-0-3"><a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">gcapi</span><span class="o">.</span><span class="n">models</span><span class="o">.</span><span class="n">JobPost</span>
 </span></code></pre></div>
 
     <div class="doc doc-contents ">
@@ -2219,36 +2470,39 @@ to a file that contain the value can be provided.</p>
 <summary>Getting the interfaces of an algorithm</summary>
 <p>You can get the interfaces (i.e. all possible socket sets) of
 an algorithm by calling, and inspecting the .interface of the
-result of:
+result of:</p>
 <div class="language-Python highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="n">client</span><span class="o">.</span><span class="n">algorithms</span><span class="o">.</span><span class="n">detail</span><span class="p">(</span><span class="n">slug</span><span class="o">=</span><span class="s2">&quot;corads-ai&quot;</span><span class="p">)</span>
-</span></code></pre></div></p>
+</span></code></pre></div>
 </details>
 <details class="tip">
 <summary>Re-using existing images</summary>
 <p>Existing images on Grand Challenge can be re-used by either
-passing an API url, or a socket value:</p>
-<div class="language-Python highlight"><pre><span></span><code><span id="__span-1-1"><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a><span class="n">image</span> <span class="o">=</span> <span class="n">client</span><span class="o">.</span><span class="n">images</span><span class="o">.</span><span class="n">detail</span><span class="p">(</span><span class="n">pk</span><span class="o">=</span><span class="s2">&quot;ad5...&quot;</span><span class="p">)</span>
-</span><span id="__span-1-2"><a id="__codelineno-1-2" name="__codelineno-1-2" href="#__codelineno-1-2"></a><span class="c1"># Alternatively, you can also use:</span>
-</span><span id="__span-1-3"><a id="__codelineno-1-3" name="__codelineno-1-3" href="#__codelineno-1-3"></a><span class="n">ai</span> <span class="o">=</span> <span class="n">client</span><span class="o">.</span><span class="n">archive_items</span><span class="o">.</span><span class="n">detail</span><span class="p">(</span><span class="n">pk</span><span class="o">=</span><span class="s2">&quot;f5...&quot;</span><span class="p">)</span>
-</span><span id="__span-1-4"><a id="__codelineno-1-4" name="__codelineno-1-4" href="#__codelineno-1-4"></a><span class="n">socket_value</span> <span class="o">=</span> <span class="n">ai</span><span class="o">.</span><span class="n">values</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
-</span><span id="__span-1-5"><a id="__codelineno-1-5" name="__codelineno-1-5" href="#__codelineno-1-5"></a>
-</span><span id="__span-1-6"><a id="__codelineno-1-6" name="__codelineno-1-6" href="#__codelineno-1-6"></a><span class="n">archive_items</span> <span class="o">=</span> <span class="p">[</span>
-</span><span id="__span-1-7"><a id="__codelineno-1-7" name="__codelineno-1-7" href="#__codelineno-1-7"></a>    <span class="p">{</span>
-</span><span id="__span-1-8"><a id="__codelineno-1-8" name="__codelineno-1-8" href="#__codelineno-1-8"></a>        <span class="s2">&quot;slug_0&quot;</span><span class="p">:</span> <span class="n">image</span><span class="o">.</span><span class="n">api_url</span><span class="p">,</span>
-</span><span id="__span-1-9"><a id="__codelineno-1-9" name="__codelineno-1-9" href="#__codelineno-1-9"></a>        <span class="s2">&quot;slug_1&quot;</span><span class="p">:</span> <span class="n">socket_value</span><span class="p">,</span>
-</span><span id="__span-1-10"><a id="__codelineno-1-10" name="__codelineno-1-10" href="#__codelineno-1-10"></a>        <span class="s2">&quot;slug_2&quot;</span><span class="p">:</span> <span class="n">socket_value</span><span class="o">.</span><span class="n">image</span><span class="o">.</span><span class="n">api_url</span><span class="p">,</span>
-</span><span id="__span-1-11"><a id="__codelineno-1-11" name="__codelineno-1-11" href="#__codelineno-1-11"></a>    <span class="p">}</span>
-</span><span id="__span-1-12"><a id="__codelineno-1-12" name="__codelineno-1-12" href="#__codelineno-1-12"></a><span class="p">]</span>
+passing an API url, or an existing socket value:</p>
+<div class="language-Python highlight"><pre><span></span><code><span id="__span-1-1"><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a><span class="kn">from</span><span class="w"> </span><span class="nn">gcapi</span><span class="w"> </span><span class="kn">import</span> <span class="n">SocketValueSpec</span>
+</span><span id="__span-1-2"><a id="__codelineno-1-2" name="__codelineno-1-2" href="#__codelineno-1-2"></a>
+</span><span id="__span-1-3"><a id="__codelineno-1-3" name="__codelineno-1-3" href="#__codelineno-1-3"></a><span class="n">image</span> <span class="o">=</span> <span class="n">client</span><span class="o">.</span><span class="n">images</span><span class="o">.</span><span class="n">detail</span><span class="p">(</span><span class="n">pk</span><span class="o">=</span><span class="s2">&quot;ad5...&quot;</span><span class="p">)</span>
+</span><span id="__span-1-4"><a id="__codelineno-1-4" name="__codelineno-1-4" href="#__codelineno-1-4"></a><span class="n">ds</span> <span class="o">=</span> <span class="n">client</span><span class="o">.</span><span class="n">reader_studies</span><span class="o">.</span><span class="n">display_sets</span><span class="o">.</span><span class="n">detail</span><span class="p">(</span><span class="n">pk</span><span class="o">=</span><span class="s2">&quot;f5...&quot;</span><span class="p">)</span>
+</span><span id="__span-1-5"><a id="__codelineno-1-5" name="__codelineno-1-5" href="#__codelineno-1-5"></a><span class="n">socket_value</span> <span class="o">=</span> <span class="n">ds</span><span class="o">.</span><span class="n">values</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+</span><span id="__span-1-6"><a id="__codelineno-1-6" name="__codelineno-1-6" href="#__codelineno-1-6"></a>
+</span><span id="__span-1-7"><a id="__codelineno-1-7" name="__codelineno-1-7" href="#__codelineno-1-7"></a><span class="n">inputs</span> <span class="o">=</span> <span class="p">[</span>
+</span><span id="__span-1-8"><a id="__codelineno-1-8" name="__codelineno-1-8" href="#__codelineno-1-8"></a>    <span class="n">SocketValueSpec</span><span class="p">(</span><span class="n">socket_slug</span><span class="o">=</span><span class="s2">&quot;slug-0&quot;</span><span class="p">,</span> <span class="n">existing_image_api_url</span><span class="o">=</span><span class="n">image</span><span class="o">.</span><span class="n">api_url</span><span class="p">),</span>
+</span><span id="__span-1-9"><a id="__codelineno-1-9" name="__codelineno-1-9" href="#__codelineno-1-9"></a>    <span class="n">SocketValueSpec</span><span class="p">(</span><span class="n">socket_slug</span><span class="o">=</span><span class="s2">&quot;slug-1&quot;</span><span class="p">,</span> <span class="n">existing_socket_value</span><span class="o">=</span><span class="n">socket_value</span><span class="p">),</span>
+</span><span id="__span-1-10"><a id="__codelineno-1-10" name="__codelineno-1-10" href="#__codelineno-1-10"></a>    <span class="n">SocketValueSpec</span><span class="p">(</span><span class="n">socket_slug</span><span class="o">=</span><span class="s2">&quot;slug-2&quot;</span><span class="p">,</span> <span class="n">existing_image_api_url</span><span class="o">=</span><span class="n">socket_value</span><span class="o">.</span><span class="n">image</span><span class="p">),</span>
+</span><span id="__span-1-11"><a id="__codelineno-1-11" name="__codelineno-1-11" href="#__codelineno-1-11"></a><span class="p">]</span>
 </span></code></pre></div>
-<p>One can also provide a same-socket socket value:</p>
-<div class="language-Python highlight"><pre><span></span><code><span id="__span-2-1"><a id="__codelineno-2-1" name="__codelineno-2-1" href="#__codelineno-2-1"></a><span class="n">ai</span> <span class="o">=</span> <span class="n">client</span><span class="o">.</span><span class="n">archive_items</span><span class="o">.</span><span class="n">detail</span><span class="p">(</span><span class="n">pk</span><span class="o">=</span><span class="s2">&quot;f5...&quot;</span><span class="p">)</span>
-</span><span id="__span-2-2"><a id="__codelineno-2-2" name="__codelineno-2-2" href="#__codelineno-2-2"></a><span class="n">archive_items</span> <span class="o">=</span> <span class="p">[</span>
-</span><span id="__span-2-3"><a id="__codelineno-2-3" name="__codelineno-2-3" href="#__codelineno-2-3"></a>    <span class="p">{</span>
-</span><span id="__span-2-4"><a id="__codelineno-2-4" name="__codelineno-2-4" href="#__codelineno-2-4"></a>        <span class="s2">&quot;slug_0&quot;</span><span class="p">:</span> <span class="n">ai</span><span class="o">.</span><span class="n">values</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span>
-</span><span id="__span-2-5"><a id="__codelineno-2-5" name="__codelineno-2-5" href="#__codelineno-2-5"></a>        <span class="s2">&quot;slug_1&quot;</span><span class="p">:</span> <span class="n">ai</span><span class="o">.</span><span class="n">values</span><span class="p">[</span><span class="mi">1</span><span class="p">],</span>
-</span><span id="__span-2-6"><a id="__codelineno-2-6" name="__codelineno-2-6" href="#__codelineno-2-6"></a>        <span class="s2">&quot;slug_2&quot;</span><span class="p">:</span> <span class="s2">&quot;some_local_file&quot;</span><span class="p">,</span>
-</span><span id="__span-2-7"><a id="__codelineno-2-7" name="__codelineno-2-7" href="#__codelineno-2-7"></a>    <span class="p">},</span>
-</span><span id="__span-2-8"><a id="__codelineno-2-8" name="__codelineno-2-8" href="#__codelineno-2-8"></a><span class="p">]</span>
+</details>
+<details class="tip">
+<summary>Re-using existing socket values</summary>
+<p>Existing socket values from other display sets can be re-used by
+passing a socket value. The sockets must be the same.</p>
+<p>For instance:</p>
+<div class="language-Python highlight"><pre><span></span><code><span id="__span-2-1"><a id="__codelineno-2-1" name="__codelineno-2-1" href="#__codelineno-2-1"></a><span class="kn">from</span><span class="w"> </span><span class="nn">gcapi</span><span class="w"> </span><span class="kn">import</span> <span class="n">SocketValueSpec</span>
+</span><span id="__span-2-2"><a id="__codelineno-2-2" name="__codelineno-2-2" href="#__codelineno-2-2"></a>
+</span><span id="__span-2-3"><a id="__codelineno-2-3" name="__codelineno-2-3" href="#__codelineno-2-3"></a><span class="n">ds</span> <span class="o">=</span> <span class="n">client</span><span class="o">.</span><span class="n">reader_studies</span><span class="o">.</span><span class="n">display_sets</span><span class="o">.</span><span class="n">detail</span><span class="p">(</span><span class="n">pk</span><span class="o">=</span><span class="s2">&quot;f5...&quot;</span><span class="p">)</span>
+</span><span id="__span-2-4"><a id="__codelineno-2-4" name="__codelineno-2-4" href="#__codelineno-2-4"></a><span class="n">inputs</span> <span class="o">=</span> <span class="p">[</span>
+</span><span id="__span-2-5"><a id="__codelineno-2-5" name="__codelineno-2-5" href="#__codelineno-2-5"></a>    <span class="n">SocketValueSpec</span><span class="p">(</span><span class="n">socket_slug</span><span class="o">=</span><span class="s2">&quot;slug-0&quot;</span><span class="p">,</span> <span class="n">existing_socket_value</span><span class="o">=</span><span class="n">ds</span><span class="o">.</span><span class="n">values</span><span class="p">[</span><span class="mi">0</span><span class="p">]),</span>
+</span><span id="__span-2-6"><a id="__codelineno-2-6" name="__codelineno-2-6" href="#__codelineno-2-6"></a>    <span class="n">SocketValueSpec</span><span class="p">(</span><span class="n">socket_slug</span><span class="o">=</span><span class="s2">&quot;slug-1&quot;</span><span class="p">,</span> <span class="n">existing_socket_value</span><span class="o">=</span><span class="n">ds</span><span class="o">.</span><span class="n">values</span><span class="p">[</span><span class="mi">1</span><span class="p">]),</span>
+</span><span id="__span-2-7"><a id="__codelineno-2-7" name="__codelineno-2-7" href="#__codelineno-2-7"></a><span class="p">]</span>
 </span></code></pre></div>
 </details>
 
@@ -2256,30 +2510,24 @@ passing an API url, or a socket value:</p>
 <p><span class="doc-section-title">Parameters:</span></p>
     <ul>
         <li class="doc-section-item field-body">
-            <b><code>algorithm</code></b>
-              (<code><span title="typing.Union">Union</span>[<span title="str">str</span>, <a class="autorefs autorefs-internal" title="Algorithm (gcapi.models.Algorithm)" href="../models/#gcapi.models.Algorithm">Algorithm</a>]</code>)
+            <b><code>algorithm_slug</code></b>
+              (<code><span title="str">str</span></code>)
           –
           <div class="doc-md-description">
-            <p>You can find this in the
-url of the algorithm that you want to use. For instance,
-if you want to use the algorithm at: <code>https://grand-challenge.org/algorithms/corads-ai/</code>
-the slug for this algorithm is <code>"corads-ai"</code>.</p>
-<p>inputs (SocketValueSetDescription): For each input socket defined on the algorithm you need to provide a
-key-value pair, the key being the slug of the socket, the value being
-the value for the socket::</p>
-<div class="language-Python highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="p">{</span>
-</span><span id="__span-0-2"><a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a>    <span class="s2">&quot;slug_0&quot;</span><span class="p">:</span> <span class="p">[</span><span class="s2">&quot;filepath_0&quot;</span><span class="p">,</span> <span class="o">...</span><span class="p">],</span>
-</span><span id="__span-0-3"><a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a>    <span class="s2">&quot;slug_1&quot;</span><span class="p">:</span> <span class="s2">&quot;filepath_0&quot;</span><span class="p">,</span>
-</span><span id="__span-0-4"><a id="__codelineno-0-4" name="__codelineno-0-4" href="#__codelineno-0-4"></a>    <span class="s2">&quot;slug_2&quot;</span><span class="p">:</span> <span class="n">pathlib</span><span class="o">.</span><span class="n">Path</span><span class="p">(</span><span class="s2">&quot;filepath_0&quot;</span><span class="p">),</span>
-</span><span id="__span-0-5"><a id="__codelineno-0-5" name="__codelineno-0-5" href="#__codelineno-0-5"></a>    <span class="o">...</span>
-</span><span id="__span-0-6"><a id="__codelineno-0-6" name="__codelineno-0-6" href="#__codelineno-0-6"></a>    <span class="s2">&quot;slug_n&quot;</span><span class="p">:</span> <span class="p">{</span><span class="s2">&quot;json&quot;</span><span class="p">:</span> <span class="s2">&quot;value&quot;</span><span class="p">},</span>
-</span><span id="__span-0-7"><a id="__codelineno-0-7" name="__codelineno-0-7" href="#__codelineno-0-7"></a><span class="p">}</span>
-</span></code></pre></div>
-<p>Where the file paths are local paths to the files making up a
-single image. For file-kind sockets the file path can only
-reference a single file. For json-kind sockets any value that
-is valid for the sockets can directly be passed, or a filepath
-to a file that contain the value can be provided.</p>
+            <p>Slug for the algorithm (e.g. <code>"corads-ai"</code>).
+You can find this readily in the URL you use to visit the algorithm page:
+<code>https://grand-challenge.org/algorithms/corads-ai/</code></p>
+          </div>
+        </li>
+        <li class="doc-section-item field-body">
+            <b><code>inputs</code></b>
+              (<code><span title="list">list</span>[<a class="autorefs autorefs-internal" title="gcapi.create_strategies.SocketValueSpec" href="../models/#gcapi.SocketValueSpec">SocketValueSpec</a>]</code>)
+          –
+          <div class="doc-md-description">
+            <p>A list of socket value specifications.
+Each specification defines a socket slug and exactly one source
+(<code>value</code>, <code>file</code>, <code>files</code>, <code>existing_image_api_url</code>, or
+<code>existing_socket_value</code>).</p>
           </div>
         </li>
     </ul>
@@ -2291,7 +2539,9 @@ to a file that contain the value can be provided.</p>
               <code><a class="autorefs autorefs-internal" title="JobPost (gcapi.models.JobPost)" href="../models/#gcapi.models.JobPost">JobPost</a></code>
           –
           <div class="doc-md-description">
-            <p>The created job</p>
+            <p>The newly created Job (post) object. Note that not all inputs will
+be immediately available until the background processing has
+completed.</p>
           </div>
         </li>
     </ul>
@@ -2310,16 +2560,13 @@ to a file that contain the value can be provided.</p>
 
 <a href="#gcapi.client.Client.update_archive_item" class="headerlink" title="Permanent link">¤</a></h2>
 <div class="language-python doc-signature highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="nf">update_archive_item</span><span class="p">(</span>
-</span><span id="__span-0-2"><a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a>    <span class="o">*</span><span class="p">,</span>
-</span><span id="__span-0-3"><a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a>    <span class="n">archive_item_pk</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
-</span><span id="__span-0-4"><a id="__codelineno-0-4" name="__codelineno-0-4" href="#__codelineno-0-4"></a>    <span class="n">values</span><span class="p">:</span> <span class="n">SocketValueSetDescription</span>
-</span><span id="__span-0-5"><a id="__codelineno-0-5" name="__codelineno-0-5" href="#__codelineno-0-5"></a><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">gcapi</span><span class="o">.</span><span class="n">models</span><span class="o">.</span><span class="n">ArchiveItemPost</span>
+</span><span id="__span-0-2"><a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a>    <span class="o">*</span><span class="p">,</span> <span class="n">archive_item_pk</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">values</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="n">SocketValueSpec</span><span class="p">]</span>
+</span><span id="__span-0-3"><a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">gcapi</span><span class="o">.</span><span class="n">models</span><span class="o">.</span><span class="n">ArchiveItemPost</span>
 </span></code></pre></div>
 
     <div class="doc doc-contents ">
 
-        <p>This function updates an existing archive item with the provided values
-and returns the updated archive item.</p>
+        <p>This function patches an existing archive item with the provided values.</p>
 <p>You can use this function, for example, to add metadata to an archive item.</p>
 <p>If you provide a value or file for an existing socket of the archive
 item, the old value will be overwritten by the new one, hence allowing you
@@ -2335,13 +2582,15 @@ to update existing archive item values.</p>
 <p>To then add, for example, a PDF report and a lung volume
 value to the first archive item , provide the socket slugs together
 with the respective value or file path as follows:</p>
-<div class="language-Python highlight"><pre><span></span><code><span id="__span-1-1"><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a><span class="n">client</span><span class="o">.</span><span class="n">update_archive_item</span><span class="p">(</span>
-</span><span id="__span-1-2"><a id="__codelineno-1-2" name="__codelineno-1-2" href="#__codelineno-1-2"></a>    <span class="n">archive_item_pk</span><span class="o">=</span><span class="n">items</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">id</span><span class="p">,</span>
-</span><span id="__span-1-3"><a id="__codelineno-1-3" name="__codelineno-1-3" href="#__codelineno-1-3"></a>    <span class="n">values</span><span class="o">=</span><span class="p">{</span>
-</span><span id="__span-1-4"><a id="__codelineno-1-4" name="__codelineno-1-4" href="#__codelineno-1-4"></a>        <span class="s2">&quot;report&quot;</span><span class="p">:</span> <span class="p">[</span><span class="o">...</span><span class="p">],</span>
-</span><span id="__span-1-5"><a id="__codelineno-1-5" name="__codelineno-1-5" href="#__codelineno-1-5"></a>        <span class="s2">&quot;lung-volume&quot;</span><span class="p">:</span> <span class="mf">1.9</span><span class="p">,</span>
-</span><span id="__span-1-6"><a id="__codelineno-1-6" name="__codelineno-1-6" href="#__codelineno-1-6"></a>    <span class="p">},</span>
-</span><span id="__span-1-7"><a id="__codelineno-1-7" name="__codelineno-1-7" href="#__codelineno-1-7"></a><span class="p">)</span>
+<div class="language-Python highlight"><pre><span></span><code><span id="__span-1-1"><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a><span class="kn">from</span><span class="w"> </span><span class="nn">gcapi</span><span class="w"> </span><span class="kn">import</span> <span class="n">SocketValueSpec</span>
+</span><span id="__span-1-2"><a id="__codelineno-1-2" name="__codelineno-1-2" href="#__codelineno-1-2"></a>
+</span><span id="__span-1-3"><a id="__codelineno-1-3" name="__codelineno-1-3" href="#__codelineno-1-3"></a><span class="n">client</span><span class="o">.</span><span class="n">update_archive_item</span><span class="p">(</span>
+</span><span id="__span-1-4"><a id="__codelineno-1-4" name="__codelineno-1-4" href="#__codelineno-1-4"></a>    <span class="n">archive_item_pk</span><span class="o">=</span><span class="n">items</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">pk</span><span class="p">,</span>
+</span><span id="__span-1-5"><a id="__codelineno-1-5" name="__codelineno-1-5" href="#__codelineno-1-5"></a>    <span class="n">values</span><span class="o">=</span><span class="p">[</span>
+</span><span id="__span-1-6"><a id="__codelineno-1-6" name="__codelineno-1-6" href="#__codelineno-1-6"></a>        <span class="n">SocketValueSpec</span><span class="p">(</span><span class="n">socket_slug</span><span class="o">=</span><span class="s2">&quot;report&quot;</span><span class="p">,</span> <span class="n">file</span><span class="o">=</span><span class="s2">&quot;report.pdf&quot;</span><span class="p">),</span>
+</span><span id="__span-1-7"><a id="__codelineno-1-7" name="__codelineno-1-7" href="#__codelineno-1-7"></a>        <span class="n">SocketValueSpec</span><span class="p">(</span><span class="n">socket_slug</span><span class="o">=</span><span class="s2">&quot;lung-volume&quot;</span><span class="p">,</span> <span class="n">value</span><span class="o">=</span><span class="mf">1.9</span><span class="p">),</span>
+</span><span id="__span-1-8"><a id="__codelineno-1-8" name="__codelineno-1-8" href="#__codelineno-1-8"></a>    <span class="p">],</span>
+</span><span id="__span-1-9"><a id="__codelineno-1-9" name="__codelineno-1-9" href="#__codelineno-1-9"></a><span class="p">)</span>
 </span></code></pre></div>
 </details>
 
@@ -2358,11 +2607,13 @@ with the respective value or file path as follows:</p>
         </li>
         <li class="doc-section-item field-body">
             <b><code>values</code></b>
-              (<code><span title="gcapi.typing.SocketValueSetDescription">SocketValueSetDescription</span></code>)
+              (<code><span title="list">list</span>[<a class="autorefs autorefs-internal" title="gcapi.create_strategies.SocketValueSpec" href="../models/#gcapi.SocketValueSpec">SocketValueSpec</a>]</code>)
           –
           <div class="doc-md-description">
-            <p>The values to update the archive
-item with.</p>
+            <p>A list of socket value specifications.
+Each specification defines a socket slug and exactly one source
+(<code>value</code>, <code>file</code>, <code>files</code>, <code>existing_image_api_url</code>, or
+<code>existing_socket_value</code>).</p>
           </div>
         </li>
     </ul>
@@ -2374,7 +2625,8 @@ item with.</p>
               <code><a class="autorefs autorefs-internal" title="ArchiveItemPost (gcapi.models.ArchiveItemPost)" href="../models/#gcapi.models.ArchiveItemPost">ArchiveItemPost</a></code>
           –
           <div class="doc-md-description">
-            <p>The updated archive item</p>
+            <p>The updated archive item (post) object. Note that not all values will
+be immediately available until the background processing has completed.</p>
           </div>
         </li>
     </ul>
@@ -2393,23 +2645,20 @@ item with.</p>
 
 <a href="#gcapi.client.Client.update_display_set" class="headerlink" title="Permanent link">¤</a></h2>
 <div class="language-python doc-signature highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="nf">update_display_set</span><span class="p">(</span>
-</span><span id="__span-0-2"><a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a>    <span class="o">*</span><span class="p">,</span>
-</span><span id="__span-0-3"><a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a>    <span class="n">display_set_pk</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
-</span><span id="__span-0-4"><a id="__codelineno-0-4" name="__codelineno-0-4" href="#__codelineno-0-4"></a>    <span class="n">values</span><span class="p">:</span> <span class="n">SocketValueSetDescription</span>
-</span><span id="__span-0-5"><a id="__codelineno-0-5" name="__codelineno-0-5" href="#__codelineno-0-5"></a><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">gcapi</span><span class="o">.</span><span class="n">models</span><span class="o">.</span><span class="n">DisplaySetPost</span>
+</span><span id="__span-0-2"><a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a>    <span class="o">*</span><span class="p">,</span> <span class="n">display_set_pk</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">values</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="n">SocketValueSpec</span><span class="p">]</span>
+</span><span id="__span-0-3"><a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">gcapi</span><span class="o">.</span><span class="n">models</span><span class="o">.</span><span class="n">DisplaySetPost</span>
 </span></code></pre></div>
 
     <div class="doc doc-contents ">
 
-        <p>This function updates an existing display set with the provided values
-and returns the updated display set.</p>
+        <p>This function patches an existing display set with the provided values.</p>
 <p>You can use this function, for example, to add metadata to a display set.</p>
-<p>If you provide a value or file for an existing interface of the display
+<p>If you provide a value or file for an existing socket of the display
 set, the old value will be overwritten by the new one, hence allowing you
 to update existing display-set values.</p>
 <details class="example">
 <summary>Example</summary>
-<p>First, retrieve the display_set from your archive:</p>
+<p>First, retrieve the display sets from your reader study:</p>
 <div class="language-Python highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="n">reader_study</span> <span class="o">=</span> <span class="n">client</span><span class="o">.</span><span class="n">reader_studies</span><span class="o">.</span><span class="n">detail</span><span class="p">(</span><span class="n">slug</span><span class="o">=</span><span class="s2">&quot;...&quot;</span><span class="p">)</span>
 </span><span id="__span-0-2"><a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a><span class="n">items</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span>
 </span><span id="__span-0-3"><a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a>    <span class="n">client</span><span class="o">.</span><span class="n">reader_studies</span><span class="o">.</span><span class="n">display_sets</span><span class="o">.</span><span class="n">iterate_all</span><span class="p">(</span>
@@ -2418,15 +2667,17 @@ to update existing display-set values.</p>
 </span><span id="__span-0-6"><a id="__codelineno-0-6" name="__codelineno-0-6" href="#__codelineno-0-6"></a><span class="p">)</span>
 </span></code></pre></div>
 <p>To then add, for example, a PDF report and a lung volume
-value to the first display set , provide the interface slugs together
+value to the first display set , provide the socket slugs together
 with the respective value or file path as follows:</p>
-<div class="language-Python highlight"><pre><span></span><code><span id="__span-1-1"><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a><span class="n">client</span><span class="o">.</span><span class="n">update_display_set</span><span class="p">(</span>
-</span><span id="__span-1-2"><a id="__codelineno-1-2" name="__codelineno-1-2" href="#__codelineno-1-2"></a>    <span class="n">display_set_pk</span><span class="o">=</span><span class="n">items</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">id</span><span class="p">,</span>
-</span><span id="__span-1-3"><a id="__codelineno-1-3" name="__codelineno-1-3" href="#__codelineno-1-3"></a>    <span class="n">values</span><span class="o">=</span><span class="p">{</span>
-</span><span id="__span-1-4"><a id="__codelineno-1-4" name="__codelineno-1-4" href="#__codelineno-1-4"></a>        <span class="s2">&quot;report&quot;</span><span class="p">:</span> <span class="p">[</span><span class="o">...</span><span class="p">],</span>
-</span><span id="__span-1-5"><a id="__codelineno-1-5" name="__codelineno-1-5" href="#__codelineno-1-5"></a>        <span class="s2">&quot;lung-volume&quot;</span><span class="p">:</span> <span class="mf">1.9</span><span class="p">,</span>
-</span><span id="__span-1-6"><a id="__codelineno-1-6" name="__codelineno-1-6" href="#__codelineno-1-6"></a>    <span class="p">},</span>
-</span><span id="__span-1-7"><a id="__codelineno-1-7" name="__codelineno-1-7" href="#__codelineno-1-7"></a><span class="p">)</span>
+<div class="language-Python highlight"><pre><span></span><code><span id="__span-1-1"><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a><span class="kn">from</span><span class="w"> </span><span class="nn">gcapi</span><span class="w"> </span><span class="kn">import</span> <span class="n">SocketValueSpec</span>
+</span><span id="__span-1-2"><a id="__codelineno-1-2" name="__codelineno-1-2" href="#__codelineno-1-2"></a>
+</span><span id="__span-1-3"><a id="__codelineno-1-3" name="__codelineno-1-3" href="#__codelineno-1-3"></a><span class="n">client</span><span class="o">.</span><span class="n">update_display_set</span><span class="p">(</span>
+</span><span id="__span-1-4"><a id="__codelineno-1-4" name="__codelineno-1-4" href="#__codelineno-1-4"></a>    <span class="n">display_set_pk</span><span class="o">=</span><span class="n">items</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">pk</span><span class="p">,</span>
+</span><span id="__span-1-5"><a id="__codelineno-1-5" name="__codelineno-1-5" href="#__codelineno-1-5"></a>    <span class="n">values</span><span class="o">=</span><span class="p">[</span>
+</span><span id="__span-1-6"><a id="__codelineno-1-6" name="__codelineno-1-6" href="#__codelineno-1-6"></a>        <span class="n">SocketValueSpec</span><span class="p">(</span><span class="n">socket_slug</span><span class="o">=</span><span class="s2">&quot;report&quot;</span><span class="p">,</span> <span class="n">file</span><span class="o">=</span><span class="s2">&quot;report.pdf&quot;</span><span class="p">),</span>
+</span><span id="__span-1-7"><a id="__codelineno-1-7" name="__codelineno-1-7" href="#__codelineno-1-7"></a>        <span class="n">SocketValueSpec</span><span class="p">(</span><span class="n">socket_slug</span><span class="o">=</span><span class="s2">&quot;lung-volume&quot;</span><span class="p">,</span> <span class="n">value</span><span class="o">=</span><span class="mf">1.9</span><span class="p">),</span>
+</span><span id="__span-1-8"><a id="__codelineno-1-8" name="__codelineno-1-8" href="#__codelineno-1-8"></a>    <span class="p">],</span>
+</span><span id="__span-1-9"><a id="__codelineno-1-9" name="__codelineno-1-9" href="#__codelineno-1-9"></a><span class="p">)</span>
 </span></code></pre></div>
 </details>
 
@@ -2443,10 +2694,13 @@ with the respective value or file path as follows:</p>
         </li>
         <li class="doc-section-item field-body">
             <b><code>values</code></b>
-              (<code><span title="gcapi.typing.SocketValueSetDescription">SocketValueSetDescription</span></code>)
+              (<code><span title="list">list</span>[<a class="autorefs autorefs-internal" title="gcapi.create_strategies.SocketValueSpec" href="../models/#gcapi.SocketValueSpec">SocketValueSpec</a>]</code>)
           –
           <div class="doc-md-description">
-            <p>The values to update the display set with.</p>
+            <p>A list of socket value specifications.
+Each specification defines a socket slug and exactly one source
+(<code>value</code>, <code>file</code>, <code>files</code>, <code>existing_image_api_url</code>, or
+<code>existing_socket_value</code>).</p>
           </div>
         </li>
     </ul>
@@ -2458,7 +2712,8 @@ with the respective value or file path as follows:</p>
               <code><a class="autorefs autorefs-internal" title="DisplaySetPost (gcapi.models.DisplaySetPost)" href="../models/#gcapi.models.DisplaySetPost">DisplaySetPost</a></code>
           –
           <div class="doc-md-description">
-            <p>The updated display set</p>
+            <p>The updated display item (post) object. Note that not all values will
+be immediately available until the background processing has completed.</p>
           </div>
         </li>
     </ul>
