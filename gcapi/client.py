@@ -747,7 +747,11 @@ class Client(httpx.Client, ApiDefinitions):
             )
 
     def update_display_set(
-        self, *, display_set_pk: str, values: list[SocketValueSpec]
+        self,
+        *,
+        display_set_pk: str,
+        values: list[SocketValueSpec] | None = None,
+        title: str | None = None,
     ) -> gcapi.models.DisplaySetPost:
         """
         This function patches an existing display set with the provided values.
@@ -784,6 +788,7 @@ class Client(httpx.Client, ApiDefinitions):
                     SocketValueSpec(socket_slug="report", file="report.pdf"),
                     SocketValueSpec(socket_slug="lung-volume", value=1.9),
                 ],
+                title="My updated title",
             )
             ```
 
@@ -793,15 +798,21 @@ class Client(httpx.Client, ApiDefinitions):
                 Each specification defines a socket slug and exactly one source
                 (`value`, `file`, `files`, `existing_image_api_url`, or
                 `existing_socket_value`).
+            title: An optional new title for the display set. Set to `""` to clear.
 
         Returns:
             The updated display item (post) object. Note that not all values will
                 be immediately available until the background processing has completed.
         """
+        additional_kwargs = {}
+        if title is not None:
+            additional_kwargs["title"] = title
+
         display_set = self._update_socket_value_set(
             target_pk=display_set_pk,
-            values=values,
+            values=values or [],
             api=self.reader_studies.display_sets,
+            additional_kwargs=additional_kwargs,
         )
         return cast(gcapi.models.DisplaySetPost, display_set)
 
@@ -898,6 +909,7 @@ class Client(httpx.Client, ApiDefinitions):
         *,
         archive_item_pk: str,
         values: list[SocketValueSpec],
+        title: str | None = None,
     ) -> gcapi.models.ArchiveItemPost:
         """
         This function patches an existing archive item with the provided values.
@@ -931,6 +943,7 @@ class Client(httpx.Client, ApiDefinitions):
                     SocketValueSpec(socket_slug="report", file="report.pdf"),
                     SocketValueSpec(socket_slug="lung-volume", value=1.9),
                 ],
+                title="Archive item with updated values",
             )
             ```
 
@@ -940,15 +953,21 @@ class Client(httpx.Client, ApiDefinitions):
                 Each specification defines a socket slug and exactly one source
                 (`value`, `file`, `files`, `existing_image_api_url`, or
                 `existing_socket_value`).
+            title: An optional new title for the archive item. Set to `""` to clear.
 
         Returns:
             The updated archive item (post) object. Note that not all values will
                 be immediately available until the background processing has completed.
         """
+        additional_kwargs = {}
+        if title is not None:
+            additional_kwargs["title"] = title
+
         archive_item = self._update_socket_value_set(
             target_pk=archive_item_pk,
             values=values,
             api=self.archive_items,
+            additional_kwargs=additional_kwargs,
         )
         return cast(gcapi.models.ArchiveItemPost, archive_item)
 
@@ -1088,6 +1107,7 @@ class Client(httpx.Client, ApiDefinitions):
         *,
         creation_kwargs: dict,
         values: list[SocketValueSpec],
+        title: str | None = None,
         api: ModifiableMixin,
     ) -> SocketValuePostSet:
 
@@ -1109,6 +1129,7 @@ class Client(httpx.Client, ApiDefinitions):
             updated_socket_value_set = api.partial_update(
                 pk=socket_value_set.pk,
                 values=[s() for s in strategies],
+                title=title,
             )
 
             return updated_socket_value_set
@@ -1118,8 +1139,10 @@ class Client(httpx.Client, ApiDefinitions):
         *,
         target_pk: str,
         values: list[SocketValueSpec],
+        additional_kwargs: dict | None = None,
         api: ModifiableMixin,
     ) -> SocketValuePostSet:
+        additional_kwargs = additional_kwargs or {}
 
         with ExitStack() as stack:
             # Prepare the strategies
@@ -1136,4 +1159,5 @@ class Client(httpx.Client, ApiDefinitions):
             return api.partial_update(
                 pk=target_pk,
                 values=[s() for s in strategies],
+                **additional_kwargs,
             )
