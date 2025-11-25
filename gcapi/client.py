@@ -385,7 +385,7 @@ class UploadsAPI(APIBase[gcapi.models.UserUpload]):
 
     def generate_presigned_urls(
         self, *, pk: str, s3_upload_id: str, part_numbers: list[int]
-    ) -> Any:
+    ) -> dict[str, Any]:
         """
         Generate presigned URLs for multipart upload parts.
 
@@ -568,7 +568,9 @@ class UploadsAPI(APIBase[gcapi.models.UserUpload]):
 
         return parts
 
-    def _get_next_presigned_urls(self, *, pk, s3_upload_id, part_number):
+    def _get_next_presigned_urls(
+        self, *, pk, s3_upload_id, part_number
+    ) -> dict[str, str]:
         response = self.generate_presigned_urls(
             pk=pk,
             s3_upload_id=s3_upload_id,
