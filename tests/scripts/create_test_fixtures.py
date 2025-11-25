@@ -1,10 +1,7 @@
-import gzip
 import logging
 import os
-import shutil
 from contextlib import contextmanager
 from pathlib import Path
-from tempfile import TemporaryDirectory
 
 from allauth.account.models import EmailAddress
 from django.conf import settings
@@ -22,7 +19,6 @@ from grandchallenge.algorithms.models import (
 from grandchallenge.archives.models import Archive, ArchiveItem
 from grandchallenge.cases.models import Image, ImageFile
 from grandchallenge.challenges.models import Challenge
-from grandchallenge.components.backends import docker_client
 from grandchallenge.components.models import (
     ComponentInterface,
     ComponentInterfaceValue,
@@ -436,14 +432,18 @@ def _create_challenge(
     p.submissions_limit_per_user_per_period = 10
     p.save()
 
-    m = Method(creator=creator, phase=p)
-
-    with _gc_demo_algorithm() as container:
-        m.image.save("algorithm_io.tar", container)
+    Method.objects.create(
+        creator=creator,
+        phase=p,
+        is_desired_version=True,
+        is_manifest_valid=True,
+        is_in_registry=True,
+    )
 
 
 def _create_algorithm(*, creator, inputs, outputs, suffix):
     algorithm = Algorithm.objects.create(
+        pk="56e3e2d0-0aa1-4976-bee1-6ed543aae165",
         title=f"Test Algorithm Evaluation {suffix}",
         logo=create_uploaded_image(),
     )
@@ -455,14 +455,14 @@ def _create_algorithm(*, creator, inputs, outputs, suffix):
 
     algorithm.add_editor(creator)
 
-    algorithm_image = AlgorithmImage(
+    AlgorithmImage.objects.create(
         pk="27e09e53-9fe2-4852-9945-32e063393d11",
         creator=creator,
         algorithm=algorithm,
+        is_desired_version=True,
+        is_manifest_valid=True,
+        is_in_registry=True,
     )
-
-    with _gc_demo_algorithm() as container:
-        algorithm_image.image.save("algorithm_io.tar", container)
 
 
 def _create_extra_sockets():
@@ -473,29 +473,6 @@ def _create_extra_sockets():
         title="A DICOM image set socket",
         kind=ComponentInterface.Kind.DICOM_IMAGE_SET,
     )
-
-
-@contextmanager
-def _gc_demo_algorithm():
-    with TemporaryDirectory() as tmp_dir:
-        tmp_path = Path(tmp_dir)
-
-        repo_tag = "fixtures-algorithm-io:latest"
-
-        docker_client.build_image(
-            path=str(Path(__file__).parent.absolute()), repo_tag=repo_tag
-        )
-
-        outfile = tmp_path / f"{repo_tag}.tar"
-        output_gz = f"{outfile}.gz"
-
-        docker_client.save_image(repo_tag=repo_tag, output=outfile)
-
-        with open(outfile, "rb") as f_in:
-            with gzip.open(output_gz, "wb") as f_out:
-                shutil.copyfileobj(f_in, f_out)
-
-        yield from _uploaded_file(path=output_gz)
 
 
 @contextmanager
