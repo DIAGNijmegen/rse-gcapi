@@ -2,7 +2,6 @@ import json
 from contextlib import nullcontext
 from io import BytesIO
 from pathlib import Path
-from time import sleep
 
 import pytest
 from httpx import HTTPStatusError
@@ -16,7 +15,6 @@ from tests.utils import (
     ARCHIVE_TOKEN,
     DEMO_PARTICIPANT_TOKEN,
     READERSTUDY_TOKEN,
-    recurse_call,
 )
 
 TESTDATA = Path(__file__).parent / "testdata"
@@ -47,9 +45,10 @@ def test_get_algorithm_images(local_grand_challenge):
         verify=False,
         token=DEMO_PARTICIPANT_TOKEN,
     )
-    algorithm = c.algorithms.detail(slug="test-algorithm-evaluation-image-0")
     algorithm_images = list(
-        c.algorithm_images.iterate_all(params={"algorithm": algorithm.pk})
+        c.algorithm_images.iterate_all(
+            params={"algorithm": "56e3e2d0-0aa1-4976-bee1-6ed543aae165"}
+        )
     )
     assert len(algorithm_images) > 0
     assert isinstance(algorithm_images[0], gcapi.models.AlgorithmImage)
@@ -131,19 +130,6 @@ def test_start_algorithm_job(local_grand_challenge):
         verify=False,
         token=DEMO_PARTICIPANT_TOKEN,
     )
-
-    @recurse_call
-    def wait_for_completed_status():
-        # algorithm might not be ready yet
-        algorithm_image = c.algorithm_images.detail(
-            pk="27e09e53-9fe2-4852-9945-32e063393d11"
-        )
-
-        if algorithm_image.import_status != "Completed":
-            sleep(5)
-            raise ValueError("Algorithm image not yet imported")
-
-    wait_for_completed_status()
 
     job = c.start_algorithm_job(
         algorithm_slug="test-algorithm-evaluation-image-0",
