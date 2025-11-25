@@ -474,9 +474,14 @@ class UploadsAPI(APIBase[gcapi.models.UserUpload]):
             self._client.max_concurrent_uploads
         )
 
+        upload_fileobj_async = sync_to_async(
+            self.upload_fileobj,
+            thread_sensitive=False,
+        )
+
         async def upload(fileobj, filename):
             async with sempaphore:
-                return await self.upload_fileobj_async(
+                return await upload_fileobj_async(
                     fileobj=fileobj, filename=filename
                 )
 
@@ -524,11 +529,6 @@ class UploadsAPI(APIBase[gcapi.models.UserUpload]):
             pk=pk, s3_upload_id=s3_upload_id, parts=parts
         )
         return self.model(**result)  # noqa: B901
-
-    upload_fileobj_async = sync_to_async(
-        upload_fileobj,
-        thread_sensitive=False,
-    )
 
     def _put_fileobj(
         self,
