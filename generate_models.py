@@ -31,7 +31,6 @@ def main() -> int:
         generate(
             input,
             output=output,
-            base_class="gcapi.model_base.BaseModel",
             strip_default_none=True,
             strict_nullable=True,
             output_model_type=DataModelType.DataclassesDataclass,
