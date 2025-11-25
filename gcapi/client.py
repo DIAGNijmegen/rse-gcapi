@@ -470,7 +470,7 @@ class UploadsAPI(APIBase[gcapi.models.UserUpload]):
         Returns:
             List of completed upload model instances.
         """
-        sempaphore = Semaphore(  # Limit concurrent uploads
+        semaphore = Semaphore(  # Limit concurrent uploads
             self._client.max_concurrent_uploads
         )
 
@@ -480,7 +480,7 @@ class UploadsAPI(APIBase[gcapi.models.UserUpload]):
         )
 
         async def upload(fileobj, filename):
-            async with sempaphore:
+            async with semaphore:
                 return await upload_fileobj_async(
                     fileobj=fileobj, filename=filename
                 )
