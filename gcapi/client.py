@@ -385,7 +385,7 @@ class UploadsAPI(APIBase[gcapi.models.UserUpload]):
 
     def generate_presigned_urls(
         self, *, pk: str, s3_upload_id: str, part_numbers: list[int]
-    ) -> dict[str, Any]:
+    ) -> gcapi.models.UserUploadPresignedURLs:
         """
         Generate presigned URLs for multipart upload parts.
 
@@ -393,18 +393,18 @@ class UploadsAPI(APIBase[gcapi.models.UserUpload]):
             pk: Primary key of the upload session.
             s3_upload_id: S3 multipart upload identifier.
             part_numbers: List of part numbers to generate URLs for.
-
-        Returns:
-            Dictionary containing presigned URLs for each part number.
         """
         url = urljoin(
             self.base_path, f"{pk}/{s3_upload_id}/generate-presigned-urls/"
         )
-        return self._client(
+        result = self._client(
             method="PATCH", path=url, json={"part_numbers": part_numbers}
         )
+        return gcapi.models.UserUploadPresignedURLs(**result)
 
-    def abort_multipart_upload(self, *, pk: str, s3_upload_id: str) -> dict:
+    def abort_multipart_upload(
+        self, *, pk: str, s3_upload_id: str
+    ) -> gcapi.models.UserUpload:
         """
         Abort a multipart upload session.
 
@@ -413,16 +413,17 @@ class UploadsAPI(APIBase[gcapi.models.UserUpload]):
             s3_upload_id: S3 multipart upload identifier to abort.
 
         Returns:
-            Response from the API.
+            Patched upload after aborting the multipart upload.
         """
         url = urljoin(
             self.base_path, f"{pk}/{s3_upload_id}/abort-multipart-upload/"
         )
-        return self._client(method="PATCH", path=url)
+        result = self._client(method="PATCH", path=url)
+        return gcapi.models.UserUpload(**result)
 
     def complete_multipart_upload(
         self, *, pk: str, s3_upload_id: str, parts: list
-    ) -> dict:
+    ) -> gcapi.models.UserUploadComplete:
         """
         Complete a multipart upload session.
 
@@ -432,14 +433,17 @@ class UploadsAPI(APIBase[gcapi.models.UserUpload]):
             parts: List of completed parts with ETag and PartNumber.
 
         Returns:
-            Response from the API containing upload completion details.
+            Patched upload after completing the multipart upload.
         """
         url = urljoin(
             self.base_path, f"{pk}/{s3_upload_id}/complete-multipart-upload/"
         )
-        return self._client(method="PATCH", path=url, json={"parts": parts})
+        result = self._client(method="PATCH", path=url, json={"parts": parts})
+        return gcapi.models.UserUploadComplete(**result)
 
-    def list_parts(self, *, pk: str, s3_upload_id: str) -> dict:
+    def list_parts(
+        self, *, pk: str, s3_upload_id: str
+    ) -> gcapi.models.UserUploadParts:
         """
         List parts of a multipart upload.
 
@@ -448,10 +452,11 @@ class UploadsAPI(APIBase[gcapi.models.UserUpload]):
             s3_upload_id: S3 multipart upload identifier.
 
         Returns:
-            Response containing list of uploaded parts.
+            list of uploaded parts.
         """
         url = urljoin(self.base_path, f"{pk}/{s3_upload_id}/list-parts/")
-        return self._client(path=url)
+        result = self._client(path=url)
+        return gcapi.models.UserUploadParts(**result)
 
     @async_to_sync
     async def upload_multiple_fileobj(
@@ -498,7 +503,7 @@ class UploadsAPI(APIBase[gcapi.models.UserUpload]):
         *,
         fileobj: ReadableBuffer,
         filename: str,
-    ) -> gcapi.models.UserUpload:
+    ) -> gcapi.models.UserUploadComplete:
         """
         Upload a file object using multipart upload.
 
@@ -525,10 +530,9 @@ class UploadsAPI(APIBase[gcapi.models.UserUpload]):
             self.abort_multipart_upload(pk=pk, s3_upload_id=s3_upload_id)
             raise
 
-        result = self.complete_multipart_upload(
+        return self.complete_multipart_upload(
             pk=pk, s3_upload_id=s3_upload_id, parts=parts
         )
-        return self.model(**result)  # noqa: B901
 
     def _put_fileobj(
         self,
@@ -578,7 +582,7 @@ class UploadsAPI(APIBase[gcapi.models.UserUpload]):
                 *range(part_number, part_number + self.n_presigned_urls)
             ],
         )
-        return response["presigned_urls"]
+        return response.presigned_urls
 
     def _put_chunk(self, *, chunk: bytes, url: str) -> httpx.Response:
         num_retries = 0

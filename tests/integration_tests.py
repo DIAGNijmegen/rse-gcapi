@@ -83,7 +83,7 @@ def test_multipart_uploads(token, context, local_grand_challenge):
     with open(TESTDATA / "rnddata", "rb") as f:
         with context:
             up = client.uploads.upload_fileobj(fileobj=f, filename="foo")
-            assert isinstance(up, gcapi.models.UserUpload)
+            assert isinstance(up, gcapi.models.UserUploadComplete)
 
 
 def test_page_meta_info(local_grand_challenge):
