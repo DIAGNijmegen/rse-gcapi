@@ -54,15 +54,6 @@ jobs:
           chmod a+x /opt/mc/mc
           sudo mv /opt/mc/mc /usr/local/bin/
           rm -r /opt/mc
-      - name: install crane
-        run: |
-          mkdir -p /opt/crane
-          wget -q https://github.com/google/go-containerregistry/releases/download/v0.19.0/go-containerregistry_Linux_x86_64.tar.gz -O /opt/crane/src.tar.gz
-          echo "daa629648e1d1d10fc8bde5e6ce4176cbc0cd48a32211b28c3fd806e0fa5f29b  /opt/crane/src.tar.gz" | shasum -c - || exit 1
-          tar -C /opt/crane/ -xzvf /opt/crane/src.tar.gz crane
-          chmod a+x /opt/crane/crane
-          sudo mv /opt/crane/crane /usr/local/bin/
-          rm -r /opt/crane
       - name: Install system dependencies
         run: |
           sudo apt-get -qq update
@@ -105,4 +96,4 @@ jobs:
           python-version: ${{ env.MINIMUM_PYTHON_VERSION }}
       - name:
         run: |
-          uv run mkdocs gh-pages --force
+          uv run mkdocs gh-deploy --force

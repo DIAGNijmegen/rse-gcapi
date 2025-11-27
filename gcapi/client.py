@@ -1,7 +1,10 @@
+import json
 import logging
 import os
 import re
+import sys
 import uuid
+from asyncio import Semaphore
 from collections.abc import Callable, Iterator
 from contextlib import ExitStack
 from io import BytesIO
@@ -12,7 +15,13 @@ from typing import IO, Any, cast, get_type_hints
 from urllib.parse import urljoin
 
 import httpx
+from asgiref.sync import async_to_sync, sync_to_async
 from httpx import URL, HTTPStatusError, Timeout
+
+if sys.version_info >= (3, 11):
+    from asyncio import TaskGroup
+else:  # Use backport for Python <3.11
+    from taskgroup import TaskGroup
 
 import gcapi.models
 from gcapi.apibase import APIBase, ModifiableMixin
@@ -56,7 +65,8 @@ class ImagesAPI(APIBase[gcapi.models.HyperlinkedImage]):
     def download(
         self,
         *,
-        filename: str | Path,
+        output_directory: str | Path,
+        filename: str | None = None,
         image_type: str | None = None,
         pk: str | None = None,
         url: str | None = None,
@@ -67,7 +77,8 @@ class ImagesAPI(APIBase[gcapi.models.HyperlinkedImage]):
         Download image files to local filesystem.
 
         Args:
-            filename: Base filename for downloaded files. Extension is added automatically.
+            output_directory: Directory to save downloaded files.
+            filename: Optional, base filename for downloaded files. Extension is added automatically.
             image_type: Restrict download to a particular image type.
             pk: Primary key of the image to download.
             url: API URL of the image to download.
@@ -94,13 +105,25 @@ class ImagesAPI(APIBase[gcapi.models.HyperlinkedImage]):
             else:
                 image = self.detail(**params)
 
+            if image.dicom_image_set is not None:
+                if filename is not None:
+                    raise ValueError(
+                        "Do not provide a filename for DICOM image sets"
+                    )
+
+                return self._download_dicom_image_set(
+                    pk=image.pk,
+                    output_directory=output_directory,
+                )
+
+            filename = filename or image.pk
             files = image.files
 
-        # Make sure file destination exists
-        p = Path(filename).absolute()
-        directory = p.parent
-        directory.mkdir(parents=True, exist_ok=True)
-        basename = p.name
+        # Make sure destination exists
+        output_directory = Path(output_directory).absolute()
+        output_directory.mkdir(parents=True, exist_ok=True)
+
+        filename = filename or "image"
 
         # Download the files
         downloaded_files = []
@@ -113,13 +136,80 @@ class ImagesAPI(APIBase[gcapi.models.HyperlinkedImage]):
             ).content
 
             suffix = file.file.split(".")[-1]
-            local_file = directory / f"{basename}.{suffix}"
+            local_file = output_directory / f"{filename}.{suffix}"
+
+            if local_file.exists():
+                raise FileExistsError(f"File {local_file} already exists")
+
             with local_file.open("wb") as fp:
                 fp.write(data)
 
             downloaded_files.append(local_file)
 
         return downloaded_files
+
+    @async_to_sync
+    async def _download_dicom_image_set(
+        self,
+        *,
+        pk: str,
+        output_directory: Path | str,
+    ) -> list[Path]:
+        """
+        Download all DICOM instances of a DICOM image set.
+
+        Args:
+            pk: Primary key of the image to download.
+            output_directory: Directory to save downloaded files.
+            filename: Optional prefix filename for downloaded files.
+
+        Returns:
+            List of Path objects for downloaded DICOM files.
+        """
+        resp = self._client(
+            path=f"cases/images/{pk}/dicom/instances/",
+            method="GET",
+        )
+
+        output = Path(output_directory).absolute()
+        output.mkdir(parents=True, exist_ok=True)
+
+        semaphore = Semaphore(self._client.max_concurrent_downloads)
+
+        async def download_with_semaphore(instance):
+            sop_instance_uid = instance["sop_instance_uid"]
+            output_file = output / f"{sop_instance_uid}.dcm"
+
+            if output_file.exists():
+                raise FileExistsError(f"File {output_file} already exists")
+
+            async with semaphore:
+                return await self._download_dicom_instance(
+                    stream_kwargs=instance["get_instance"],
+                    file=output_file,
+                )
+
+        tasks = []
+        async with TaskGroup() as tg:
+            for instance in resp["instances"]:
+                task = tg.create_task(download_with_semaphore(instance))
+                tasks.append(task)
+
+        return [t.result() for t in tasks]
+
+    @sync_to_async(thread_sensitive=False)
+    def _download_dicom_instance(
+        self, stream_kwargs: dict[str, Any], file: Path
+    ):
+
+        with open(file, "wb") as f:
+            with httpx.stream(
+                **stream_kwargs,
+            ) as resp:
+                resp.raise_for_status()
+                for chunk in resp.iter_bytes():
+                    f.write(chunk)
+        return file
 
 
 class UploadSessionsAPI(
@@ -532,6 +622,7 @@ class Client(httpx.Client, ApiDefinitions):
         verify: bool = True,
         timeout: float = 60.0,
         retry_strategy: Callable[[], BaseRetryStrategy] | None = None,
+        max_concurrent_downloads: int = 10,
     ):
         """
         Args:
@@ -542,6 +633,7 @@ class Client(httpx.Client, ApiDefinitions):
             timeout: Request timeout in seconds.
             retry_strategy: Factory function that returns a retry strategy instance. If None,
                 uses SelectiveBackoffStrategy with default parameters.
+            max_concurrent_downloads: Maximum number of concurrent downloads allowed.
         """
         check_version(base_url=base_url)
 
@@ -565,6 +657,8 @@ class Client(httpx.Client, ApiDefinitions):
         self.base_url = URL(base_url)
         if self.base_url.scheme.lower() != "https":
             raise RuntimeError("Base URL must be https")
+
+        self.max_concurrent_downloads = max_concurrent_downloads
 
         self._api_meta = ApiDefinitions()
         for name, cls in get_type_hints(ApiDefinitions).items():
@@ -663,6 +757,62 @@ class Client(httpx.Client, ApiDefinitions):
         if slug not in self._algorithm_cache:
             self._algorithm_cache[slug] = self.algorithms.detail(slug=slug)
         return self._algorithm_cache[slug]
+
+    def download_socket_value(
+        self,
+        value: gcapi.models.HyperlinkedComponentInterfaceValue,
+        *,
+        output_directory: Path,
+    ):
+        """Download a socket value to the specified output directory.
+
+        Uses the socket's relative path to determine the filename. The relative
+        path is fixed and unique per socket, so downloading multiple different values
+        will not overwrite each other.
+
+        In addition, if the file to be downloaded already exists in the output
+        directory, a FileExistsError is raised to prevent overwriting existing files.
+
+        Args:
+            value: The socket value to download.
+            output_directory: The directory to download the value into.
+        """
+
+        target_path = output_directory / value.interface.relative_path
+        target_path.parent.mkdir(parents=True, exist_ok=True)
+
+        super_kind = value.interface.super_kind.casefold()
+        if super_kind == "image":
+            # Image values
+            self.images.download(
+                url=str(value.image),
+                output_directory=target_path,
+            )
+        elif super_kind == "value":
+            if target_path.exists():
+                raise FileExistsError(f"File {target_path} already exists")
+            # Direct values (e.g. '42')
+            with open(target_path, "w") as f:
+                json.dump(value.value, f, indent=2)
+        elif super_kind == "file":
+            if target_path.exists():
+                raise FileExistsError(f"File {target_path} already exists")
+            # Values stored as files
+            resp = self(
+                url=str(value.file),
+                follow_redirects=True,
+            )
+            content = (
+                resp.content
+                if isinstance(resp, httpx.Response)
+                else json.dumps(resp).encode()
+            )
+            with open(target_path, "wb") as f:
+                f.write(content)
+        else:
+            raise ValueError(
+                f"Unexpected super_kind {value.interface.super_kind}"
+            )
 
     def start_algorithm_job(
         self,

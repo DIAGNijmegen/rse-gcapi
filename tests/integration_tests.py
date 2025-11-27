@@ -1,8 +1,7 @@
+import json
 from contextlib import nullcontext
 from io import BytesIO
 from pathlib import Path
-from time import sleep
-from uuid import uuid4
 
 import pytest
 from httpx import HTTPStatusError
@@ -16,7 +15,6 @@ from tests.utils import (
     ARCHIVE_TOKEN,
     DEMO_PARTICIPANT_TOKEN,
     READERSTUDY_TOKEN,
-    recurse_call,
 )
 
 TESTDATA = Path(__file__).parent / "testdata"
@@ -47,9 +45,10 @@ def test_get_algorithm_images(local_grand_challenge):
         verify=False,
         token=DEMO_PARTICIPANT_TOKEN,
     )
-    algorithm = c.algorithms.detail(slug="test-algorithm-evaluation-image-0")
     algorithm_images = list(
-        c.algorithm_images.iterate_all(params={"algorithm": algorithm.pk})
+        c.algorithm_images.iterate_all(
+            params={"algorithm": "56e3e2d0-0aa1-4976-bee1-6ed543aae165"}
+        )
     )
     assert len(algorithm_images) > 0
     assert isinstance(algorithm_images[0], gcapi.models.AlgorithmImage)
@@ -107,14 +106,16 @@ def test_download_image(local_grand_challenge, tmpdir):
         pk="14909328-7a62-4745-8d2a-81a5d936f34b"
     )
 
-    socket_value = display_set.values[3]
+    socket_value = display_set.values[4]
 
     assert socket_value.interface.slug == "generic-medical-image", "Sanity"
     downloaded_files = c.images.download(
-        filename=tmpdir / "image",
+        output_directory=tmpdir,
+        filename="image",
         url=socket_value.image,
     )
 
+    assert (tmpdir / "image.mha").isfile()
     assert len(downloaded_files) == 1
 
     # Check that the downloaded file is a mha file
@@ -129,19 +130,6 @@ def test_start_algorithm_job(local_grand_challenge):
         verify=False,
         token=DEMO_PARTICIPANT_TOKEN,
     )
-
-    @recurse_call
-    def wait_for_completed_status():
-        # algorithm might not be ready yet
-        algorithm_image = c.algorithm_images.detail(
-            pk="27e09e53-9fe2-4852-9945-32e063393d11"
-        )
-
-        if algorithm_image.import_status != "Completed":
-            sleep(5)
-            raise ValueError("Algorithm image not yet imported")
-
-    wait_for_completed_status()
 
     job = c.start_algorithm_job(
         algorithm_slug="test-algorithm-evaluation-image-0",
@@ -445,7 +433,7 @@ def test_reuse_existing_socket_values(local_grand_challenge):
 
     # Sanity: double check the source socket value has the expected sockets
     values = display_set.values
-    assert len(values) == 4, "Sanity check"
+    assert len(values) == 5, "Sanity check"
 
     assert values[0].interface.slug == "a-file-socket"
     assert values[0].interface.super_kind == "File"
@@ -456,8 +444,11 @@ def test_reuse_existing_socket_values(local_grand_challenge):
     assert values[2].interface.slug == "a-pdf-file-socket"
     assert values[2].interface.super_kind == "File"
 
-    assert values[3].interface.slug == "generic-medical-image"
+    assert values[3].interface.slug == "an-image-socket"
     assert values[3].interface.super_kind == "Image"
+
+    assert values[4].interface.slug == "generic-medical-image"
+    assert values[4].interface.super_kind == "Image"
 
     new_ds = c.add_case_to_reader_study(
         reader_study_slug="reader-study",
@@ -639,3 +630,49 @@ def test_title_update_archive_item(local_grand_challenge):
         assert (
             ai.title == ""
         ), "Can update with empty title to clear title field"
+def test_download_socket_value(local_grand_challenge, tmpdir):
+    c = Client(
+        base_url=local_grand_challenge,
+        verify=False,
+        token=READERSTUDY_TOKEN,
+    )
+
+    display_set = c.reader_studies.display_sets.detail(
+        pk="14909328-7a62-4745-8d2a-81a5d936f34b"
+    )
+
+    assert len(display_set.values) == 5, "Sanity check"
+
+    for socket_value in display_set.values:
+        c.download_socket_value(
+            value=socket_value,
+            output_directory=Path(tmpdir) / "downloads",
+        )
+
+    # Check downloaded files
+    assert (tmpdir / "downloads" / "files" / "file.pdf").isfile()  # From file
+    assert (
+        tmpdir / "downloads" / "d2856bc1-fe72-42d7-b8b7-1622527b8311.mha"
+    ).isfile()  # From generic-medical-image
+    assert (
+        tmpdir
+        / "downloads"
+        / "images"
+        / "non-legacy-image"
+        / "d2856bc1-fe72-42d7-b8b7-1622527b8311.mha"
+    ).isfile()  # From image
+
+    with open(tmpdir / "downloads" / "file.json") as f:
+        value = json.load(f)
+    assert value == 42
+
+    with open(tmpdir / "downloads" / "annotation.json") as f:
+        value = json.load(f)
+
+    assert value["name"] == "forearm"
+
+    with pytest.raises(FileExistsError):
+        c.download_socket_value(
+            value=display_set.values[0],
+            output_directory=Path(tmpdir) / "downloads",
+        )
