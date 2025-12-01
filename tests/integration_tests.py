@@ -2,6 +2,7 @@ import json
 from contextlib import nullcontext
 from io import BytesIO
 from pathlib import Path
+from uuid import uuid4
 
 import pytest
 from httpx import HTTPStatusError
@@ -630,6 +631,8 @@ def test_title_update_archive_item(local_grand_challenge):
         assert (
             ai.title == ""
         ), "Can update with empty title to clear title field"
+
+
 def test_download_socket_value(local_grand_challenge, tmpdir):
     c = Client(
         base_url=local_grand_challenge,
