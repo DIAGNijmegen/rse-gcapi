@@ -1,5 +1,8 @@
 # History
 
+## 0.15.0
+* (Breaking) Removes several deprecated fields from HyperlinkedImage, Question, Reader Study and DisplaySet
+
 ## 0.14.0
 * (Breaking) Add `SocketValueSpec` type of interfaces
 * (Breaking) Renaming of helper functions and arguments

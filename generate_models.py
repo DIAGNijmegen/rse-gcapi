@@ -10,6 +10,34 @@ from datamodel_code_generator import (
     generate,
 )
 
+DEPRECATED_FIELDS = {
+    ("HyperlinkedImage", "patient_id"),
+    ("HyperlinkedImage", "patient_name"),
+    ("HyperlinkedImage", "patient_birth_date"),
+    ("HyperlinkedImage", "patient_age"),
+    ("HyperlinkedImage", "patient_sex"),
+    ("HyperlinkedImage", "study_date"),
+    ("HyperlinkedImage", "study_instance_uid"),
+    ("HyperlinkedImage", "series_instance_uid"),
+    ("HyperlinkedImage", "study_description"),
+    ("HyperlinkedImage", "series_description"),
+    ("Question", "help_text"),
+    ("Question", "question_text"),
+    ("Question", "empty_answer_confirmation_label"),
+    ("ReaderStudy", "help_text"),
+    ("ReaderStudy", "title"),
+    ("DisplaySet", "title"),
+}
+
+
+def rewrite_schema(schema):
+    for model, field in DEPRECATED_FIELDS:
+        model_schema = schema["components"]["schemas"][model]
+        model_schema["properties"].pop(field)
+
+        if "required" in model_schema and field in model_schema["required"]:
+            model_schema["required"].remove(field)
+
 
 def main() -> int:
     json_schema = httpx.get(
@@ -17,6 +45,10 @@ def main() -> int:
         headers={"accept": "application/json"},
         timeout=10,
     )
+
+    schema = json_schema.json()
+
+    rewrite_schema(schema=schema)
 
     with TemporaryDirectory(
         prefix="gcapi_modelgen_"
@@ -26,7 +58,7 @@ def main() -> int:
         output = temporary_directory / "models.py"
 
         with open(input, "w") as f:
-            f.write(json.dumps(json_schema.json()))
+            f.write(json.dumps(schema))
 
         generate(
             input,
