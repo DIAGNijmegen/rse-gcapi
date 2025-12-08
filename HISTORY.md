@@ -1,7 +1,10 @@
 # History
 
 ## 0.15.0
-* (Breaking) Removes several deprecated fields from HyperlinkedImage, Question, Reader Study and DisplaySet
+* (Breaking) Removes several deprecated fields from Hyperlinked Image, Question, Reader Study and Display Set
+* Uploads of multiple files are now done concurrently using threads
+* Adds `title` argument to ArchiveItem and DisplaySet creation and update functions
+* Adds `order` to DisplaySet creation and update functions
 
 ## 0.14.0
 * (Breaking) Add `SocketValueSpec` type of interfaces
