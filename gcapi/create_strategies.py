@@ -10,6 +10,8 @@ from typing import TYPE_CHECKING, Any
 
 import httpx
 
+from gcapi.typing import Unset, UnsetType
+
 if TYPE_CHECKING:
     from gcapi.client import Client
 
@@ -25,13 +27,6 @@ from gcapi.models import (
 
 class TooManyFiles(ValueError):
     pass
-
-
-class UnsetType:
-    pass
-
-
-Unset = UnsetType()
 
 
 @dataclass

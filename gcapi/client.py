@@ -34,7 +34,7 @@ from gcapi.create_strategies import (
 from gcapi.exceptions import ObjectNotFound, SocketNotFound
 from gcapi.retries import BaseRetryStrategy, SelectiveBackoffStrategy
 from gcapi.transports import RetryTransport
-from gcapi.typing import ReadableBuffer, SocketValuePostSet
+from gcapi.typing import ReadableBuffer, SocketValuePostSet, Unset, UnsetType
 
 logger = logging.getLogger(__name__)
 
@@ -948,7 +948,12 @@ class Client(httpx.Client, ApiDefinitions):
             )
 
     def update_display_set(
-        self, *, display_set_pk: str, values: list[SocketValueSpec]
+        self,
+        *,
+        display_set_pk: str,
+        values: list[SocketValueSpec],
+        title: str | None = None,
+        order: int | None | UnsetType = Unset,
     ) -> gcapi.models.DisplaySetPost:
         """
         This function patches an existing display set with the provided values.
@@ -985,6 +990,7 @@ class Client(httpx.Client, ApiDefinitions):
                     SocketValueSpec(socket_slug="report", file="report.pdf"),
                     SocketValueSpec(socket_slug="lung-volume", value=1.9),
                 ],
+                title="My updated title",
             )
             ```
 
@@ -994,15 +1000,23 @@ class Client(httpx.Client, ApiDefinitions):
                 Each specification defines a socket slug and exactly one source
                 (`value`, `file`, `files`, `existing_image_api_url`, or
                 `existing_socket_value`).
+            title: An optional new title for the display set. Set to `""` to clear.
+            order: An optional new order for the display set. Set to `None` or 0 to auto-assign.
 
         Returns:
             The updated display item (post) object. Note that not all values will
                 be immediately available until the background processing has completed.
         """
+        update_kwargs: dict[str, Any] = {"pk": display_set_pk}
+        if title is not None:
+            update_kwargs["title"] = title
+        if order is not Unset:
+            update_kwargs["order"] = order or 0
+
         display_set = self._update_socket_value_set(
-            target_pk=display_set_pk,
             values=values,
             api=self.reader_studies.display_sets,
+            **update_kwargs,
         )
         return cast(gcapi.models.DisplaySetPost, display_set)
 
@@ -1011,6 +1025,8 @@ class Client(httpx.Client, ApiDefinitions):
         *,
         reader_study_slug: str,
         values: list[SocketValueSpec],
+        title: str | None = None,
+        order: int | None | UnsetType = Unset,
     ) -> gcapi.models.DisplaySetPost:
         """
         This function takes a reader-study slug and a list of socket value specs.
@@ -1075,15 +1091,25 @@ class Client(httpx.Client, ApiDefinitions):
                 (`value`, `file`, `files`, `existing_image_api_url`, or
                 `existing_socket_value`).
 
+            title: An optional title for the display set.
+
+            order: An optional order for the display set. Set to `None` or 0 to auto-assign.
+
         Returns:
             The newly created display set (post) object. Note that not all values will
                 be immediately available until the background processing has completed.
         """
+        creation_kwargs: dict[str, Any] = {"reader_study": reader_study_slug}
+        if title is not None:
+            creation_kwargs["title"] = title
+        if order is not Unset:
+            creation_kwargs["order"] = order or 0
+
         try:
             created_display_set = self._create_socket_value_set(
-                creation_kwargs={"reader_study": reader_study_slug},
                 values=values,
                 api=self.reader_studies.display_sets,
+                **creation_kwargs,
             )
         except SocketNotFound as e:
             raise ValueError(
@@ -1099,6 +1125,7 @@ class Client(httpx.Client, ApiDefinitions):
         *,
         archive_item_pk: str,
         values: list[SocketValueSpec],
+        title: str | None = None,
     ) -> gcapi.models.ArchiveItemPost:
         """
         This function patches an existing archive item with the provided values.
@@ -1132,6 +1159,7 @@ class Client(httpx.Client, ApiDefinitions):
                     SocketValueSpec(socket_slug="report", file="report.pdf"),
                     SocketValueSpec(socket_slug="lung-volume", value=1.9),
                 ],
+                title="Archive item with updated values",
             )
             ```
 
@@ -1141,15 +1169,20 @@ class Client(httpx.Client, ApiDefinitions):
                 Each specification defines a socket slug and exactly one source
                 (`value`, `file`, `files`, `existing_image_api_url`, or
                 `existing_socket_value`).
+            title: An optional new title for the archive item. Set to `""` to clear.
 
         Returns:
             The updated archive item (post) object. Note that not all values will
                 be immediately available until the background processing has completed.
         """
+        update_kwargs = {"pk": archive_item_pk}
+        if title is not None:
+            update_kwargs["title"] = title
+
         archive_item = self._update_socket_value_set(
-            target_pk=archive_item_pk,
             values=values,
             api=self.archive_items,
+            **update_kwargs,
         )
         return cast(gcapi.models.ArchiveItemPost, archive_item)
 
@@ -1163,6 +1196,7 @@ class Client(httpx.Client, ApiDefinitions):
         *,
         archive_slug: str,
         values: list[SocketValueSpec],
+        title: str | None = None,
     ) -> gcapi.models.ArchiveItemPost:
         """
         This function takes an archive slug and a list of socket value specs.
@@ -1225,17 +1259,22 @@ class Client(httpx.Client, ApiDefinitions):
                 (`value`, `file`, `files`, `existing_image_api_url`, or
                 `existing_socket_value`).
 
+            title: An optional title for the archive item.
+
         Returns:
             The new archive item (post) object. Note that not all values will
                 be immediately available until the background processing has completed.
         """
         archive_api_url = self._fetch_archive_api_url(archive_slug)
+        creation_kwargs: dict[str, Any] = {"archive": archive_api_url}
+        if title is not None:
+            creation_kwargs["title"] = title
 
         try:
             created_archive_item = self._create_socket_value_set(
-                creation_kwargs={"archive": archive_api_url},
                 values=values,
                 api=self.archive_items,
+                **creation_kwargs,
             )
         except SocketNotFound as e:
             raise ValueError(
@@ -1287,11 +1326,10 @@ class Client(httpx.Client, ApiDefinitions):
     def _create_socket_value_set(
         self,
         *,
-        creation_kwargs: dict,
         values: list[SocketValueSpec],
         api: ModifiableMixin,
+        **creation_kwargs: Any,
     ) -> SocketValuePostSet:
-
         with ExitStack() as stack:
             # Prepare the strategies
             strategies: list[SocketValueCreateStrategy] = []
@@ -1317,11 +1355,10 @@ class Client(httpx.Client, ApiDefinitions):
     def _update_socket_value_set(
         self,
         *,
-        target_pk: str,
         values: list[SocketValueSpec],
         api: ModifiableMixin,
+        **update_kwargs: Any,
     ) -> SocketValuePostSet:
-
         with ExitStack() as stack:
             # Prepare the strategies
             strategies: list[SocketValueCreateStrategy] = []
@@ -1335,6 +1372,6 @@ class Client(httpx.Client, ApiDefinitions):
 
             # Update the socket-value set with the prepared values
             return api.partial_update(
-                pk=target_pk,
                 values=[s() for s in strategies],
+                **update_kwargs,
             )
