@@ -83,7 +83,7 @@ def test_multipart_uploads(token, context, local_grand_challenge):
     with open(TESTDATA / "rnddata", "rb") as f:
         with context:
             up = client.uploads.upload_fileobj(fileobj=f, filename="foo")
-            assert isinstance(up, gcapi.models.UserUpload)
+            assert isinstance(up, gcapi.models.UserUploadComplete)
 
 
 def test_page_meta_info(local_grand_challenge):
@@ -259,9 +259,7 @@ def test_detail_multiple_objects(local_grand_challenge):
 
 def test_auth_headers_not_sent(local_httpbin):
     c = Client(token="foo")
-    response = c.uploads._put_chunk(
-        chunk=BytesIO(b"123"), url=f"{local_httpbin}put"
-    )
+    response = c.uploads._put_chunk(chunk=b"123", url=f"{local_httpbin}put")
     sent_headers = response.json()["headers"]
     assert not set(c._auth_header.keys()) & set(sent_headers.keys())
 
