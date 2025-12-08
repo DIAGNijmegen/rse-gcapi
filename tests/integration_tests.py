@@ -544,7 +544,7 @@ def test_title_order_update_display_set(local_grand_challenge):
         current_ds = client.reader_studies.display_sets.detail(
             pk="1f8c7dae-9bf8-431b-8b7b-59238985961f"
         )
-        assert current_ds.title != updated_title, "Sanity Check"
+        assert current_ds.title_safe != updated_title, "Sanity Check"
         assert current_ds.order != updated_order, "Sanity Check"
 
         ds = client.update_display_set(
@@ -604,17 +604,17 @@ def test_title_update_archive_item(local_grand_challenge):
         assert (
             client.archive_items.detail(
                 pk="3dfa7e7d-8895-4f1f-80c2-4172e00e63ea"
-            ).title
+            ).title_safe
             != updated_title
         ), "Sanity Check"
-        ds = client.update_archive_item(
+        ai = client.update_archive_item(
             archive_item_pk="3dfa7e7d-8895-4f1f-80c2-4172e00e63ea",
             values=[],
             title=updated_title,
         )
 
-        assert isinstance(ds, gcapi.models.ArchiveItemPost)
-        assert ds.title == updated_title
+        assert isinstance(ai, gcapi.models.ArchiveItemPost)
+        assert ai.title == updated_title
 
         ai = client.update_archive_item(
             archive_item_pk="3dfa7e7d-8895-4f1f-80c2-4172e00e63ea", values=[]
