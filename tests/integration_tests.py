@@ -604,7 +604,7 @@ def test_title_update_archive_item(local_grand_challenge):
         assert (
             client.archive_items.detail(
                 pk="3dfa7e7d-8895-4f1f-80c2-4172e00e63ea"
-            ).title_safe
+            ).title
             != updated_title
         ), "Sanity Check"
         ai = client.update_archive_item(
