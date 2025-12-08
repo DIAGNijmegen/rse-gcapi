@@ -34,7 +34,7 @@ from gcapi.create_strategies import (
 from gcapi.exceptions import ObjectNotFound, SocketNotFound
 from gcapi.retries import BaseRetryStrategy, SelectiveBackoffStrategy
 from gcapi.transports import RetryTransport
-from gcapi.typing import SocketValuePostSet, Unset, UnsetType
+from gcapi.typing import ReadableBuffer, SocketValuePostSet, Unset, UnsetType
 
 logger = logging.getLogger(__name__)
 
