@@ -344,11 +344,11 @@ TEST_VALUES = (
     # File kind
     [
         SocketValueSpec(
-            "predictions-csv-file",
+            "a-csv-file-socket",
             file=TESTDATA / "test.csv",
         ),
         SocketValueSpec(
-            "predictions-csv-file",
+            "a-csv-file-socket",
             value="1;2;3\n4;5;6\n",
         ),
     ],
