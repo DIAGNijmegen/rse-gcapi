@@ -180,13 +180,7 @@ class ImagesAPI(APIBase[gcapi.models.HyperlinkedImage]):
         with ThreadPoolExecutor(
             max_workers=self._client.max_concurrent_downloads
         ) as executor:
-            futures = []
-            for instance in resp["instances"]:
-                future = executor.submit(download_instance, instance)
-                futures.append(future)
-
-            # Wait for all downloads to complete and return results in order
-            return [future.result() for future in futures]
+            return list(executor.map(download_instance, resp["instances"]))
 
     def _download_dicom_instance(
         self, stream_kwargs: dict[str, Any], file: Path
