@@ -2,9 +2,7 @@ import json
 import logging
 import os
 import re
-import sys
 import uuid
-from asyncio import Semaphore
 from collections.abc import Callable, Iterator, Sequence
 from concurrent.futures import ThreadPoolExecutor
 from contextlib import ExitStack
@@ -15,13 +13,7 @@ from typing import Any, cast, get_type_hints
 from urllib.parse import urljoin
 
 import httpx
-from asgiref.sync import async_to_sync, sync_to_async
 from httpx import URL, HTTPStatusError, Timeout
-
-if sys.version_info >= (3, 11):
-    from asyncio import TaskGroup
-else:  # Use backport for Python <3.11
-    from taskgroup import TaskGroup
 
 import gcapi.models
 from gcapi.apibase import APIBase, ModifiableMixin
@@ -148,15 +140,14 @@ class ImagesAPI(APIBase[gcapi.models.HyperlinkedImage]):
 
         return downloaded_files
 
-    @async_to_sync
-    async def _download_dicom_image_set(
+    def _download_dicom_image_set(
         self,
         *,
         pk: str,
         output_directory: Path | str,
     ) -> list[Path]:
         """
-        Download all DICOM instances of a DICOM image set.
+        Download all DICOM instances of a DICOM image set using a thread pool.
 
         Args:
             pk: Primary key of the image to download.
@@ -174,30 +165,29 @@ class ImagesAPI(APIBase[gcapi.models.HyperlinkedImage]):
         output = Path(output_directory).absolute()
         output.mkdir(parents=True, exist_ok=True)
 
-        semaphore = Semaphore(self._client.max_concurrent_downloads)
-
-        async def download_with_semaphore(instance):
+        def download_instance(instance):
             sop_instance_uid = instance["sop_instance_uid"]
             output_file = output / f"{sop_instance_uid}.dcm"
 
             if output_file.exists():
                 raise FileExistsError(f"File {output_file} already exists")
 
-            async with semaphore:
-                return await self._download_dicom_instance(
-                    stream_kwargs=instance["get_instance"],
-                    file=output_file,
-                )
+            return self._download_dicom_instance(
+                stream_kwargs=instance["get_instance"],
+                file=output_file,
+            )
 
-        tasks = []
-        async with TaskGroup() as tg:
+        with ThreadPoolExecutor(
+            max_workers=self._client.max_concurrent_downloads
+        ) as executor:
+            futures = []
             for instance in resp["instances"]:
-                task = tg.create_task(download_with_semaphore(instance))
-                tasks.append(task)
+                future = executor.submit(download_instance, instance)
+                futures.append(future)
 
-        return [t.result() for t in tasks]
+            # Wait for all downloads to complete and return results in order
+            return [future.result() for future in futures]
 
-    @sync_to_async(thread_sensitive=False)
     def _download_dicom_instance(
         self, stream_kwargs: dict[str, Any], file: Path
     ):
