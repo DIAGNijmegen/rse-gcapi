@@ -685,7 +685,7 @@ class Client(httpx.Client, ApiDefinitions):
             max_concurrent_uploads: Maximum number of concurrent uploads allowed.
             max_concurrent_downloads: Maximum number of concurrent downloads allowed.
         """
-        check_version(base_url=base_url)
+        check_version(base_url=base_url, verify=verify)
 
         retry_strategy = retry_strategy or SelectiveBackoffStrategy(
             backoff_factor=0.1,
