@@ -473,6 +473,13 @@ def _create_extra_sockets():
         title="A DICOM image set socket",
         kind=ComponentInterface.Kind.DICOM_IMAGE_SET,
     )
+    ComponentInterface.objects.create(
+        store_in_database=True,
+        relative_path="csv-file.csv",
+        slug="a-csv-file-socket",
+        title="A CSV file socket",
+        kind=ComponentInterface.Kind.CSV,
+    )
 
 
 @contextmanager

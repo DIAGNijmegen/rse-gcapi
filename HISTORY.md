@@ -1,5 +1,10 @@
 # History
 
+## 0.15.1
+* Replace thread sensitive async constructs with a thread pool when:
+  * Downloading DICOM Image sets
+  * Uploading multiple file objects
+
 ## 0.15.0
 * (Breaking) Removes several deprecated fields from Hyperlinked Image, Question, Reader Study and Display Set
 * Uploads of multiple files are now done concurrently using threads

@@ -9,12 +9,12 @@ class UnsupportedVersionError(Exception):
     pass
 
 
-def check_version(base_url):
+def check_version(base_url, verify=True):
     package_name = "gcapi"
 
     current_version = get_version(package_name)
 
-    with httpx.Client() as client:
+    with httpx.Client(verify=verify) as client:
         response = client.get(f"{base_url}gcapi/")
         response.raise_for_status()
 
