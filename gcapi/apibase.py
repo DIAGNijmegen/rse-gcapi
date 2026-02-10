@@ -81,7 +81,7 @@ class APIBase(Generic[T]):
         for k, api in list(self.sub_apis.items()):
             setattr(self, k, api(self._client))
 
-    def list(self, params: dict[str, Any] | None = None) -> list[T]:
+    def list(self, params: dict[str, Any] | None = None) -> dict[str, Any]:
         """
         Retrieve a raw list of resources from the API endpoint.
 
