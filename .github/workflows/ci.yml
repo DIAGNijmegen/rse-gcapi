@@ -3,9 +3,7 @@ name: CI
 on:
   push:
   pull_request:
-  release:
-    types:
-      - published
+  workflow_call:
   schedule:
     - cron: '34 7 * * 1-5'
 
@@ -64,36 +62,3 @@ jobs:
       - name: Run uv
         run: |
           uv run pytest --cov-branch --cov-report term-missing --cov=tests/ --cov=gcapi/
-
-  deploy:
-    if: github.event_name == 'release'
-    needs: [precommit, build]
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-      - name: Install uv and set the python version
-        uses: astral-sh/setup-uv@v6
-        with:
-          python-version: ${{ env.MINIMUM_PYTHON_VERSION }}
-      - name: Upload to pypi
-        env:
-          UV_PUBLISH_TOKEN: ${{ secrets.PYPI_TOKEN }}
-        run: |
-          uv build
-          uv publish
-
-  deploy-documentation:
-    if: github.event_name == 'release'
-    needs: [deploy]
-    permissions:
-      contents: write # Permission required to write to gh-pages branch
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-      - name: Install uv and set the python version
-        uses: astral-sh/setup-uv@v6
-        with:
-          python-version: ${{ env.MINIMUM_PYTHON_VERSION }}
-      - name:
-        run: |
-          uv run mkdocs gh-deploy --force
