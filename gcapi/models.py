@@ -1543,8 +1543,8 @@ class HyperlinkedJob:
     hanging_protocol: HangingProtocol | None
     optional_hanging_protocols: list[HangingProtocol]
     view_content: Any
-    exec_duration: str
-    invoke_duration: str
+    exec_duration: str | None
+    invoke_duration: str | None
     algorithm: str
 
 
@@ -1750,8 +1750,8 @@ class Evaluation:
     rank_per_metric: Any | None
     status: str
     title: str
-    exec_duration: str
-    invoke_duration: str
+    exec_duration: str | None
+    invoke_duration: str | None
 
 
 @dataclass
@@ -1767,8 +1767,8 @@ class ExternalEvaluation:
     rank_per_metric: Any | None
     status: str
     title: str
-    exec_duration: str
-    invoke_duration: str
+    exec_duration: str | None
+    invoke_duration: str | None
     algorithm_model: dict[str, Any] | None
     algorithm_image: dict[str, Any]
     claimed_by: int | None
