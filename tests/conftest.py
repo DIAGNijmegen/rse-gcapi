@@ -125,12 +125,29 @@ def local_grand_challenge(  # noqa: C901
                     "up",
                     "--wait",  # Waits for services to be running|healthy (implies detached)
                     "postgres",
-                    "minio.localhost",
+                    "s3.localhost",
                     "redis",
                     "registry",
                 ],
                 cwd=gc_rep_path,
                 env=env,
+                stderr=STDOUT,
+            )
+
+            check_output(
+                [
+                    "uv",
+                    "run",
+                    "--directory",
+                    "app",
+                    "python",
+                    "manage.py",
+                    "runscript",
+                    "--pythonpath=../",
+                    "local_s3",
+                ],
+                env=env,
+                cwd=gc_rep_path,
                 stderr=STDOUT,
             )
 
@@ -160,7 +177,6 @@ def local_grand_challenge(  # noqa: C901
                     "manage.py",
                     "runscript",
                     "--pythonpath=../",
-                    "minio",
                     "create_test_fixtures",
                 ],
                 env=env,
@@ -288,33 +304,29 @@ def build_env() -> dict[str, Any]:
         del env["VIRTUAL_ENV"]
 
     env_vars = {
-        # DOCKER_GID is only used for resolving the docker-compose.yml template
-        # Actual service it is involved with does not matter for these tests
-        "DOCKER_GID": "999",
         "POSTGRES_HOST": "localhost",
         "SITE_SERVER_PORT": "8000",
         "DEFAULT_SCHEME": "https",
         "SECURE_SSL_REDIRECT": "False",
         "CSRF_COOKIE_SECURE": "False",
         "SESSION_COOKIE_SECURE": "False",
-        "AWS_ACCESS_KEY_ID": "minioadmin",
-        "AWS_SECRET_ACCESS_KEY": "minioadmin",
-        "AWS_S3_ENDPOINT_URL": "http://localhost:9000",
-        "COMPONENTS_S3_ENDPOINT_URL": "http://minio.localhost:9000",
+        "AWS_ACCESS_KEY_ID": "s3admin",
+        "AWS_SECRET_ACCESS_KEY": "s3admin",
+        "AWS_S3_ENDPOINT_URL": "http://localhost:8333",
         "PROTECTED_S3_CUSTOM_DOMAIN": "gc.localhost:8000/media",
         "AWS_S3_URL_PROTOCOL": "https:",
-        "COMPONENTS_REGISTRY_INSECURE": "True",
         "COMPONENTS_DEFAULT_BACKEND": "tests.components_tests.resources.backends.IOCopyExecutor",
         "COMPONENTS_SAGEMAKER_SHIM_LOCATION": str(TESTDATA.absolute()),
         "COMPONENTS_VIRTUAL_ENV_BIOM_LOCATION": "PLEASE FIX ME EVENTUALLY",
         "COMPONENTS_SAGEMAKER_SHIM_VERSION": "0",
         "COMPONENTS_REGISTRY_URL": "localhost:5000",
-        "COMPONENTS_DOCKER_KEEP_CAPS_UNSAFE": "True",
+        "COMPONENTS_REGISTRY_INSECURE": "True",
         "DEBUG": "True",
         "COMPRESS_OFFLINE": "False",
         "STATIC_ROOT": "../.static/",
         "REDIS_ENDPOINT": "redis://localhost:6379",
-        "USING_MINIO": "True",
+        "CSP_REPORT_ONLY": "True",
+        "LAMBDA_TASKS_NOOP_EXECUTION": "True",
     }
 
     env.update(env_vars)
