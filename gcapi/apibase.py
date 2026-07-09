@@ -81,19 +81,6 @@ class APIBase(Generic[T]):
         for k, api in list(self.sub_apis.items()):
             setattr(self, k, api(self._client))
 
-    def list(self, params: dict[str, Any] | None = None) -> dict[str, Any]:
-        """
-        Retrieve a raw list of resources from the API endpoint.
-
-        Args:
-            params: Query parameters to include in the API request.
-
-        Returns:
-            Raw JSON response from the API containing the list of resources.
-        """
-        result = self._client(method="GET", path=self.base_path, params=params)
-        return result
-
     def page(
         self,
         offset: int = 0,
