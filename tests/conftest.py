@@ -326,6 +326,7 @@ def build_env() -> dict[str, Any]:
         "COMPRESS_OFFLINE": "False",
         "STATIC_ROOT": "../.static/",
         "REDIS_ENDPOINT": "redis://localhost:6379",
+        "LAMBDA_TASKS_LOCAL_WORKERS": "2",
     }
 
     env.update(env_vars)
