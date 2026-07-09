@@ -315,17 +315,18 @@ def build_env() -> dict[str, Any]:
         "AWS_S3_ENDPOINT_URL": "http://localhost:8333",
         "PROTECTED_S3_CUSTOM_DOMAIN": "gc.localhost:8000/media",
         "AWS_S3_URL_PROTOCOL": "https:",
-        "COMPONENTS_REGISTRY_INSECURE": "True",
         "COMPONENTS_DEFAULT_BACKEND": "tests.components_tests.resources.backends.IOCopyExecutor",
         "COMPONENTS_SAGEMAKER_SHIM_LOCATION": str(TESTDATA.absolute()),
         "COMPONENTS_VIRTUAL_ENV_BIOM_LOCATION": "PLEASE FIX ME EVENTUALLY",
         "COMPONENTS_SAGEMAKER_SHIM_VERSION": "0",
         "COMPONENTS_REGISTRY_URL": "localhost:5000",
-        "COMPONENTS_DOCKER_KEEP_CAPS_UNSAFE": "True",
+        "COMPONENTS_REGISTRY_INSECURE": "True",
         "DEBUG": "True",
         "COMPRESS_OFFLINE": "False",
         "STATIC_ROOT": "../.static/",
         "REDIS_ENDPOINT": "redis://localhost:6379",
+        "CSP_REPORT_ONLY": "True",
+        "LAMBDA_TASKS_NOOP_EXECUTION": "True",
     }
 
     env.update(env_vars)
