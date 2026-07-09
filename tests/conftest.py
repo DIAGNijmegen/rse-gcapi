@@ -326,7 +326,7 @@ def build_env() -> dict[str, Any]:
         "STATIC_ROOT": "../.static/",
         "REDIS_ENDPOINT": "redis://localhost:6379",
         "CSP_REPORT_ONLY": "True",
-        "LAMBDA_TASKS_LOCAL_WORKERS": "2",
+        "LAMBDA_TASKS_NOOP_EXECUTION": "True",
     }
 
     env.update(env_vars)
