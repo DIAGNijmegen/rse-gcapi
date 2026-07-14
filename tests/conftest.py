@@ -98,7 +98,7 @@ def local_grand_challenge(  # noqa: C901
                 "clone",
                 "--depth",
                 "1",
-                "https://github.com/comic/grand-challenge.org.git",
+                "https://github.com/DIAGNijmegen/rse-grand-challenge.git",
                 gc_rep_path,
             ],
             stderr=STDOUT,
