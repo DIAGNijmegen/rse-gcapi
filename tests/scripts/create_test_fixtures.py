@@ -6,7 +6,7 @@ from pathlib import Path
 from allauth.account.models import EmailAddress
 from django.conf import settings
 from django.contrib.auth import get_user_model
-from django.contrib.auth.models import Group, Permission
+from django.contrib.auth.models import Permission
 from django.core.files.base import ContentFile
 from django.db import IntegrityError
 from django.test import override_settings
@@ -140,14 +140,11 @@ def _set_user_permissions(users):
     users["admin"].is_staff = True
     users["admin"].save()
 
-    rs_group = Group.objects.get(
-        name=settings.READER_STUDY_CREATORS_GROUP_NAME
-    )
-    users["readerstudy"].groups.add(rs_group)
+    add_readerstudy_perm = Permission.objects.get(codename="add_readerstudy")
+    users["readerstudy"].user_permissions.add(add_readerstudy_perm)
 
     add_archive_perm = Permission.objects.get(codename="add_archive")
     users["archive"].user_permissions.add(add_archive_perm)
-    users["demo"].user_permissions.add(add_archive_perm)
 
 
 def _create_reader_studies(users):
