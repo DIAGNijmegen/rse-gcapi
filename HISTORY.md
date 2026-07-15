@@ -1,9 +1,7 @@
 # History
 
 ## 0.16.0
-* Remove minio
 * Remove `list` method returning raw JSON response
-* Fix test fixtures
 * Update models
   * Add algorithm `Endpoint` and `Invocation` models
 
