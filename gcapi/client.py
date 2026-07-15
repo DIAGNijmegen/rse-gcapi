@@ -324,6 +324,23 @@ class AlgorithmImagesAPI(APIBase[gcapi.models.AlgorithmImage]):
     model = gcapi.models.AlgorithmImage
 
 
+class AlgorithmEndpointsAPI(
+    ModifiableMixin[gcapi.models.EndpointPost], APIBase[gcapi.models.Endpoint]
+):
+    base_path = "algorithms/endpoints/"
+    model = gcapi.models.Endpoint
+    response_model = gcapi.models.EndpointPost
+
+
+class AlgorithmInvocationsAPI(
+    ModifiableMixin[gcapi.models.InvocationPost],
+    APIBase[gcapi.models.HyperlinkedInvocation],
+):
+    base_path = "algorithms/invocations/"
+    model = gcapi.models.HyperlinkedInvocation
+    response_model = gcapi.models.InvocationPost
+
+
 class ArchivesAPI(APIBase[gcapi.models.Archive]):
     base_path = "archives/"
     model = gcapi.models.Archive
@@ -627,6 +644,8 @@ class ApiDefinitions:
     algorithms: AlgorithmsAPI
     algorithm_jobs: AlgorithmJobsAPI
     algorithm_images: AlgorithmImagesAPI
+    algorithm_endpoints: AlgorithmEndpointsAPI
+    algorithm_invocations: AlgorithmInvocationsAPI
     archives: ArchivesAPI
     workstation_configs: WorkstationConfigsAPI
     raw_image_upload_sessions: UploadSessionsAPI
