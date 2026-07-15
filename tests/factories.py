@@ -46,9 +46,11 @@ def HyperlinkedComponentInterfaceValueFactory(  # noqa: N802
 ) -> HyperlinkedComponentInterfaceValue:
     pk = kwargs.get("pk") or _get_int_pk()
 
+    socket = SocketFactory()
     hciv = HyperlinkedComponentInterfaceValue(
         pk=pk,
-        interface=SocketFactory(),
+        socket=socket,
+        interface=socket,
         value=None,
         file=None,
         image=None,

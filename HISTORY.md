@@ -1,5 +1,10 @@
 # History
 
+## 0.16.0
+* Remove `list` method returning raw JSON response
+* Update models
+  * Add algorithm `Endpoint` and `Invocation` models
+
 ## 0.15.1
 * Replace thread sensitive async constructs with a thread pool when:
   * Downloading DICOM Image sets
