@@ -19,6 +19,7 @@ import gcapi.models
 from gcapi.apibase import APIBase, ModifiableMixin
 from gcapi.check_version import check_version
 from gcapi.create_strategies import (
+    InvocationInputsCreateStrategy,
     JobInputsCreateStrategy,
     SocketValueCreateStrategy,
     SocketValueSpec,
@@ -945,6 +946,30 @@ class Client(httpx.Client, ApiDefinitions):
 
             return self.algorithm_jobs.create(
                 algorithm=algorithm.api_url,
+                inputs=created_inputs,
+            )
+
+    def invoke_algorithm_endpoint(
+        self,
+        *,
+        endpoint_pk: str,
+        inputs: list[SocketValueSpec],
+    ) -> gcapi.models.InvocationPost:
+        """
+        Invoke an algorithm endpoint with the provided inputs.
+        """
+
+        endpoint = self.algorithm_endpoints.detail(pk=endpoint_pk)
+
+        with InvocationInputsCreateStrategy(
+            endpoint=endpoint,
+            inputs=inputs,
+            client=self,
+        ) as input_strategy:
+            created_inputs = input_strategy()
+
+            return self.algorithm_invocations.create(
+                endpoint=endpoint.api_url,
                 inputs=created_inputs,
             )
 

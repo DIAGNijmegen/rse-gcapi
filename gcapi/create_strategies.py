@@ -21,6 +21,7 @@ from gcapi.models import (
     Algorithm,
     ComponentInterface,
     ComponentInterfaceValuePostRequest,
+    Endpoint,
     HyperlinkedComponentInterfaceValue,
 )
 
@@ -715,6 +716,81 @@ class JobInputsCreateStrategy(BaseCreateStrategy):
         super().__init__(**kwargs)
 
         self.algorithm: Algorithm = algorithm
+        self.input_strategies: list[SocketValueCreateStrategy] = []
+
+        self._assert_matching_interface(inputs=inputs)
+
+        try:
+            for spec in inputs:
+                socket_value_strategy = select_socket_value_strategy(
+                    spec=spec,
+                    client=self.client,
+                )
+
+                self.input_strategies.append(socket_value_strategy)
+        except Exception:
+            self.close()
+            raise
+
+    def close(self) -> None:
+        for strategy in self.input_strategies:
+            strategy.close()
+
+    def _assert_matching_interface(
+        self, *, inputs: list[SocketValueSpec]
+    ) -> None:
+
+        # Find a matching interface
+        matching_interface = None
+
+        input_socket_slugs = {spec.socket_slug for spec in inputs}
+
+        best_matching_sockets_count = 0
+        best_matching_interface = None
+        for interface in self.algorithm.interfaces:
+            interface_socket_slugs = {
+                socket.slug for socket in interface.inputs
+            }
+            matching_count = len(input_socket_slugs & interface_socket_slugs)
+            if matching_count == len(interface_socket_slugs):
+                # All input sockets are present in the interface
+                matching_interface = interface
+                break
+            else:
+                if matching_count > best_matching_sockets_count:
+                    best_matching_sockets_count = matching_count
+                    best_matching_interface = {
+                        socket.slug for socket in interface.inputs
+                    }
+
+        if matching_interface is None:
+            msg = f"No matching interface for sockets {input_socket_slugs} could be found."
+            if best_matching_interface is not None:
+                msg += f" The closest match is {best_matching_interface}."
+            raise ValueError(msg)
+
+    def __call__(self):
+        result = []
+        for s in self.input_strategies:
+            result.append(s())
+            s.close()
+        return result
+
+
+class InvocationInputsCreateStrategy(BaseCreateStrategy):
+    def __init__(
+        self,
+        *,
+        endpoint: Endpoint,
+        inputs: list[SocketValueSpec],
+        **kwargs,
+    ):
+        super().__init__(**kwargs)
+
+        self.endpoint: Endpoint = endpoint
+        self.algorithm: Algorithm = self.client.algorithms.detail(
+            api_url=endpoint.algorithm
+        )
         self.input_strategies: list[SocketValueCreateStrategy] = []
 
         self._assert_matching_interface(inputs=inputs)
