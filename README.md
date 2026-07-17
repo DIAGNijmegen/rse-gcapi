@@ -9,12 +9,10 @@ Python client for the grand-challenge.org REST API
 
 ## Features
 
-![API Overview](docs/images/diagram.png)
-
 This client library is a handy way to interact with the REST API for
 grand-challenge.org from python, and provides some convenience methods.
 
-You can use the libarary to automate things like:
+You can use the library to automate things like:
 
 * Uploading values as Display Sets in a Reader Study
 * Uploading values as Archive Items in an Archive
