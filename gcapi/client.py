@@ -331,6 +331,12 @@ class AlgorithmEndpointsAPI(
     model = gcapi.models.Endpoint
     response_model = gcapi.models.EndpointPost
 
+    def keep_alive(self, pk: str) -> dict:
+        return self._client(
+            method="PATCH",
+            path=urljoin(self.base_path, pk + "/keep_alive/"),
+        )
+
 
 class AlgorithmInvocationsAPI(
     ModifiableMixin[gcapi.models.InvocationPost],
