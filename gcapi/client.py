@@ -334,10 +334,10 @@ class AlgorithmEndpointsAPI(
 
 class AlgorithmInvocationsAPI(
     ModifiableMixin[gcapi.models.InvocationPost],
-    APIBase[gcapi.models.HyperlinkedInvocation],
+    APIBase[gcapi.models.Invocation],
 ):
     base_path = "algorithms/invocations/"
-    model = gcapi.models.HyperlinkedInvocation
+    model = gcapi.models.Invocation
     response_model = gcapi.models.InvocationPost
 
 
