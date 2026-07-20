@@ -957,6 +957,61 @@ class Client(httpx.Client, ApiDefinitions):
     ) -> gcapi.models.InvocationPost:
         """
         Invoke an algorithm endpoint with the provided inputs.
+
+        ??? tip "Getting the interfaces of an algorithm"
+            You can get the interfaces (i.e. all possible socket sets) of
+            an algorithm by calling, and inspecting the .interface of the
+            result of:
+
+            ```Python
+            client.algorithms.detail(slug="corads-ai")
+            ```
+
+        ??? tip "Re-using existing images"
+            Existing images on Grand Challenge can be re-used by either
+            passing an API url, or an existing socket value:
+
+            ```Python
+            from gcapi import SocketValueSpec
+
+            image = client.images.detail(pk="ad5...")
+            ds = client.reader_studies.display_sets.detail(pk="f5...")
+            socket_value = ds.values[0]
+
+            inputs = [
+                SocketValueSpec(socket_slug="slug-0", existing_image_api_url=image.api_url),
+                SocketValueSpec(socket_slug="slug-1", existing_socket_value=socket_value),
+                SocketValueSpec(socket_slug="slug-2", existing_image_api_url=socket_value.image),
+            ]
+            ```
+
+        ??? tip "Re-using existing socket values"
+            Existing socket values from other display sets can be re-used by
+            passing a socket value. The sockets must be the same.
+
+            For instance:
+
+            ```Python
+            from gcapi import SocketValueSpec
+
+            ds = client.reader_studies.display_sets.detail(pk="f5...")
+            inputs = [
+                SocketValueSpec(socket_slug="slug-0", existing_socket_value=ds.values[0]),
+                SocketValueSpec(socket_slug="slug-1", existing_socket_value=ds.values[1]),
+            ]
+            ```
+
+        Args:
+            endpoint_pk: pk of the algorithm endpoint.
+            inputs: A list of socket value specifications.
+                Each specification defines a socket slug and exactly one source
+                (`value`, `file`, `files`, `existing_image_api_url`, or
+                `existing_socket_value`).
+
+        Returns:
+            The newly created Invocation (post) object. Note that not all inputs will
+                be immediately available until the background processing has
+                completed.
         """
 
         endpoint = self.algorithm_endpoints.detail(pk=endpoint_pk)
