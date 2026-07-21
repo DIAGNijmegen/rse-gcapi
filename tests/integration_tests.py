@@ -145,6 +145,26 @@ def test_start_algorithm_job(local_grand_challenge):
     assert isinstance(job, gcapi.models.JobPost)
 
 
+def test_invoke_algorithm_endpoint(local_grand_challenge):
+    c = Client(
+        base_url=local_grand_challenge,
+        verify=False,
+        token=DEMO_PARTICIPANT_TOKEN,
+    )
+
+    invocation = c.invoke_algorithm_endpoint(
+        endpoint_pk="1aa191fc-71a8-45f3-a293-40a5888ea662",
+        inputs=[
+            SocketValueSpec(
+                socket_slug="generic-medical-image",
+                file=TESTDATA / "image10x10x101.mha",
+            )
+        ],
+    )
+
+    assert isinstance(invocation, gcapi.models.InvocationPost)
+
+
 def test_get_archive_detail(local_grand_challenge):
     c = Client(
         base_url=local_grand_challenge,
