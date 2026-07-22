@@ -1003,6 +1003,11 @@ class Client(httpx.Client, ApiDefinitions):
 
         Args:
             endpoint_pk: pk of the algorithm endpoint.
+                You can obtain the pk from the created endpoint object:
+                ```python
+                endpoint = client.algorithm_endpoints.create(...)
+                print(endpoint.pk)
+                ```
             inputs: A list of socket value specifications.
                 Each specification defines a socket slug and exactly one source
                 (`value`, `file`, `files`, `existing_image_api_url`, or
