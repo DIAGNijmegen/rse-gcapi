@@ -921,18 +921,21 @@ class Client(httpx.Client, ApiDefinitions):
 
         Args:
             algorithm_slug: Slug for the algorithm (e.g. `"corads-ai"`).
+
                 You can find this readily in the URL you use to visit the algorithm page:
                 `https://grand-challenge.org/algorithms/corads-ai/`
 
             inputs: A list of socket value specifications.
+
                 Each specification defines a socket slug and exactly one source
                 (`value`, `file`, `files`, `existing_image_api_url`, or
                 `existing_socket_value`).
 
         Returns:
-            The newly created Job (post) object. Note that not all inputs will
-                be immediately available until the background processing has
-                completed.
+            The newly created Job (post) object.
+
+                Note that some inputs may not be immediately available and will become
+                available after background processing has completed.
         """
 
         algorithm = self._fetch_algorithm_detail(slug=algorithm_slug)
@@ -1003,20 +1006,24 @@ class Client(httpx.Client, ApiDefinitions):
 
         Args:
             endpoint_pk: pk of the algorithm endpoint.
+
                 You can obtain the pk from the created endpoint object:
                 ```python
                 endpoint = client.algorithm_endpoints.create(...)
                 print(endpoint.pk)
                 ```
+
             inputs: A list of socket value specifications.
+
                 Each specification defines a socket slug and exactly one source
                 (`value`, `file`, `files`, `existing_image_api_url`, or
                 `existing_socket_value`).
 
         Returns:
-            The newly created Invocation (post) object. Note that not all inputs will
-                be immediately available until the background processing has
-                completed.
+            The newly created Invocation (post) object.
+
+                Note that some inputs may not be immediately available and will become
+                available after background processing has completed.
         """
 
         endpoint = self.algorithm_endpoints.detail(pk=endpoint_pk)
