@@ -53,6 +53,9 @@ endpoint = client.algorithm_endpoints.detail(pk=endpoint.pk)
 print(endpoint.remaining_lifetime)
 ```
 
+This extends the endpoint lifetime to 5 minutes from the time the method is called. To keep the endpoint alive, call
+this method again before those 5 minutes expire.
+
 ## Invoke the endpoint
 
 Next, submit the inputs to the algorithm for processing. For this example, we'll assume the algorithm requires a
