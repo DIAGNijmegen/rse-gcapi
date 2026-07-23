@@ -878,7 +878,7 @@ class Client(httpx.Client, ApiDefinitions):
 
         ??? tip "Getting the interfaces of an algorithm"
             You can get the interfaces (i.e. all possible socket sets) of
-            an algorithm by calling, and inspecting the .interface of the
+            an algorithm by calling, and inspecting the .interfaces of the
             result of:
 
             ```Python
@@ -963,7 +963,7 @@ class Client(httpx.Client, ApiDefinitions):
 
         ??? tip "Getting the interfaces of an algorithm"
             You can get the interfaces (i.e. all possible socket sets) of
-            an algorithm by calling, and inspecting the .interface of the
+            an algorithm by calling, and inspecting the .interfaces of the
             result of:
 
             ```Python
