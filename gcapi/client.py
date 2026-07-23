@@ -1008,8 +1008,23 @@ class Client(httpx.Client, ApiDefinitions):
             endpoint_pk: pk of the algorithm endpoint.
 
                 You can obtain the pk from the created endpoint object:
+
                 ```python
-                endpoint = client.algorithm_endpoints.create(...)
+                endpoint = client.algorithm_endpoints.create(
+                    algorithm=algorithm.api_url
+                )
+                print(endpoint.pk)
+                ```
+
+                You can also retrieve the endpoint object of a running endpoint by
+                filtering, for example, on algorithm:
+
+                ```python
+                # Filter on algorithm
+                endpoint = client.algorithm_endpoints.detail(
+                    algorithm_image__algorithm=algorithm.pk,
+                    status="Running",
+                )
                 print(endpoint.pk)
                 ```
 
