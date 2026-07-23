@@ -36,7 +36,7 @@ As an alternative, let us source the `ct-image` from an archive and the `lung-vo
 
 ```python
 archive_item_pk = "09e38ccd..."
-archive_item = client.archive_items.details(pk=archive_item_pk)
+archive_item = client.archive_items.detail(pk=archive_item_pk)
 
 job_2 =  client.start_algorithm_job(
     algorithm_slug="your-algorithm-slug",

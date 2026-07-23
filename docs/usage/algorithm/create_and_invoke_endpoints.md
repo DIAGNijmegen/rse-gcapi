@@ -11,7 +11,7 @@ client = gcapi.Client(token="your-personal-token")
 
 ## Create an algorithm endpoint
 
-Start off by getting the algorithm details, making sure you [have access rights](../../getting-started.md#access-rights):
+First, retrieve the algorithm details, making sure you [have access rights](../../getting-started.md#access-rights):
 
 ```Python
 algorithm_slug = "your-algorithm-slug"
@@ -24,8 +24,8 @@ Create an endpoint for the algorithm:
 endpoint = client.algorithm_endpoints.create(algorithm=algorithm.api_url)
 ```
 
-The endpoint will be started automatically. It will take a few minutes before the endpoint is ready to receive
-invocations. The endpoint is ready as soon as it is in the `'Running'` state. Inspect the endpoint status using
+The endpoint will be started automatically. It may take a few minutes before the endpoint is ready to receive
+invocations. Poll the endpoint status until it reaches the `'Running'` state using the
 [detail method][gcapi.client.AlgorithmEndpointsAPI.detail]:
 
 ```python
@@ -33,7 +33,8 @@ endpoint = client.algorithm_endpoints.detail(pk=endpoint.pk)
 print(endpoint.status)
 ```
 
-If you lose the endpoint pk, you can find the endpoint again by filtering on its status (`'Queued'`, `'Started'` or `'Running'`):
+If you no longer have the endpoint's pk, you can find the endpoint again by filtering on its status (`'Queued'`,
+`'Started'` or `'Running'`):
 
 ```python
 endpoint = client.algorithm_endpoints.detail(status="Running")
@@ -42,9 +43,9 @@ print(endpoint.pk)
 
 ### Keep the endpoint alive
 
-Endpoints are automatically cleaned up when their remaining lifetime runs out. Each time an endpoint is invoked it's
-lifetime is extended for at least the expected duration of the invocation. To keep an endpoint alive between
-invocations, use the `keep_alive` method:
+Endpoints are automatically cleaned up when their lifetime expires. Each time an endpoint is invoked, its lifetime is
+extended for at least the expected duration of the invocation. To keep an endpoint alive between invocations, use the
+`keep_alive` method:
 
 ```python
 client.algorithm_endpoints.keep_alive(pk=endpoint.pk)
@@ -54,7 +55,7 @@ print(endpoint.remaining_lifetime)
 
 ## Invoke the endpoint
 
-Next, we will submit the inputs to the algorithm for processing. For this example we'll assume the algorithm requires a
+Next, submit the inputs to the algorithm for processing. For this example, we'll assume the algorithm requires a
 `ct-image` and a `lung-volume` as inputs.
 
 ```python
@@ -69,13 +70,14 @@ invocation = client.invoke_algorithm_endpoint(
 )
 ```
 
-This will upload the files and values to the platform for ingestion before the inputs are sent to the algorithm. If the
-data is already available as a socket value, the uploading and ingestion can be skipped. For example, let us source the
-`ct-image` from an archive:
+The client first uploads the files and values to the platform for ingestion. Once ingestion is complete, the inputs are
+sent to the algorithm. If the data is already available as a socket value, the uploading and ingestion can be skipped.
+For example, if the `ct-image` already exists in an archive, you can reuse the existing socket value instead of
+uploading it again:
 
 ```python
 archive_item_pk = "09e38ccd..."
-archive_item = client.archive_items.details(pk=archive_item_pk)
+archive_item = client.archive_items.detail(pk=archive_item_pk)
 
 invocation = client.invoke_algorithm_endpoint(
     endpoint_pk=endpoint.pk,
@@ -88,12 +90,11 @@ invocation = client.invoke_algorithm_endpoint(
 
 ## Inspect invocations
 
-Inspect the invocation status using the detail method:
+Retrieve the invocation status using the [detail method][gcapi.client.AlgorithmInvocationsAPI.detail]:
 
 ```python
-invocation = client.algorithm_invocations.detail(invocation.pk)
+invocation = client.algorithm_invocations.detail(pk=invocation.pk)
 print(invocation.status)
 ```
 
-After an invocation has finished and has the status `'Succeeded'`, you
-can [download the outputs](../algorithm/download_algorithm_outputs.md).
+Once the invocation reaches the `'Succeeded'` state, you can [download the outputs](../algorithm/download_algorithm_outputs.md).
