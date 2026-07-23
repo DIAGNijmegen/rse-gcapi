@@ -26,6 +26,17 @@ jobs:
       - name: Run static code inspections
         run: uv run pre-commit run --all-files
 
+  build-docs:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install uv and set the python version
+        uses: astral-sh/setup-uv@v6
+        with:
+          python-version: ${{ env.MINIMUM_PYTHON_VERSION }}
+      - name: Build documentation
+        run: uv run mkdocs build
+
   build:
     runs-on: ubuntu-latest
     permissions:

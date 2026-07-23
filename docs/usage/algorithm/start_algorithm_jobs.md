@@ -1,4 +1,4 @@
-If you are working on an algorithm, you most likely want to automatically upload cases to an algorithm on the platform. This can be done via the API and most easily using the convienence method: [Client.start_algorithm_job][gcapi.client.Client.start_algorithm_job].
+If you are working on an algorithm, you most likely want to automatically upload cases to an algorithm on the platform. This can be done via the API and most easily using the convenience method: [Client.start_algorithm_job][gcapi.client.Client.start_algorithm_job].
 
 First things first, we need to [get started](../../getting-started.md) and initiate the client:
 
@@ -9,7 +9,6 @@ client = gcapi.Client(token="your-personal-token")
 
 ## Start jobs
 
-
 Start off by getting the algorithm details, making sure you [have access rights](../../getting-started.md#access-rights):
 
 ```Python
@@ -19,9 +18,7 @@ algorithm = client.algorithms.detail(slug=algorithm_slug)
 
 Explore the inputs that the algorithm expects by visiting the Try-Out page on Grand Challenge.
 
-
-
-Next, we will submit the inputs to the algorithm case-by-case. For this example we'll assume the algorithm requires an `ct-image` and a `lung-volume` as inputs.
+Next, we will submit the inputs to the algorithm case-by-case. For this example we'll assume the algorithm requires a `ct-image` and a `lung-volume` as inputs.
 
 ```python
 from gcapi import SocketValueSpec
@@ -39,7 +36,7 @@ As an alternative, let us source the `ct-image` from an archive and the `lung-vo
 
 ```python
 archive_item_pk = "09e38ccd..."
-archive_item = client.archive_items.details(pk=archive_item_pk)
+archive_item = client.archive_items.detail(pk=archive_item_pk)
 
 job_2 =  client.start_algorithm_job(
     algorithm_slug="your-algorithm-slug",
@@ -81,6 +78,7 @@ job_2 =  client.start_algorithm_job(
     ```
 
 ## Inspect jobs
+
 After a job has ended with the status `'Succeeded'`, you can [download the outputs](../algorithm/download_algorithm_outputs.md).
 
 Here is how to query their status:

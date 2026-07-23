@@ -1,10 +1,14 @@
-Once your Algorithm Job is in the `'Succeeded'` state you can proceed to download the outputs the algorithm has created.
+Once your Algorithm Job or Invocation is in the `'Succeeded'` state you can proceed to download the outputs the algorithm has created.
 
-Make sure you have [gotten started](../../getting-started.md) and have the algorithm object handy:
+First things first, we need to [get started](../../getting-started.md) and initiate the client:
 
 ```python
-algorithm = client.algorithm.detail(slug="your-algorithm-slug")
+import gcapi
+client = gcapi.Client(token="your-personal-token")
 ```
+
+## Jobs or invocations
+Below, we describe how to download the outputs for algorithm jobs. You can use the same steps for algorithm endpoint invocations by replacing the algorithm jobs API `client.algorithm_jobs` by the invocations API `client.algorithm_invocations`.
 
 ## List the jobs
 
@@ -15,12 +19,13 @@ job_pks = ["618...", "5b3..."]
 jobs = [client.algorithm_jobs.detail(pk=pk) for pk in job_pks]
 ```
 
-Alternatively, you might need to query all the jobs of the algorithm:
+Alternatively, you might need to query all the jobs of the algorithm. First get the algorithm object. Then filter the jobs using the algorithm pk.
 
 ```python
+algorithm = client.algorithm.detail(slug="your-algorithm-slug")
 jobs = client.algorithm_jobs.iterate_all(
-        params={"algorithm_image__algorithm": algorithm.pk},
-    )
+    params={"algorithm_image__algorithm": algorithm.pk},
+)
 ```
 
 !!! tip "Filtering On Algorithm Image"
@@ -40,7 +45,6 @@ jobs = client.algorithm_jobs.iterate_all(
     filtered_jobs = [job in jobs if job.algorithm_image == algorithm_image.api_url]
     ```
 
-
 ## Download the outputs
 
 With a job list ready, download the outputs of the jobs by handling the socket values via [Client.download_socket_value][gcapi.client.Client.download_socket_value].
@@ -49,7 +53,6 @@ The snippet below will download all contents as files and place them under the `
 
 ```python
 from pathlib import Path
-import json
 
 output_path = Path("download/")
 

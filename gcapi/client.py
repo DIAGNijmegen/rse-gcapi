@@ -1016,15 +1016,11 @@ class Client(httpx.Client, ApiDefinitions):
                 print(endpoint.pk)
                 ```
 
-                You can also retrieve the endpoint object of a running endpoint by
-                filtering, for example, on algorithm:
+                You can also retrieve the endpoint object of an active endpoint by
+                filtering on its status (`'Queued'`, `'Started'` or `'Running'`):
 
                 ```python
-                # Filter on algorithm
-                endpoint = client.algorithm_endpoints.detail(
-                    algorithm_image__algorithm=algorithm.pk,
-                    status="Running",
-                )
+                endpoint = client.algorithm_endpoints.detail(status="Running")
                 print(endpoint.pk)
                 ```
 
