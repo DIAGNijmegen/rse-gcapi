@@ -1,5 +1,12 @@
 # History
 
+## 0.16.1
+* Add APIs for Algorithm Endpoints and Invocations
+  * Add `AlgorithmEndpointsAPI`
+  * Add `AlgorithmInvocationsAPI`
+* Add `Client.invoke_algorithm_endpoint` convenience method
+* Update documentation
+
 ## 0.16.0
 * Remove `list` method returning raw JSON response
 * Update models
