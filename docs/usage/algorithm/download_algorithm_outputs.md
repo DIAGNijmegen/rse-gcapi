@@ -1,4 +1,4 @@
-Once your Algorithm Job is in the `'Succeeded'` state you can proceed to download the outputs the algorithm has created.
+Once your Algorithm Job or Invocation is in the `'Succeeded'` state you can proceed to download the outputs the algorithm has created.
 
 First things first, we need to [get started](../../getting-started.md) and initiate the client:
 
@@ -6,6 +6,9 @@ First things first, we need to [get started](../../getting-started.md) and initi
 import gcapi
 client = gcapi.Client(token="your-personal-token")
 ```
+
+## Jobs or invocations
+Below, we describe how to download the outputs for algorithm jobs. You can use the same steps for algorithm endpoint invocations by replacing the algorithm jobs API `client.algorithm_jobs` by the invocations API `client.algorithm_invocations`.
 
 ## List the jobs
 

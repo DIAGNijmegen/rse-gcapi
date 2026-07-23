@@ -18,6 +18,7 @@ nav:
       - Download Answers: usage/reader_study/download_answers.md
     - Algorithms:
       - Start Jobs: usage/algorithm/start_algorithm_jobs.md
+      - Create and invoke Endpoints: usage/algorithm/create_and_invoke_endpoints.md
       - Download Outputs: usage/algorithm/download_algorithm_outputs.md
     - Automatic Retries:
       - Handle Limits: usage/retries/handling_limits.md
