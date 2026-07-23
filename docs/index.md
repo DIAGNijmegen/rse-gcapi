@@ -2,4 +2,4 @@
 
 ---
 
-[:rocket: Getting Started](../getting-started.md){ .md-button .md-button--primary }
+[:rocket: Getting Started](getting-started.md){ .md-button .md-button--primary }
