@@ -1,5 +1,5 @@
 # `Client.uploads`
 
-::: gcapi.client.UploadSessionsAPI
+::: gcapi.client.UploadsAPI
     options:
         inherited_members: true
