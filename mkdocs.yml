@@ -24,6 +24,8 @@ nav:
   - Python API Reference:
     - Client: api/client_methods.md
     - APIs:
+      - algorithm_endpoints: api/algorithm_endpoints.md
+      - algorithm_invocations: api/algorithm_invocations.md
       - algorithm_images: api/algorithm_images.md
       - algorithm_jobs: api/algorithm_jobs.md
       - algorithms: api/algorithms.md
