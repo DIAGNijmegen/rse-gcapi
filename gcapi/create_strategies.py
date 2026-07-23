@@ -21,6 +21,7 @@ from gcapi.models import (
     Algorithm,
     ComponentInterface,
     ComponentInterfaceValuePostRequest,
+    Endpoint,
     HyperlinkedComponentInterfaceValue,
 )
 
@@ -774,3 +775,22 @@ class JobInputsCreateStrategy(BaseCreateStrategy):
             result.append(s())
             s.close()
         return result
+
+
+class InvocationInputsCreateStrategy(JobInputsCreateStrategy):
+    def __init__(
+        self,
+        *,
+        endpoint: Endpoint,
+        inputs: list[SocketValueSpec],
+        client: Client,
+        **kwargs,
+    ):
+        algorithm: Algorithm = client.algorithms.detail(
+            api_url=endpoint.algorithm
+        )
+        super().__init__(
+            algorithm=algorithm, inputs=inputs, client=client, **kwargs
+        )
+
+        self.endpoint: Endpoint = endpoint

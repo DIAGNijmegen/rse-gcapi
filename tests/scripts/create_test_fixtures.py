@@ -15,6 +15,7 @@ from grandchallenge.algorithms.models import (
     Algorithm,
     AlgorithmImage,
     AlgorithmInterface,
+    Endpoint,
 )
 from grandchallenge.archives.models import Archive, ArchiveItem
 from grandchallenge.cases.models import Image, ImageFile
@@ -89,12 +90,13 @@ def run():
         inputs=inputs,
         outputs=outputs,
     )
-    _create_algorithm(
+    algorithm = _create_algorithm(
         creator=users["demop"],
         inputs=inputs,
         outputs=outputs,
         suffix=f"Image {challenge_count}",
     )
+    _create_algorithm_endpoint(algorithm=algorithm)
 
     print("✨ Test fixtures successfully created ✨")
 
@@ -459,6 +461,20 @@ def _create_algorithm(*, creator, inputs, outputs, suffix):
         is_desired_version=True,
         is_manifest_valid=True,
         is_in_registry=True,
+    )
+
+    return algorithm
+
+
+def _create_algorithm_endpoint(*, algorithm):
+    Endpoint.objects.create(
+        pk="1aa191fc-71a8-45f3-a293-40a5888ea662",
+        creator=algorithm.active_image.creator,
+        algorithm_image=algorithm.active_image,
+        algorithm_model=algorithm.active_model,
+        requires_gpu_type=algorithm.job_requires_gpu_type,
+        requires_memory_gb=algorithm.job_requires_memory_gb,
+        status=Endpoint.StatusChoices.RUNNING,
     )
 
 

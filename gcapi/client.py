@@ -19,6 +19,7 @@ import gcapi.models
 from gcapi.apibase import APIBase, ModifiableMixin
 from gcapi.check_version import check_version
 from gcapi.create_strategies import (
+    InvocationInputsCreateStrategy,
     JobInputsCreateStrategy,
     SocketValueCreateStrategy,
     SocketValueSpec,
@@ -324,6 +325,29 @@ class AlgorithmImagesAPI(APIBase[gcapi.models.AlgorithmImage]):
     model = gcapi.models.AlgorithmImage
 
 
+class AlgorithmEndpointsAPI(
+    ModifiableMixin[gcapi.models.EndpointPost], APIBase[gcapi.models.Endpoint]
+):
+    base_path = "algorithms/endpoints/"
+    model = gcapi.models.Endpoint
+    response_model = gcapi.models.EndpointPost
+
+    def keep_alive(self, pk: str) -> dict:
+        return self._client(
+            method="PATCH",
+            path=urljoin(self.base_path, pk + "/keep_alive/"),
+        )
+
+
+class AlgorithmInvocationsAPI(
+    ModifiableMixin[gcapi.models.InvocationPost],
+    APIBase[gcapi.models.Invocation],
+):
+    base_path = "algorithms/invocations/"
+    model = gcapi.models.Invocation
+    response_model = gcapi.models.InvocationPost
+
+
 class ArchivesAPI(APIBase[gcapi.models.Archive]):
     base_path = "archives/"
     model = gcapi.models.Archive
@@ -627,6 +651,8 @@ class ApiDefinitions:
     algorithms: AlgorithmsAPI
     algorithm_jobs: AlgorithmJobsAPI
     algorithm_images: AlgorithmImagesAPI
+    algorithm_endpoints: AlgorithmEndpointsAPI
+    algorithm_invocations: AlgorithmInvocationsAPI
     archives: ArchivesAPI
     workstation_configs: WorkstationConfigsAPI
     raw_image_upload_sessions: UploadSessionsAPI
@@ -852,7 +878,7 @@ class Client(httpx.Client, ApiDefinitions):
 
         ??? tip "Getting the interfaces of an algorithm"
             You can get the interfaces (i.e. all possible socket sets) of
-            an algorithm by calling, and inspecting the .interface of the
+            an algorithm by calling, and inspecting the .interfaces of the
             result of:
 
             ```Python
@@ -895,18 +921,21 @@ class Client(httpx.Client, ApiDefinitions):
 
         Args:
             algorithm_slug: Slug for the algorithm (e.g. `"corads-ai"`).
+
                 You can find this readily in the URL you use to visit the algorithm page:
                 `https://grand-challenge.org/algorithms/corads-ai/`
 
             inputs: A list of socket value specifications.
+
                 Each specification defines a socket slug and exactly one source
                 (`value`, `file`, `files`, `existing_image_api_url`, or
                 `existing_socket_value`).
 
         Returns:
-            The newly created Job (post) object. Note that not all inputs will
-                be immediately available until the background processing has
-                completed.
+            The newly created Job (post) object.
+
+                Note that some inputs may not be immediately available and will become
+                available after background processing has completed.
         """
 
         algorithm = self._fetch_algorithm_detail(slug=algorithm_slug)
@@ -920,6 +949,109 @@ class Client(httpx.Client, ApiDefinitions):
 
             return self.algorithm_jobs.create(
                 algorithm=algorithm.api_url,
+                inputs=created_inputs,
+            )
+
+    def invoke_algorithm_endpoint(
+        self,
+        *,
+        endpoint_pk: str,
+        inputs: list[SocketValueSpec],
+    ) -> gcapi.models.InvocationPost:
+        """
+        Invoke an algorithm endpoint with the provided inputs.
+
+        ??? tip "Getting the interfaces of an algorithm"
+            You can get the interfaces (i.e. all possible socket sets) of
+            an algorithm by calling, and inspecting the .interfaces of the
+            result of:
+
+            ```Python
+            client.algorithms.detail(slug="corads-ai")
+            ```
+
+        ??? tip "Re-using existing images"
+            Existing images on Grand Challenge can be re-used by either
+            passing an API url, or an existing socket value:
+
+            ```Python
+            from gcapi import SocketValueSpec
+
+            image = client.images.detail(pk="ad5...")
+            ds = client.reader_studies.display_sets.detail(pk="f5...")
+            socket_value = ds.values[0]
+
+            inputs = [
+                SocketValueSpec(socket_slug="slug-0", existing_image_api_url=image.api_url),
+                SocketValueSpec(socket_slug="slug-1", existing_socket_value=socket_value),
+                SocketValueSpec(socket_slug="slug-2", existing_image_api_url=socket_value.image),
+            ]
+            ```
+
+        ??? tip "Re-using existing socket values"
+            Existing socket values from other display sets can be re-used by
+            passing a socket value. The sockets must be the same.
+
+            For instance:
+
+            ```Python
+            from gcapi import SocketValueSpec
+
+            ds = client.reader_studies.display_sets.detail(pk="f5...")
+            inputs = [
+                SocketValueSpec(socket_slug="slug-0", existing_socket_value=ds.values[0]),
+                SocketValueSpec(socket_slug="slug-1", existing_socket_value=ds.values[1]),
+            ]
+            ```
+
+        Args:
+            endpoint_pk: pk of the algorithm endpoint.
+
+                You can obtain the pk from the created endpoint object:
+
+                ```python
+                endpoint = client.algorithm_endpoints.create(
+                    algorithm=algorithm.api_url
+                )
+                print(endpoint.pk)
+                ```
+
+                You can also retrieve the endpoint object of a running endpoint by
+                filtering, for example, on algorithm:
+
+                ```python
+                # Filter on algorithm
+                endpoint = client.algorithm_endpoints.detail(
+                    algorithm_image__algorithm=algorithm.pk,
+                    status="Running",
+                )
+                print(endpoint.pk)
+                ```
+
+            inputs: A list of socket value specifications.
+
+                Each specification defines a socket slug and exactly one source
+                (`value`, `file`, `files`, `existing_image_api_url`, or
+                `existing_socket_value`).
+
+        Returns:
+            The newly created Invocation (post) object.
+
+                Note that some inputs may not be immediately available and will become
+                available after background processing has completed.
+        """
+
+        endpoint = self.algorithm_endpoints.detail(pk=endpoint_pk)
+
+        with InvocationInputsCreateStrategy(
+            endpoint=endpoint,
+            inputs=inputs,
+            client=self,
+        ) as input_strategy:
+            created_inputs = input_strategy()
+
+            return self.algorithm_invocations.create(
+                endpoint=endpoint.api_url,
                 inputs=created_inputs,
             )
 
