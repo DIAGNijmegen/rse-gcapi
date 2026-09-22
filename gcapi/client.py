@@ -235,7 +235,7 @@ class ReaderStudyAnswersAPI(
 
     sub_apis = {"mine": ReaderStudyMineAnswersAPI}
 
-    mine = None  # type: ReaderStudyMineAnswersAPI
+    mine: ReaderStudyMineAnswersAPI
 
     def _process_request_arguments(self, data):
         if data is not None:
@@ -271,9 +271,9 @@ class ReaderStudiesAPI(APIBase[gcapi.models.ReaderStudy]):
         "display_sets": ReaderStudyDisplaySetsAPI,
     }
 
-    answers = None  # type: ReaderStudyAnswersAPI
-    questions = None  # type: ReaderStudyQuestionsAPI
-    display_sets = None  # type: ReaderStudyDisplaySetsAPI
+    answers: ReaderStudyAnswersAPI
+    questions: ReaderStudyQuestionsAPI
+    display_sets: ReaderStudyDisplaySetsAPI
 
     def ground_truth(self, pk: str, case_pk: str) -> dict:
         """
