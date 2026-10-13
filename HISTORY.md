@@ -1,5 +1,9 @@
 # History
 
+## 0.16.2 (unreleased)
+* Remove support for Python 3.10 (EOL 2027-10)
+* Add support for Python 3.15
+
 ## 0.16.1
 * Add APIs for Algorithm Endpoints and Invocations
   * Add `AlgorithmEndpointsAPI`
