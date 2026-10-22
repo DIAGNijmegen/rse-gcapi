@@ -1,6 +1,7 @@
 # History
 
 ## 0.16.2 (unreleased)
+* Require `certifi` package to be at least >=2026.10.19
 * Remove support for Python 3.10 (EOL 2027-10)
 * Add support for Python 3.15
 
