@@ -39,12 +39,7 @@ jobs:
 
   build:
     runs-on: ubuntu-latest
-    permissions:
-      # These permissions are needed to interact with GitHub's OIDC Token endpoint.
-      id-token: write
-      contents: read
     strategy:
-      fail-fast: false # Try to work around ECS errors
       matrix:
         python-version: ["3.11", "3.12", "3.13", "3.14", "3.15"]
     steps:
