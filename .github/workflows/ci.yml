@@ -53,10 +53,7 @@ jobs:
       - name: Install system dependencies
         run: |
           sudo apt-get -qq update
-          sudo apt-get -qq install -y --no-install-recommends \
-            libpq-dev \
-            libcurl4-openssl-dev \
-            libssl-dev
+          sudo apt-get -qq install -y --no-install-recommends libpq-dev
       - name: Run uv
         run: |
           uv run pytest --cov-branch --cov-report term-missing --cov=tests/ --cov=gcapi/
