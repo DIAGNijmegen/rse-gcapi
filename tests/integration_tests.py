@@ -55,6 +55,25 @@ def test_get_algorithm_images(local_grand_challenge):
     assert isinstance(algorithm_images[0], gcapi.models.AlgorithmImage)
 
 
+def test_get_jobs(local_grand_challenge):
+    c = Client(
+        base_url=local_grand_challenge,
+        verify=False,
+        token=DEMO_PARTICIPANT_TOKEN,
+    )
+    jobs = list(
+        c.algorithm_jobs.iterate_all(
+            params={
+                "algorithm_image__algorithm__slug": (
+                    "test-algorithm-evaluation-image-0"
+                )
+            }
+        )
+    )
+    assert len(jobs) > 0
+    assert all(isinstance(job, gcapi.models.HyperlinkedJob) for job in jobs)
+
+
 def test_get_answers(local_grand_challenge):
     c = Client(
         base_url=local_grand_challenge, verify=False, token=READERSTUDY_TOKEN
@@ -64,6 +83,61 @@ def test_get_answers(local_grand_challenge):
     )
     assert len(answers) > 0
     assert all(isinstance(answer, gcapi.models.Answer) for answer in answers)
+
+
+def test_get_mine_answers(local_grand_challenge):
+    c = Client(
+        base_url=local_grand_challenge,
+        verify=False,
+        token=READERSTUDY_TOKEN,
+    )
+    answers = list(c.reader_studies.answers.mine.iterate_all())
+    assert len(answers) > 0
+    assert all(isinstance(answer, gcapi.models.Answer) for answer in answers)
+
+
+def test_get_interfaces(local_grand_challenge):
+    c = Client(
+        base_url=local_grand_challenge,
+        verify=False,
+        token=DEMO_PARTICIPANT_TOKEN,
+    )
+
+    interfaces = list(c.interfaces.iterate_all())
+    assert len(interfaces) > 0
+    assert all(
+        isinstance(interface, gcapi.models.ComponentInterface)
+        for interface in interfaces
+    )
+
+    interface = c.interfaces.detail(slug="generic-medical-image")
+    assert isinstance(interface, gcapi.models.ComponentInterface)
+    assert interface.slug == "generic-medical-image"
+
+
+def test_interfaces_detail_not_found(local_grand_challenge):
+    c = Client(
+        base_url=local_grand_challenge,
+        verify=False,
+        token=DEMO_PARTICIPANT_TOKEN,
+    )
+
+    with pytest.raises(ObjectNotFound):
+        c.interfaces.detail(slug="this-socket-does-not-exist")
+
+
+def test_get_workstation_configs(local_grand_challenge):
+    c = Client(
+        base_url=local_grand_challenge,
+        verify=False,
+        token=ADMIN_TOKEN,
+    )
+
+    configs = c.workstation_configs.page()
+    assert all(
+        isinstance(config, gcapi.models.WorkstationConfig)
+        for config in configs
+    )
 
 
 @pytest.mark.parametrize(
@@ -163,6 +237,20 @@ def test_invoke_algorithm_endpoint(local_grand_challenge):
     )
 
     assert isinstance(invocation, gcapi.models.InvocationPost)
+
+
+def test_algorithm_endpoint_keep_alive(local_grand_challenge):
+    c = Client(
+        base_url=local_grand_challenge,
+        verify=False,
+        token=DEMO_PARTICIPANT_TOKEN,
+    )
+
+    result = c.algorithm_endpoints.keep_alive(
+        pk="1aa191fc-71a8-45f3-a293-40a5888ea662"
+    )
+
+    assert isinstance(result, dict)
 
 
 def test_get_archive_detail(local_grand_challenge):

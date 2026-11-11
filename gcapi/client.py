@@ -3,7 +3,7 @@ import logging
 import os
 import re
 import uuid
-from collections.abc import Callable, Iterator, Sequence
+from collections.abc import Callable, Sequence
 from concurrent.futures import ThreadPoolExecutor
 from contextlib import ExitStack
 from pathlib import Path
@@ -306,18 +306,6 @@ class AlgorithmJobsAPI(
     base_path = "algorithms/jobs/"
     model = gcapi.models.HyperlinkedJob
     response_model = gcapi.models.JobPost
-
-    def by_input_image(self, pk: str) -> Iterator[gcapi.models.HyperlinkedJob]:
-        """
-        Get algorithm jobs filtered by input image.
-
-        Args:
-            pk: Primary key of the input image to filter jobs by.
-
-        Yields:
-            Algorithm job instances that use the specified input image.
-        """
-        yield from self.iterate_all(params={"image": pk})
 
 
 class AlgorithmImagesAPI(APIBase[gcapi.models.AlgorithmImage]):
