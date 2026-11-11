@@ -15,6 +15,7 @@ from grandchallenge.algorithms.models import (
     Algorithm,
     AlgorithmImage,
     AlgorithmInterface,
+    AlgorithmUserCredit,
     Endpoint,
     Job,
 )
@@ -464,7 +465,16 @@ def _create_algorithm(*, creator, inputs, outputs, suffix):
         is_in_registry=True,
     )
 
-    Job.objects.create(
+    AlgorithmUserCredit.objects.create(
+        algorithm=algorithm,
+        user=creator,
+        credits=1000,
+        valid_from=now().date(),
+        valid_until=now().date(),
+        comment="test",
+    )
+
+    job = Job.objects.create(
         creator=creator,
         algorithm_image=algorithm_image,
         algorithm_interface=interface,
@@ -473,6 +483,15 @@ def _create_algorithm(*, creator, inputs, outputs, suffix):
         requires_gpu_type=algorithm.job_requires_gpu_type,
         requires_memory_gb=algorithm.job_requires_memory_gb,
     )
+
+    image_interface = inputs.get(slug="generic-medical-image")
+    image = _create_image(name="Test Job Input", width=10, height=10)
+    image_civ = ComponentInterfaceValue.objects.create(
+        interface=image_interface,
+        image=image,
+    )
+
+    job.inputs.set([image_civ])
 
     return algorithm
 
