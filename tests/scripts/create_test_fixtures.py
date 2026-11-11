@@ -16,6 +16,7 @@ from grandchallenge.algorithms.models import (
     AlgorithmImage,
     AlgorithmInterface,
     Endpoint,
+    Job,
 )
 from grandchallenge.archives.models import Archive, ArchiveItem
 from grandchallenge.cases.models import Image, ImageFile
@@ -454,13 +455,23 @@ def _create_algorithm(*, creator, inputs, outputs, suffix):
 
     algorithm.add_editor(creator)
 
-    AlgorithmImage.objects.create(
+    algorithm_image = AlgorithmImage.objects.create(
         pk="27e09e53-9fe2-4852-9945-32e063393d11",
         creator=creator,
         algorithm=algorithm,
         is_desired_version=True,
         is_manifest_valid=True,
         is_in_registry=True,
+    )
+
+    Job.objects.create(
+        creator=creator,
+        algorithm_image=algorithm_image,
+        algorithm_interface=interface,
+        status=Job.SUCCESS,
+        time_limit=60,
+        requires_gpu_type=algorithm.job_requires_gpu_type,
+        requires_memory_gb=algorithm.job_requires_memory_gb,
     )
 
     return algorithm

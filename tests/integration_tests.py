@@ -55,6 +55,25 @@ def test_get_algorithm_images(local_grand_challenge):
     assert isinstance(algorithm_images[0], gcapi.models.AlgorithmImage)
 
 
+def test_get_jobs(local_grand_challenge):
+    c = Client(
+        base_url=local_grand_challenge,
+        verify=False,
+        token=DEMO_PARTICIPANT_TOKEN,
+    )
+    jobs = list(
+        c.algorithm_jobs.iterate_all(
+            params={
+                "algorithm_image__algorithm__slug": (
+                    "test-algorithm-evaluation-image-0"
+                )
+            }
+        )
+    )
+    assert len(jobs) > 0
+    assert all(isinstance(job, gcapi.models.HyperlinkedJob) for job in jobs)
+
+
 def test_get_answers(local_grand_challenge):
     c = Client(
         base_url=local_grand_challenge, verify=False, token=READERSTUDY_TOKEN
