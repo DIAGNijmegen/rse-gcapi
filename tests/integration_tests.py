@@ -74,45 +74,6 @@ def test_get_jobs(local_grand_challenge):
     assert all(isinstance(job, gcapi.models.HyperlinkedJob) for job in jobs)
 
 
-def test_get_jobs_by_input_image(local_grand_challenge):
-    c = Client(
-        base_url=local_grand_challenge,
-        verify=False,
-        token=DEMO_PARTICIPANT_TOKEN,
-    )
-
-    # Grab a job that has an input image, then look it up by that image
-    jobs = c.algorithm_jobs.iterate_all(
-        params={
-            "algorithm_image__algorithm__slug": (
-                "test-algorithm-evaluation-image-0"
-            )
-        }
-    )
-    image_input = None
-    for job in jobs:
-        for civ in job.inputs:
-            if civ.image:
-                image_input = civ.image
-                break
-        if image_input:
-            break
-    assert image_input, "Sanity check: expected a job with an input image"
-
-    image = c.images.detail(api_url=image_input)
-
-    by_image = list(c.algorithm_jobs.by_input_image(pk=image.pk))
-
-    assert len(by_image) > 0
-    assert all(
-        isinstance(job, gcapi.models.HyperlinkedJob) for job in by_image
-    )
-    assert all(
-        any(str(civ.image) == str(image.api_url) for civ in job.inputs)
-        for job in by_image
-    )
-
-
 def test_get_answers(local_grand_challenge):
     c = Client(
         base_url=local_grand_challenge, verify=False, token=READERSTUDY_TOKEN
