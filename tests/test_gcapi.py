@@ -101,3 +101,73 @@ def test_invalid_url_fails(url):
     c = Client(token="foo", base_url="https://example.test/api/v1/")
     with pytest.raises(RuntimeError):
         c._validate_url(url=url)
+
+
+def _put_chunk_responses(*, status_codes):
+    from http import HTTPStatus
+
+    from tests.utils import make_response
+
+    return [
+        make_response(status_code=HTTPStatus(code), headers={"ETag": "abc"})
+        for code in status_codes
+    ]
+
+
+@pytest.mark.parametrize("status_code", (409, 423, 500))
+def test_put_chunk_retries_on_retryable_status(status_code):
+    from unittest.mock import patch
+
+    c = Client(token="foo")
+    responses = _put_chunk_responses(status_codes=[status_code, 200])
+
+    with (
+        patch.object(c, "request", side_effect=responses) as mock_request,
+        patch("gcapi.client.sleep") as mock_sleep,
+    ):
+        response = c.uploads._put_chunk(
+            chunk=b"123", url="https://example.test/put"
+        )
+
+    assert response is responses[-1]
+    assert mock_request.call_count == 2
+    assert mock_sleep.call_count == 1
+
+
+def test_put_chunk_does_not_retry_on_other_status():
+    from unittest.mock import patch
+
+    import requests
+
+    c = Client(token="foo")
+    responses = _put_chunk_responses(status_codes=[403, 200])
+
+    with (
+        patch.object(c, "request", side_effect=responses) as mock_request,
+        patch("gcapi.client.sleep") as mock_sleep,
+    ):
+        with pytest.raises(requests.HTTPError):
+            c.uploads._put_chunk(chunk=b"123", url="https://example.test/put")
+
+    assert mock_request.call_count == 1
+    mock_sleep.assert_not_called()
+
+
+def test_put_chunk_gives_up_after_max_retries():
+    from unittest.mock import patch
+
+    import requests
+
+    c = Client(token="foo")
+    responses = _put_chunk_responses(
+        status_codes=[503] * c.uploads.max_retries
+    )
+
+    with (
+        patch.object(c, "request", side_effect=responses) as mock_request,
+        patch("gcapi.client.sleep"),
+    ):
+        with pytest.raises(requests.HTTPError):
+            c.uploads._put_chunk(chunk=b"123", url="https://example.test/put")
+
+    assert mock_request.call_count == c.uploads.max_retries

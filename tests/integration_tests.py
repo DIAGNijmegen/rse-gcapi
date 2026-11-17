@@ -5,7 +5,7 @@ from pathlib import Path
 from uuid import uuid4
 
 import pytest
-from httpx import HTTPStatusError
+from requests import HTTPError
 
 import gcapi
 from gcapi import Client
@@ -145,7 +145,7 @@ def test_get_workstation_configs(local_grand_challenge):
     [
         (ADMIN_TOKEN, nullcontext()),
         (ARCHIVE_TOKEN, nullcontext()),
-        ("whatever", pytest.raises(HTTPStatusError)),
+        ("whatever", pytest.raises(HTTPError)),
     ],
 )
 def test_multipart_uploads(token, context, local_grand_challenge):

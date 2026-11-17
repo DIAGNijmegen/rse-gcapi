@@ -10,12 +10,12 @@ from pathlib import Path
 from random import randint
 from time import sleep
 from typing import Any, cast, get_type_hints
-from urllib.parse import urljoin
+from urllib.parse import urljoin, urlsplit
 
-import httpx
-from httpx import URL, HTTPStatusError, Timeout
+import requests
 
 import gcapi.models
+from gcapi.adapters import RetryAdapter
 from gcapi.apibase import APIBase, ModifiableMixin
 from gcapi.check_version import check_version
 from gcapi.create_strategies import (
@@ -27,7 +27,6 @@ from gcapi.create_strategies import (
 )
 from gcapi.exceptions import ObjectNotFound, SocketNotFound
 from gcapi.retries import BaseRetryStrategy, SelectiveBackoffStrategy
-from gcapi.transports import RetryTransport
 from gcapi.typing import ReadableBuffer, SocketValuePostSet, Unset, UnsetType
 
 logger = logging.getLogger(__name__)
@@ -188,11 +187,14 @@ class ImagesAPI(APIBase[gcapi.models.HyperlinkedImage]):
     ):
 
         with open(file, "wb") as f:
-            with httpx.stream(
+            with requests.request(
                 **stream_kwargs,
+                stream=True,
+                timeout=self._client.timeout,
+                allow_redirects=False,
             ) as resp:
                 resp.raise_for_status()
-                for chunk in resp.iter_bytes():
+                for chunk in resp.iter_content(chunk_size=64 * 1024):
                     f.write(chunk)
         return file
 
@@ -245,8 +247,9 @@ class ReaderStudyAnswersAPI(
             }
             for key, api in key_and_url.items():
                 if is_uuid(data.get(key, "")):
-                    data[key] = str(
-                        self._client.base_url.join(api).join(data[key] + "/")
+                    data[key] = urljoin(
+                        urljoin(self._client.base_url, api),
+                        data[key] + "/",
                     )
 
         return super()._process_request_arguments(data)
@@ -572,17 +575,18 @@ class UploadsAPI(APIBase[gcapi.models.UserUpload]):
         )
         return response.presigned_urls
 
-    def _put_chunk(self, *, chunk: bytes, url: str) -> httpx.Response:
+    def _put_chunk(self, *, chunk: bytes, url: str) -> requests.Response:
         num_retries = 0
         e = Exception()
 
         while num_retries < self.max_retries:
             try:
                 result = self._client.request(
-                    method="PUT", url=url, content=chunk
+                    method="PUT", url=url, data=chunk, allow_redirects=False
                 )
+                result.raise_for_status()
                 break
-            except HTTPStatusError as _e:
+            except requests.HTTPError as _e:
                 status_code = _e.response.status_code
                 if status_code in [409, 423] or status_code >= 500:
                     num_retries += 1
@@ -648,7 +652,7 @@ class ApiDefinitions:
     interfaces: ComponentInterfacesAPI
 
 
-class Client(httpx.Client, ApiDefinitions):
+class Client(requests.Session, ApiDefinitions):
     """The Grand Challenge API client."""
 
     _api_meta: ApiDefinitions
@@ -681,22 +685,23 @@ class Client(httpx.Client, ApiDefinitions):
             backoff_factor=0.1,
             maximum_number_of_retries=8,  # ~25.5 seconds total backoff
         )
-        httpx.Client.__init__(
-            self,
-            verify=verify,
-            timeout=Timeout(timeout=timeout),
-            transport=RetryTransport(
-                verify=verify,
-                retry_strategy=retry_strategy,
-            ),
-        )
+        requests.Session.__init__(self)
+
+        self.verify = verify
+        self.timeout = timeout
+
+        adapter = RetryAdapter(retry_strategy=retry_strategy)
+        self.mount("https://", adapter)
+        self.mount("http://", adapter)
 
         self.headers.update({"Accept": "application/json"})
         self._auth_header = _generate_auth_header(token=token)
 
-        self.base_url = URL(base_url)
-        if self.base_url.scheme.lower() != "https":
+        if urlsplit(base_url).scheme.lower() != "https":
             raise RuntimeError("Base URL must be https")
+
+        # Ensure that the base url is always treated as a directory
+        self.base_url = base_url if base_url.endswith("/") else f"{base_url}/"
 
         self.max_concurrent_uploads = max_concurrent_uploads
         self.max_concurrent_downloads = max_concurrent_downloads
@@ -716,10 +721,18 @@ class Client(httpx.Client, ApiDefinitions):
         else:
             raise AttributeError(f"Client has no function or API {item!r}")
 
-    def _validate_url(self, url):
-        url = URL(url)
+    def request(self, *args: Any, **kwargs: Any) -> requests.Response:
+        kwargs.setdefault("timeout", self.timeout)
+        return super().request(*args, **kwargs)
 
-        if not url.scheme == "https" or url.netloc != self.base_url.netloc:
+    def _validate_url(self, url):
+        split_url = urlsplit(str(url))
+
+        if (
+            split_url.scheme != "https"
+            or split_url.netloc.lower()
+            != urlsplit(self.base_url).netloc.lower()
+        ):
             raise RuntimeError(f"Invalid target URL: {url}")
 
     def __call__(
@@ -753,12 +766,10 @@ class Client(httpx.Client, ApiDefinitions):
                 otherwise the raw response object.
 
         Raises:
-            HTTPStatusError: If the HTTP request fails with a non-2xx status code.
+            requests.HTTPError: If the HTTP request fails with a non-2xx status code.
         """
-        if url:
-            url = URL(url)
-        else:
-            url = self.base_url.join(path)
+        if not url:
+            url = urljoin(self.base_url, path)
         if extra_headers is None:
             extra_headers = {}
         if json is not None:
@@ -778,12 +789,12 @@ class Client(httpx.Client, ApiDefinitions):
             },
             params={} if params is None else params,
             json=json,
-            follow_redirects=follow_redirects,
+            allow_redirects=follow_redirects,
         )
 
         try:
             response.raise_for_status()
-        except HTTPStatusError as e:
+        except requests.HTTPError as e:
             if e.response.headers.get("Content-Type") == "application/json":
                 message = e.response.json()
                 logger.error(f"{method} request to {url} failed: {message}")
@@ -845,7 +856,7 @@ class Client(httpx.Client, ApiDefinitions):
             )
             content = (
                 resp.content
-                if isinstance(resp, httpx.Response)
+                if isinstance(resp, requests.Response)
                 else json.dumps(resp).encode()
             )
             with open(target_path, "wb") as f:

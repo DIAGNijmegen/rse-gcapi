@@ -1,10 +1,11 @@
 import datetime
+from http import HTTPStatus
 from unittest import mock
 
 import pytest
-from httpx import Response, codes
 
 from gcapi.retries import SelectiveBackoffStrategy
+from tests.utils import make_response
 
 NO_RETRIES = [None]
 
@@ -12,76 +13,76 @@ NO_RETRIES = [None]
 @pytest.mark.parametrize(
     "responses,delays",
     [
-        ([Response(codes.OK)], NO_RETRIES),
-        ([Response(codes.UNAUTHORIZED)], NO_RETRIES),
+        ([make_response(status_code=HTTPStatus.OK)], NO_RETRIES),
+        ([make_response(status_code=HTTPStatus.UNAUTHORIZED)], NO_RETRIES),
         (  # No retry server errors
             [
-                Response(e)
+                make_response(status_code=e)
                 for e in (
-                    codes.INTERNAL_SERVER_ERROR,
-                    codes.NOT_IMPLEMENTED,
-                    codes.HTTP_VERSION_NOT_SUPPORTED,
-                    codes.VARIANT_ALSO_NEGOTIATES,
-                    codes.LOOP_DETECTED,
-                    codes.NOT_EXTENDED,
-                    codes.NETWORK_AUTHENTICATION_REQUIRED,
+                    HTTPStatus.INTERNAL_SERVER_ERROR,
+                    HTTPStatus.NOT_IMPLEMENTED,
+                    HTTPStatus.HTTP_VERSION_NOT_SUPPORTED,
+                    HTTPStatus.VARIANT_ALSO_NEGOTIATES,
+                    HTTPStatus.LOOP_DETECTED,
+                    HTTPStatus.NOT_EXTENDED,
+                    HTTPStatus.NETWORK_AUTHENTICATION_REQUIRED,
                 )
             ],
             NO_RETRIES * 7,
         ),
         *(  # Backoff responses
             (
-                [Response(e)] * 10,
+                [make_response(status_code=e)] * 10,
                 [0.1, 0.2, 0.4, 0.8, 1.60, 3.20, 6.40, 12.8, None, None],
             )
             for e in (
-                codes.BAD_GATEWAY,
-                codes.SERVICE_UNAVAILABLE,
-                codes.GATEWAY_TIMEOUT,
-                codes.INSUFFICIENT_STORAGE,
+                HTTPStatus.BAD_GATEWAY,
+                HTTPStatus.SERVICE_UNAVAILABLE,
+                HTTPStatus.GATEWAY_TIMEOUT,
+                HTTPStatus.INSUFFICIENT_STORAGE,
             )
         ),
         (  # Mixed responses
             [
-                Response(codes.BAD_GATEWAY),
-                Response(codes.BAD_GATEWAY),
-                Response(codes.GATEWAY_TIMEOUT),
-                Response(codes.GATEWAY_TIMEOUT),
+                make_response(status_code=HTTPStatus.BAD_GATEWAY),
+                make_response(status_code=HTTPStatus.BAD_GATEWAY),
+                make_response(status_code=HTTPStatus.GATEWAY_TIMEOUT),
+                make_response(status_code=HTTPStatus.GATEWAY_TIMEOUT),
             ],
             [0.1, 0.2] * 2,
         ),
-        # codes.TOO_MANY_REQUESTS without Retry-After header
+        # HTTPStatus.TOO_MANY_REQUESTS without Retry-After header
         (
-            [Response(codes.TOO_MANY_REQUESTS)] * 10,
+            [make_response(status_code=HTTPStatus.TOO_MANY_REQUESTS)] * 10,
             [0.1, 0.2, 0.4, 0.8, 1.6, 3.2, 6.4, 12.8, None, None],
         ),
-        # codes.TOO_MANY_REQUESTS with Retry-After header with garbage
+        # HTTPStatus.TOO_MANY_REQUESTS with Retry-After header with garbage
         (
             [
-                Response(
-                    codes.TOO_MANY_REQUESTS,
+                make_response(
+                    status_code=HTTPStatus.TOO_MANY_REQUESTS,
                     headers={"Retry-After": "foo"},
                 )
             ]
             * 10,
             [0.1, 0.2, 0.4, 0.8, 1.6, 3.2, 6.4, 12.8, None, None],
         ),
-        # codes.TOO_MANY_REQUESTS with Retry-After header as integer seconds
+        # HTTPStatus.TOO_MANY_REQUESTS with Retry-After header as integer seconds
         (
             [
-                Response(
-                    codes.TOO_MANY_REQUESTS,
+                make_response(
+                    status_code=HTTPStatus.TOO_MANY_REQUESTS,
                     headers={"Retry-After": "120"},
                 )
             ]
             * 10,
             [120.0] * 8 + [None, None],
         ),
-        # codes.TOO_MANY_REQUESTS with Retry-After header as HTTP-date (in the past)
+        # HTTPStatus.TOO_MANY_REQUESTS with Retry-After header as HTTP-date (in the past)
         (
             [
-                Response(
-                    codes.TOO_MANY_REQUESTS,
+                make_response(
+                    status_code=HTTPStatus.TOO_MANY_REQUESTS,
                     headers={"Retry-After": "Wed, 21 Oct 1990 07:28:00 GMT"},
                 )
             ]
@@ -92,10 +93,10 @@ NO_RETRIES = [None]
             ],
         ),
         (
-            # codes.TOO_MANY_REQUESTS with Retry-After header as HTTP-date
+            # HTTPStatus.TOO_MANY_REQUESTS with Retry-After header as HTTP-date
             [
-                Response(
-                    codes.TOO_MANY_REQUESTS,
+                make_response(
+                    status_code=HTTPStatus.TOO_MANY_REQUESTS,
                     headers={"Retry-After": "Fri, 01 Jan 1999 12:00:10 GMT"},
                 )
             ]
@@ -130,8 +131,8 @@ def test_example_retry_strategy_usage(docs_path):
     strategy = UploadRetryStrategy()
 
     delay = strategy.get_delay(
-        Response(
-            codes.BAD_REQUEST,
+        make_response(
+            status_code=HTTPStatus.BAD_REQUEST,
             json={
                 "non_field_errors": [
                     "You have created too many uploads. Please try again later."

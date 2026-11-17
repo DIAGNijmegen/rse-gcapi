@@ -1,4 +1,4 @@
-import httpx
+from http import HTTPStatus
 
 import gcapi
 
@@ -21,7 +21,7 @@ class UploadRetryStrategy(gcapi.retries.SelectiveBackoffStrategy):
     def get_delay(self, latest_response):
         delay = None  # Do not retry at all, by default
 
-        if latest_response.status_code == httpx.codes.BAD_REQUEST:
+        if latest_response.status_code == HTTPStatus.BAD_REQUEST:
             response_json = latest_response.json()
             non_field_errors = response_json.get("non_field_errors", [])
             if (

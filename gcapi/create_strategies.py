@@ -8,7 +8,7 @@ from pathlib import Path
 from tempfile import SpooledTemporaryFile
 from typing import TYPE_CHECKING, Any
 
-import httpx
+import requests
 
 from gcapi.typing import Unset, UnsetType
 
@@ -474,7 +474,7 @@ class FileFromSVCreateStrategy(SocketValueCreateStrategy):
             url=self.content_api_url,
             follow_redirects=True,
         )
-        if isinstance(response_or_json, httpx.Response):
+        if isinstance(response_or_json, requests.Response):
             return response_or_json.content
         else:
             # Else, the response is actually the JSON already
@@ -582,8 +582,7 @@ class ImageFromImageCreateStrategy(SocketValueCreateStrategy):
 
         api_url = str(existing_image_api_url)
 
-        # assert it is a valid URL
-        self.content_api_url = httpx.URL(api_url)
+        self.content_api_url = api_url
 
         # assert we have access to the image
         self.client.images.detail(api_url=api_url)
@@ -612,8 +611,7 @@ class ImageFromSVCreateStrategy(SocketValueCreateStrategy):
 
         api_url = existing_socket_value.image
 
-        # assert it is a valid URL
-        self.content_api_url = httpx.URL(api_url)
+        self.content_api_url = api_url
 
         # assert we have access to the image
         self.client.images.detail(api_url=api_url)

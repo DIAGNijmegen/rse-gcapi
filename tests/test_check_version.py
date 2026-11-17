@@ -15,8 +15,8 @@ def mock_get_version():
 
 
 @pytest.fixture
-def mock_httpx_client():
-    with patch("gcapi.check_version.httpx.Client") as mock:
+def mock_session():
+    with patch("gcapi.check_version.requests.Session") as mock:
         yield mock
 
 
@@ -51,7 +51,7 @@ def mock_httpx_client():
 )
 def test_check_version_comparisons(
     mock_get_version,
-    mock_httpx_client,
+    mock_session,
     current,
     latest,
     lowest,
@@ -64,7 +64,7 @@ def test_check_version_comparisons(
         "latest_version": latest,
         "lowest_supported_version": lowest,
     }
-    mock_httpx_client.return_value.__enter__.return_value.get.return_value = (
+    mock_session.return_value.__enter__.return_value.get.return_value = (
         mock_response
     )
 

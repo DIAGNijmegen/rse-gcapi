@@ -1,8 +1,10 @@
 import logging
 from collections.abc import Callable
 from time import sleep
+from typing import Any
 
-import httpx
+import requests
+from requests.adapters import HTTPAdapter
 
 from gcapi.retries import BaseRetryStrategy
 
@@ -11,7 +13,7 @@ logger = logging.getLogger(__name__)
 Seconds = float
 
 
-class BaseRetryTransport:
+class BaseRetryAdapter:
     def __init__(
         self,
         retry_strategy: Callable[..., BaseRetryStrategy] | None,
@@ -41,19 +43,18 @@ class BaseRetryTransport:
 
         retry_delay = retry_strategy.get_delay(response)
         if retry_delay is not None:
-            error_phrase = httpx.codes.get_reason_phrase(response.status_code)
             logger.error(
                 f"{request.method} request to {request.url} failed with "
-                f"{response.status_code} status ({error_phrase!r}): "
+                f"{response.status_code} status ({response.reason!r}): "
                 f"retrying with {retry_delay}s delay"
             )
 
         return retry_strategy, retry_delay
 
 
-class RetryTransport(BaseRetryTransport, httpx.HTTPTransport):
+class RetryAdapter(BaseRetryAdapter, HTTPAdapter):
     """
-    Transport that retries unsuccessful requests. Delays between retries are
+    Adapter that retries unsuccessful requests. Delays between retries are
     governed by a retry strategy.
 
     Once a request fails, a retries-strategy object is created from the provided
@@ -63,14 +64,14 @@ class RetryTransport(BaseRetryTransport, httpx.HTTPTransport):
     The retry object should be an instance of BaseRetries.
     """
 
-    def handle_request(
-        self, request: httpx.Request, *args, **kwargs
-    ) -> httpx.Response:
+    def send(
+        self, request: requests.PreparedRequest, *args: Any, **kwargs: Any
+    ) -> requests.Response:
         retry_strategy = None
         while True:
-            response = super().handle_request(request, *args, **kwargs)
+            response = super().send(request, *args, **kwargs)
 
-            if response.is_success:
+            if response.ok:
                 break
 
             retry_strategy, retry_delay = self._get_retry_delay(
