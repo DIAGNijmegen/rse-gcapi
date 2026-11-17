@@ -1,8 +1,13 @@
 # History
 
-## 0.16.2 (unreleased)
+## 0.17.0
 * Remove support for Python 3.10 (EOL 2027-10)
 * Add support for Python 3.15
+* (Breaking) Replace `httpx` with `requests`
+  * `Client` is now a `requests.Session`, and raises `requests.HTTPError` instead of `httpx.HTTPStatusError`
+  * Retry strategies receive a `requests.Response`
+  * `gcapi.transports.RetryTransport` is replaced by `gcapi.adapters.RetryAdapter`
+* Fix upload chunk retries (409, 423 and 5xx) never being triggered
 
 ## 0.16.1
 * Add APIs for Algorithm Endpoints and Invocations

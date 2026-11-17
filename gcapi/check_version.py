@@ -1,7 +1,7 @@
 import warnings
 from importlib.metadata import version as get_version
 
-import httpx
+import requests
 from packaging import version
 
 
@@ -14,8 +14,9 @@ def check_version(base_url, verify=True):
 
     current_version = get_version(package_name)
 
-    with httpx.Client(verify=verify) as client:
-        response = client.get(f"{base_url}gcapi/")
+    with requests.Session() as session:
+        session.verify = verify
+        response = session.get(f"{base_url}gcapi/", timeout=5)
         response.raise_for_status()
 
         api_data = response.json()

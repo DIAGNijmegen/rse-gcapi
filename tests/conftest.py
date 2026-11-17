@@ -10,8 +10,8 @@ from time import sleep
 from typing import Any
 from unittest.mock import patch
 
-import httpx
 import pytest
+import requests
 
 from tests import TESTDATA
 from tests.integration_tests import ADMIN_TOKEN
@@ -34,10 +34,10 @@ def local_httpbin():
         url = "http://localhost:8008/"
         for _ in range(5):
             try:
-                response = httpx.get(url, timeout=5)
+                response = requests.get(url, timeout=5)
                 response.raise_for_status()
                 break
-            except (httpx.RequestError, httpx.HTTPStatusError):
+            except requests.RequestException:
                 sleep(1)
         else:
             raise RuntimeError(f"Failed to connect to {url}")
@@ -73,7 +73,7 @@ def local_grand_challenge(  # noqa: C901
 
     def is_local_gc_available():
         try:
-            r = httpx.get(
+            r = requests.get(
                 local_api_url,
                 verify=False,
                 headers={"Authorization": f"Bearer {ADMIN_TOKEN}"},
@@ -81,7 +81,7 @@ def local_grand_challenge(  # noqa: C901
             )
             r.raise_for_status()
             return True
-        except httpx.HTTPError:
+        except requests.RequestException:
             return False
 
     if is_local_gc_available():

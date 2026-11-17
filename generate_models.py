@@ -2,7 +2,7 @@ import json
 from pathlib import Path
 from tempfile import TemporaryDirectory
 
-import httpx
+import requests
 from datamodel_code_generator import (
     DataModelType,
     InputFileType,
@@ -12,7 +12,7 @@ from datamodel_code_generator import (
 
 
 def main() -> int:
-    json_schema = httpx.get(
+    json_schema = requests.get(
         "https://grand-challenge.org/api/schema/",
         headers={"accept": "application/json"},
         timeout=10,

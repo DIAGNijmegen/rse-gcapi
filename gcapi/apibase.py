@@ -5,9 +5,9 @@ from collections.abc import Iterator, Sequence
 from typing import TYPE_CHECKING, Any, Generic, TypeVar, overload
 from urllib.parse import urljoin
 
-from httpx import HTTPStatusError
 from pydantic import RootModel
 from pydantic.dataclasses import is_pydantic_dataclass
+from requests import HTTPError
 
 from gcapi.exceptions import MultipleObjectsReturned, ObjectNotFound
 
@@ -177,7 +177,7 @@ class APIBase(Generic[T]):
             try:
                 result = self._client(method="GET", **request_kwargs)
                 return self.model(**result)
-            except HTTPStatusError as e:
+            except HTTPError as e:
                 if e.response.status_code == 404:
                     raise ObjectNotFound from e
                 else:
